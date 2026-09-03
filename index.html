@@ -1109,8 +1109,11 @@
       const text = generateReportText();
       const copyBtnText = document.getElementById('copyBtnText');
 
-      // 1. 복사할 때마다 지난 기록 보관함에 자동 저장
+      // 1. 복사할 때마다 지난 기록 보관함에 자동 저장 & 클라우드 동기화
       saveCurrentToHistory(false);
+      if (state.syncCode) {
+        saveToCloud(true);
+      }
 
       try {
         if (navigator.clipboard && window.isSecureContext) {
@@ -1471,6 +1474,9 @@
     function closeMemberModal() {
       document.getElementById('memberModal').classList.add('hidden');
       renderAll();
+      if (state.syncCode) {
+        saveToCloud(true);
+      }
     }
 
     let memberSortable = null;
