@@ -1060,14 +1060,14 @@
       const sundayAbsentees = getAbsentees('sunday');
       const cellAbsentees = getAbsentees('cell');
 
-      // 4. 결석자 텍스트 빌드
+      // 4. 결석자 텍스트 빌드 (주일예배와 셀모임 모두 한 줄에 한 명씩 정돈)
       let sundayAbsenceText = '';
       if (sundayAbsentees.length > 0) {
         const details = sundayAbsentees.map(name => {
           const reason = (state.sundayReasons[name] || '').trim();
-          return reason ? `${name}(${reason})` : name;
-        }).join(', ');
-        sundayAbsenceText = `주일예배(${sundayAbsentees.length}명): ${details}`;
+          return reason ? `${name} - ${reason}` : name;
+        }).join('\n');
+        sundayAbsenceText = `주일예배 (${sundayAbsentees.length}명)\n${details}`;
       } else {
         sundayAbsenceText = `주일예배: 없음`;
       }
