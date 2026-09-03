@@ -505,9 +505,14 @@
       history: []           // 지난 보고서 히스토리 보관함
     };
 
-    // 빠른 사유 프리셋
-    const REASON_PRESETS = [
-      '온라인 예배', '늦잠으로 온라인', '직장/야근', '거리/이사', '몸살/컨디션', '출장/시험'
+    // 주일예배 빠른 불참 사유 프리셋
+    const SUNDAY_REASON_PRESETS = [
+      '온라인 예배', '늦잠으로 온라인', '직장/야근', '거리/이사', '몸살/컨디션', '출장/시험', '장기결석'
+    ];
+
+    // 셀모임 빠른 불참 사유 프리셋 (온라인예배 관련 제외 및 장기결석 추가)
+    const CELL_REASON_PRESETS = [
+      '직장/야근', '거리/이사', '몸살/컨디션', '출장/시험', '장기결석'
     ];
 
     // 초기화
@@ -966,7 +971,7 @@
               oninput="setReason('sunday', '${name}', this.value)"
               class="w-full px-2.5 py-1.5 text-xs bg-white border border-zinc-200 rounded focus:outline-none focus:border-zinc-900 font-normal">
             <div class="flex flex-wrap gap-1">
-              ${REASON_PRESETS.map(preset => `
+              ${SUNDAY_REASON_PRESETS.map(preset => `
                 <button type="button" onclick="setReasonAndInput('sunday', '${name}', '${preset}')" 
                   class="text-[11px] px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded hover:bg-zinc-200 transition">
                   ${preset}
@@ -1005,7 +1010,7 @@
               oninput="setReason('cell', '${name}', this.value)"
               class="w-full px-2.5 py-1.5 text-xs bg-white border border-zinc-200 rounded focus:outline-none focus:border-zinc-900 font-normal">
             <div class="flex flex-wrap gap-1">
-              ${REASON_PRESETS.map(preset => `
+              ${CELL_REASON_PRESETS.map(preset => `
                 <button type="button" onclick="setReasonAndInput('cell', '${name}', '${preset}')" 
                   class="text-[11px] px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded hover:bg-zinc-200 transition">
                   ${preset}
