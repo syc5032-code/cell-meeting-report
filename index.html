@@ -396,9 +396,9 @@
       members: [...DEFAULT_MEMBERS],
       sundayAttendance: {}, // { '송예찬': true, ... }
       cellAttendance: {},   // { '송예찬': true, ... }
-      sundayReasons: {},    // { '양광모': '늦잠으로 온라인' }
-      cellReasons: {},      // { '양광모': '새로 취업한 직장이 거리가 멀어서...' }
-      notes: '- 한빈이 퇴근시간이 7시30분이라 항상 셀모임 끝날 때쯤 오게돼서, 다음주부터 월요일 7시30분-9시 본당에서 셀모임 하기로 변경했습니다.',
+      sundayReasons: {},    // 결석 사유 빈 상태
+      cellReasons: {},      // 결석 사유 빈 상태
+      notes: '',            // 특이사항 빈 상태
       sundayAbsenceOrder: [], // 주일예배 결석자 사용자 지정 순서
       cellAbsenceOrder: [],   // 셀모임 결석자 사용자 지정 순서
       history: []           // 지난 보고서 히스토리 보관함
@@ -497,21 +497,15 @@
         console.error('Failed to load storage', e);
       }
 
-      // 출석 상태 누락 멤버 기본값(출석) 세팅
+      // 출석 상태 누락 멤버 기본값(전원 출석) 세팅
       state.members.forEach(name => {
         if (state.sundayAttendance[name] === undefined) {
-          state.sundayAttendance[name] = (name !== '양광모'); // 예시 기본값 반영
+          state.sundayAttendance[name] = true;
         }
         if (state.cellAttendance[name] === undefined) {
-          state.cellAttendance[name] = (name !== '양광모');
+          state.cellAttendance[name] = true;
         }
       });
-      if (state.sundayReasons['양광모'] === undefined) {
-        state.sundayReasons['양광모'] = '늦잠으로 온라인';
-      }
-      if (state.cellReasons['양광모'] === undefined) {
-        state.cellReasons['양광모'] = '새로 취업한 직장이 거리가 멀어서 나오기 힘든 상황';
-      }
     }
 
     // 로컬 스토리지 저장 (모든 필드 완벽 보존)
