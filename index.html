@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#18181B">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>셀모임 보고서</title>
+
+  <!-- Pretendard 모던 웹폰트 -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', 'sans-serif'],
+          },
+          colors: {
+            kakao: '#FEE500',
+            kakaoBrown: '#191919',
+          }
+        }
+      }
+    }
+  </script>
+  <!-- SortableJS -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <style>
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      padding-bottom: env(safe-area-inset-bottom, 24px);
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+      letter-spacing: -0.02em;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #d4d4d8;
+      border-radius: 9999px;
+    }
+    .sortable-ghost {
+      opacity: 0.3;
+      background: #f4f4f5 !important;
+      border: 1px dashed #71717a !important;
+    }
+    .sortable-chosen {
+      background-color: #ffffff;
+      border-color: #18181b;
+    }
+    .drag-handle {
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+    .drag-handle:active {
+      cursor: grabbing;
+    }
+  </style>
+</head>
+<body class="bg-[#FAFAFA] text-zinc-900 min-h-screen pb-32">
+
+  <!-- 상단 네비게이션 헤더 (미니멀 리니어 스타일) -->
+  <header class="sticky top-0 z-30 bg-white border-b border-zinc-200 px-4 py-3">
+    <div class="max-w-2xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-lg bg-zinc-900 text-white flex items-center justify-center shadow-xs">
+          <!-- 깔끔한 클립보드 체크 SVG 아이콘 -->
+          <svg class="w-3.5 h-3.5 text-zinc-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+          </svg>
+        </div>
+        <h1 class="font-semibold text-sm leading-tight text-zinc-900 tracking-tight">셀모임 보고서</h1>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button onclick="openHistoryModal()" class="px-2.5 py-1.5 text-xs font-medium text-zinc-700 bg-white hover:bg-zinc-50 rounded-lg border border-zinc-200 transition active:scale-95">
+          기록
+        </button>
+        <button onclick="openMemberModal()" class="px-2.5 py-1.5 text-xs font-medium text-zinc-700 bg-white hover:bg-zinc-50 rounded-lg border border-zinc-200 transition active:scale-95">
+          멤버 관리
+        </button>
+        <button onclick="resetAttendanceAndReasons()" class="px-2.5 py-1.5 text-xs font-medium text-zinc-700 bg-white hover:bg-zinc-50 rounded-lg border border-zinc-200 transition active:scale-95" title="새 보고서 작성">
+          새로 작성
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 컨테이너 (미니멀 노션/리니어 스타일) -->
+  <main class="max-w-2xl mx-auto px-4 py-5 space-y-4">
+
+    <!-- 1. 기본 정보 카드 -->
+    <section class="bg-white rounded-xl border border-zinc-200 p-4 sm:p-5 space-y-3.5">
+      <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+        <h2 class="font-semibold text-xs text-zinc-500 uppercase tracking-wider">
+          1. 기본 정보
+        </h2>
+        <div class="flex items-center gap-2">
+          <span id="saveStatusBadge" class="text-[11px] text-zinc-400 font-mono flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>저장됨
+          </span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <!-- 리더 이름 -->
+        <div>
+          <label class="block text-xs font-medium text-zinc-500 mb-1">셀 리더 이름</label>
+          <input type="text" id="leaderNameInput" value="송예찬" placeholder="예: 송예찬" oninput="saveLeaderName(); updateOutput();" 
+            class="w-full px-3 py-2 text-sm bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-zinc-900 font-medium transition-colors">
+        </div>
+
+        <!-- 모임 장소 -->
+        <div>
+          <label class="block text-xs font-medium text-zinc-500 mb-1">모임 장소</label>
+          <input type="text" id="meetingLocationInput" value="3층 DCC" oninput="saveLocation(); updateOutput();" 
+            class="w-full px-3 py-2 text-sm bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-zinc-900 font-medium transition-colors" placeholder="예: 3층 DCC">
+          <div class="flex flex-wrap gap-1.5 mt-1.5">
+            <button onclick="setLocation('3층 DCC')" class="text-xs px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded hover:bg-zinc-200 transition">3층 DCC</button>
+            <button onclick="setLocation('본당')" class="text-xs px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded hover:bg-zinc-200 transition">본당</button>
+            <button onclick="setLocation('소그룹실')" class="text-xs px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded hover:bg-zinc-200 transition">소그룹실</button>
+            <button onclick="setLocation('카페')" class="text-xs px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded hover:bg-zinc-200 transition">카페</button>
+          </div>
+        </div>
+
+        <!-- 모임 날짜 -->
+        <div>
+          <label class="block text-xs font-medium text-zinc-500 mb-1">모임 날짜</label>
+          <input type="date" id="meetingDateInput" onchange="updateDateDisplay(); updateOutput();" 
+            class="w-full px-3 py-2 text-sm bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-zinc-900 font-medium transition-colors">
+        </div>
+
+        <!-- 모임 시간 표기 -->
+        <div>
+          <label class="block text-xs font-medium text-zinc-500 mb-1">모임 시간 표기</label>
+          <input type="text" id="meetingTimeInput" value="저녁 7시" oninput="setTime(this.value);" 
+            class="w-full px-3 py-2 text-sm bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-zinc-900 font-medium transition-colors" placeholder="예: 저녁 7시">
+          <div class="flex flex-wrap gap-1.5 mt-1.5">
+            <button onclick="setTime('저녁 7시')" class="text-xs px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded hover:bg-zinc-200 transition">저녁 7시</button>
+            <button onclick="setTime('저녁 7시30분')" class="text-xs px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded hover:bg-zinc-200 transition">저녁 7시30분</button>
+            <button onclick="setTime('주일 예배 후')" class="text-xs px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded hover:bg-zinc-200 transition">주일 예배 후</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. 주일예배 출석 체크 -->
+    <section class="bg-white rounded-xl border border-zinc-200 p-4 sm:p-5 space-y-3">
+      <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+        <div class="flex items-center gap-2">
+          <h2 class="font-semibold text-xs text-zinc-500 uppercase tracking-wider">2. 주일예배 출석</h2>
+          <span id="sundayWorshipBadge" class="text-xs font-mono text-zinc-600 font-medium bg-zinc-100 px-2 py-0.5 rounded">
+            0 / 0명
+          </span>
+        </div>
+        <div class="flex gap-1">
+          <button onclick="selectAll('sunday', true)" class="text-xs px-2 py-1 bg-zinc-100 hover:bg-zinc-200 rounded text-zinc-700 font-medium transition active:scale-95">전원</button>
+          <button onclick="selectAll('sunday', false)" class="text-xs px-2 py-1 bg-zinc-100 hover:bg-zinc-200 rounded text-zinc-500 font-medium transition active:scale-95">해제</button>
+        </div>
+      </div>
+
+      <!-- 주일예배 출석 칩 그리드 -->
+      <div id="sundayAttendanceChips" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 pt-0.5">
+        <!-- JS로 렌더링 -->
+      </div>
+    </section>
+
+    <!-- 3. 셀모임 출석 체크 -->
+    <section class="bg-white rounded-xl border border-zinc-200 p-4 sm:p-5 space-y-3">
+      <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+        <div class="flex items-center gap-2">
+          <h2 class="font-semibold text-xs text-zinc-500 uppercase tracking-wider">3. 셀모임 출석</h2>
+          <span id="cellMeetingBadge" class="text-xs font-mono text-zinc-600 font-medium bg-zinc-100 px-2 py-0.5 rounded">
+            0 / 0명
+          </span>
+        </div>
+        <div class="flex gap-1">
+          <button onclick="selectAll('cell', true)" class="text-xs px-2 py-1 bg-zinc-100 hover:bg-zinc-200 rounded text-zinc-700 font-medium transition active:scale-95">전원</button>
+          <button onclick="selectAll('cell', false)" class="text-xs px-2 py-1 bg-zinc-100 hover:bg-zinc-200 rounded text-zinc-500 font-medium transition active:scale-95">해제</button>
+        </div>
+      </div>
+
+      <!-- 셀모임 출석 칩 그리드 -->
+      <div id="cellAttendanceChips" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 pt-0.5">
+        <!-- JS로 렌더링 -->
+      </div>
+    </section>
+
+    <!-- 4. 결석자 사유 입력 -->
+    <section class="bg-white rounded-xl border border-zinc-200 p-4 sm:p-5 space-y-3.5">
+      <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+        <h2 class="font-semibold text-xs text-zinc-500 uppercase tracking-wider">4. 결석 사유</h2>
+        <span class="text-[11px] text-zinc-400 font-medium">드래그로 순서 변경 가능</span>
+      </div>
+
+      <!-- 주일예배 결석자 -->
+      <div class="space-y-2">
+        <div class="text-xs font-medium text-zinc-600 flex items-center justify-between">
+          <span>주일예배 결석자</span>
+          <span class="font-mono text-zinc-400" id="sundayAbsenceCount">0</span>
+        </div>
+        <div id="sundayAbsenceList" class="space-y-2">
+          <!-- JS 렌더링 -->
+        </div>
+      </div>
+
+      <!-- 셀모임 결석자 -->
+      <div class="border-t border-zinc-100 pt-3 space-y-2">
+        <div class="text-xs font-medium text-zinc-600 flex items-center justify-between">
+          <span>셀모임 결석자</span>
+          <span class="font-mono text-zinc-400" id="cellAbsenceCount">0</span>
+        </div>
+        <div id="cellAbsenceList" class="space-y-2">
+          <!-- JS 렌더링 -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. 특이사항 -->
+    <section class="bg-white rounded-xl border border-zinc-200 p-4 sm:p-5 space-y-3">
+      <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+        <h2 class="font-semibold text-xs text-zinc-500 uppercase tracking-wider">5. 셀모임 특이사항</h2>
+      </div>
+      <div>
+        <textarea id="notesInput" rows="3" oninput="updateOutput()"
+          class="w-full p-3 text-sm bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-zinc-900 font-normal leading-relaxed custom-scrollbar transition-colors" 
+          placeholder="- 특이사항, 다음 주 모임 변동사항, 기도제목 등을 입력하세요."></textarea>
+      </div>
+      <!-- 특이사항 아래 저장 버튼 -->
+      <div class="flex items-center justify-between pt-0.5">
+        <span class="text-xs text-zinc-400 font-normal">작성 후 저장해두면 다음에 그대로 유지됩니다.</span>
+        <button type="button" id="sectionSaveBtn" onclick="manualSave()" 
+          class="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-xs rounded-lg transition active:scale-95 flex items-center gap-1">
+          <span id="sectionSaveBtnText">저장하기</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 6. 최종 보고서 미리보기 (노션 코드블록 스타일) -->
+    <section class="bg-white rounded-xl border border-zinc-200 p-4 sm:p-5 space-y-2.5">
+      <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+        <h2 class="font-semibold text-xs text-zinc-500 uppercase tracking-wider">카카오톡 공유 보고서 미리보기</h2>
+        <span class="text-[11px] font-mono text-zinc-400">실시간 생성</span>
+      </div>
+
+      <div class="bg-zinc-50 border border-zinc-200 rounded-lg p-3.5 sm:p-4 font-sans text-xs sm:text-sm leading-relaxed text-zinc-800 select-all whitespace-pre-wrap" id="reportPreviewText">
+        <!-- 생성된 텍스트 -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 하단 플로팅 고정 바 (미니멀) -->
+  <div class="fixed bottom-0 inset-x-0 bg-white border-t border-zinc-200 px-4 py-3 z-40">
+    <div class="max-w-2xl mx-auto flex items-center gap-2">
+      <!-- 저장하기 버튼 -->
+      <button id="manualSaveBtn" onclick="manualSave()" class="bg-white hover:bg-zinc-50 text-zinc-800 font-medium py-3 px-4 rounded-lg border border-zinc-200 transition text-sm whitespace-nowrap active:scale-95" title="현재 내용 저장">
+        <span id="saveBtnText">저장</span>
+      </button>
+
+      <!-- 카카오톡 복사 버튼 -->
+      <button id="copyBtn" onclick="copyToClipboard()" class="flex-1 bg-kakao text-kakaoBrown hover:brightness-95 font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2 text-sm active:scale-[0.99]">
+        <span id="copyBtnText">카카오톡 내용 복사하기</span>
+      </button>
+
+      <a id="openKakaoBtn" href="kakaotalk://" class="hidden sm:flex bg-white hover:bg-zinc-50 text-zinc-600 font-medium py-3 px-3 rounded-lg border border-zinc-200 transition text-xs whitespace-nowrap active:scale-95" title="카카오톡 앱 열기">
+        <span>카톡 열기</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- 토스트 알림 -->
+  <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-4 py-2.5 rounded-lg text-xs font-medium shadow-lg transition-all duration-200 opacity-0 pointer-events-none z-50 flex items-center gap-2">
+    <span class="text-zinc-300">✓</span>
+    <span id="toastMessage">복사되었습니다.</span>
+  </div>
+
+  <!-- 멤버 관리 모달 -->
+  <div id="memberModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col border border-slate-100">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+          <span>👥</span> 셀 멤버 목록 관리
+        </h3>
+        <button onclick="closeMemberModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-sm font-bold transition active:scale-95">✕</button>
+      </div>
+
+      <p class="text-xs text-slate-400 font-medium">
+        셀원 명단은 브라우저에 자동 보존됩니다. 추가/삭제 후 완료를 누르세요.
+      </p>
+
+      <!-- 멤버 추가 인풋 -->
+      <div class="flex gap-2">
+        <input type="text" id="newMemberInput" placeholder="추가할 셀원 이름" 
+          onkeypress="if(event.key === 'Enter') addMember();"
+          class="flex-1 px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:bg-white font-medium">
+        <button onclick="addMember()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-2xl transition active:scale-95 shadow-sm shadow-blue-200">
+          추가
+        </button>
+      </div>
+
+      <!-- 멤버 리스트 -->
+      <div class="flex-1 overflow-y-auto space-y-1.5 custom-scrollbar pr-1 max-h-60" id="modalMemberList">
+        <!-- JS로 렌더링 -->
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t border-zinc-100">
+        <button onclick="resetDefaultMembers()" class="text-xs text-zinc-400 hover:text-rose-500 transition">
+          기본 명단으로 리셋
+        </button>
+        <button onclick="closeMemberModal()" class="px-4 py-2 bg-zinc-900 text-white text-xs font-medium rounded-lg hover:bg-zinc-800 transition active:scale-95">
+          완료
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 핸드폰 연동 안내 모달 -->
+  <div id="mobileModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-xl border border-zinc-200 p-5 space-y-3.5 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+        <h3 class="font-semibold text-sm text-zinc-900">
+          핸드폰 사용 안내
+        </h3>
+        <button onclick="closeMobileModal()" class="text-zinc-400 hover:text-zinc-700 text-sm font-bold p-1">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs text-zinc-600 overflow-y-auto custom-scrollbar pr-1">
+        <div class="p-3 bg-zinc-50 border border-zinc-200 rounded-lg space-y-1">
+          <div class="font-medium text-zinc-900 text-xs">
+            1. 웹 주소 바로 접속
+          </div>
+          <p class="leading-relaxed">
+            스마트폰 브라우저에서 <span class="font-mono text-zinc-800 underline">https://cell-meeting-report.vercel.app</span> 으로 접속하시면 됩니다.
+          </p>
+        </div>
+
+        <div class="p-3 bg-zinc-50 border border-zinc-200 rounded-lg space-y-1">
+          <div class="font-medium text-zinc-900 text-xs">
+            2. 홈 화면에 추가
+          </div>
+          <p class="leading-relaxed">
+            브라우저 메뉴에서 <b>[홈 화면에 추가]</b>를 누르면 바탕화면에 앱 아이콘이 생성되어 편리합니다.
+          </p>
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-zinc-100 flex justify-end">
+        <button onclick="closeMobileModal()" class="px-4 py-2 bg-zinc-900 text-white text-xs font-medium rounded-lg hover:bg-zinc-800 transition active:scale-95">
+          확인
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 지난 보고서 보관함(히스토리) 모달 -->
+  <div id="historyModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-xl border border-zinc-200 p-5 space-y-3.5 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+        <h3 class="font-semibold text-sm text-zinc-900">지난 보고서 보관함</h3>
+        <button onclick="closeHistoryModal()" class="text-zinc-400 hover:text-zinc-700 text-sm font-bold p-1">✕</button>
+      </div>
+
+      <div class="flex items-center justify-between bg-zinc-50 px-3 py-2 rounded-lg border border-zinc-200">
+        <span class="text-xs text-zinc-500">보고서 복사/저장 시 자동 누적됩니다.</span>
+        <button onclick="saveCurrentToHistory(true)" class="text-xs px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-white font-medium rounded-md transition active:scale-95">
+          + 현재 내용 저장
+        </button>
+      </div>
+
+      <!-- 기록 리스트 -->
+      <div class="flex-1 overflow-y-auto space-y-2.5 custom-scrollbar pr-1 max-h-[60vh]" id="historyListContainer">
+        <!-- JS로 렌더링 -->
+      </div>
+
+      <div class="pt-2.5 border-t border-zinc-100 flex items-center justify-between">
+        <button onclick="clearAllHistory()" class="text-xs text-zinc-400 hover:text-rose-600 transition">
+          전체 기록 삭제
+        </button>
+        <button onclick="closeHistoryModal()" class="px-4 py-2 bg-zinc-900 text-white text-xs font-medium rounded-lg hover:bg-zinc-800 transition active:scale-95">
+          닫기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 기본 셀원 명단
+    const DEFAULT_MEMBERS = [
+      '송예찬', '김한빈', '박승곤', '양광모', '육현조', '윤수민', '주진', '최상진', '최진성'
+    ];
+
+    // 상태 관리
+    let state = {
+      leaderName: '송예찬',
+      location: '3층 DCC',
+      meetingDate: '',
+      meetingTime: '저녁 7시',
+      members: [...DEFAULT_MEMBERS],
+      sundayAttendance: {}, // { '송예찬': true, ... }
+      cellAttendance: {},   // { '송예찬': true, ... }
+      sundayReasons: {},    // { '양광모': '늦잠으로 온라인' }
+      cellReasons: {},      // { '양광모': '새로 취업한 직장이 거리가 멀어서...' }
+      notes: '- 한빈이 퇴근시간이 7시30분이라 항상 셀모임 끝날 때쯤 오게돼서, 다음주부터 월요일 7시30분-9시 본당에서 셀모임 하기로 변경했습니다.',
+      sundayAbsenceOrder: [], // 주일예배 결석자 사용자 지정 순서
+      cellAbsenceOrder: [],   // 셀모임 결석자 사용자 지정 순서
+      history: []           // 지난 보고서 히스토리 보관함
+    };
+
+    // 빠른 사유 프리셋
+    const REASON_PRESETS = [
+      '온라인 예배', '늦잠으로 온라인', '직장/야근', '거리/이사', '몸살/컨디션', '출장/시험'
+    ];
+
+    // 초기화
+    window.addEventListener('DOMContentLoaded', () => {
+      loadStorage();
+      initDefaultDate();
+      renderAll();
+    });
+
+    // 최근/가까운 날짜 기본 세팅 (저장된 날짜가 없을 때만 오늘로 초기화)
+    function initDefaultDate() {
+      if (!state.meetingDate) {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        state.meetingDate = `${year}-${month}-${day}`;
+      }
+      const dateEl = document.getElementById('meetingDateInput');
+      if (dateEl) dateEl.value = state.meetingDate;
+      const timeEl = document.getElementById('meetingTimeInput');
+      if (timeEl && state.meetingTime) timeEl.value = state.meetingTime;
+      updateDateDisplay();
+    }
+
+    // 로컬 스토리지 불러오기
+    function loadStorage() {
+      try {
+        const savedMembers = localStorage.getItem('cell_members');
+        if (savedMembers) {
+          state.members = JSON.parse(savedMembers);
+        }
+        const savedLeader = localStorage.getItem('cell_leader_name');
+        if (savedLeader !== null) {
+          state.leaderName = savedLeader;
+          document.getElementById('leaderNameInput').value = savedLeader;
+        }
+        const savedLocation = localStorage.getItem('cell_location');
+        if (savedLocation) {
+          state.location = savedLocation;
+          document.getElementById('meetingLocationInput').value = savedLocation;
+        }
+        const savedDate = localStorage.getItem('cell_meeting_date');
+        if (savedDate) {
+          state.meetingDate = savedDate;
+        }
+        const savedTime = localStorage.getItem('cell_meeting_time');
+        if (savedTime) {
+          state.meetingTime = savedTime;
+          document.getElementById('meetingTimeInput').value = savedTime;
+        }
+        const savedSundayAttendance = localStorage.getItem('cell_sunday_att');
+        if (savedSundayAttendance) {
+          state.sundayAttendance = JSON.parse(savedSundayAttendance);
+        }
+        const savedCellAttendance = localStorage.getItem('cell_cell_att');
+        if (savedCellAttendance) {
+          state.cellAttendance = JSON.parse(savedCellAttendance);
+        }
+        const savedSundayReasons = localStorage.getItem('cell_sunday_reasons');
+        if (savedSundayReasons) {
+          state.sundayReasons = JSON.parse(savedSundayReasons);
+        }
+        const savedCellReasons = localStorage.getItem('cell_cell_reasons');
+        if (savedCellReasons) {
+          state.cellReasons = JSON.parse(savedCellReasons);
+        }
+        const savedSundayOrder = localStorage.getItem('cell_sunday_order');
+        if (savedSundayOrder) {
+          state.sundayAbsenceOrder = JSON.parse(savedSundayOrder);
+        }
+        const savedCellOrder = localStorage.getItem('cell_cell_order');
+        if (savedCellOrder) {
+          state.cellAbsenceOrder = JSON.parse(savedCellOrder);
+        }
+        const savedNotes = localStorage.getItem('cell_notes');
+        if (savedNotes !== null) {
+          state.notes = savedNotes;
+          document.getElementById('notesInput').value = savedNotes;
+        } else {
+          document.getElementById('notesInput').value = state.notes;
+        }
+        const savedHistory = localStorage.getItem('cell_report_history');
+        if (savedHistory) {
+          state.history = JSON.parse(savedHistory);
+        }
+      } catch (e) {
+        console.error('Failed to load storage', e);
+      }
+
+      // 출석 상태 누락 멤버 기본값(출석) 세팅
+      state.members.forEach(name => {
+        if (state.sundayAttendance[name] === undefined) {
+          state.sundayAttendance[name] = (name !== '양광모'); // 예시 기본값 반영
+        }
+        if (state.cellAttendance[name] === undefined) {
+          state.cellAttendance[name] = (name !== '양광모');
+        }
+      });
+      if (state.sundayReasons['양광모'] === undefined) {
+        state.sundayReasons['양광모'] = '늦잠으로 온라인';
+      }
+      if (state.cellReasons['양광모'] === undefined) {
+        state.cellReasons['양광모'] = '새로 취업한 직장이 거리가 멀어서 나오기 힘든 상황';
+      }
+    }
+
+    // 로컬 스토리지 저장 (모든 필드 완벽 보존)
+    function saveStorage() {
+      try {
+        localStorage.setItem('cell_members', JSON.stringify(state.members));
+        localStorage.setItem('cell_leader_name', state.leaderName);
+        localStorage.setItem('cell_location', state.location);
+        localStorage.setItem('cell_meeting_date', state.meetingDate);
+        localStorage.setItem('cell_meeting_time', state.meetingTime);
+        localStorage.setItem('cell_sunday_att', JSON.stringify(state.sundayAttendance));
+        localStorage.setItem('cell_cell_att', JSON.stringify(state.cellAttendance));
+        localStorage.setItem('cell_sunday_reasons', JSON.stringify(state.sundayReasons));
+        localStorage.setItem('cell_cell_reasons', JSON.stringify(state.cellReasons));
+        localStorage.setItem('cell_sunday_order', JSON.stringify(state.sundayAbsenceOrder));
+        localStorage.setItem('cell_cell_order', JSON.stringify(state.cellAbsenceOrder));
+        localStorage.setItem('cell_notes', state.notes);
+        localStorage.setItem('cell_report_history', JSON.stringify(state.history));
+        updateSaveBadge();
+      } catch (e) {
+        console.error('Failed to save storage', e);
+      }
+    }
+
+    function updateSaveBadge() {
+      const badge = document.getElementById('saveStatusBadge');
+      if (badge) {
+        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>자동 저장됨`;
+      }
+    }
+
+    function saveLeaderName() {
+      state.leaderName = document.getElementById('leaderNameInput').value.trim();
+      saveStorage();
+    }
+
+    function setLocation(loc) {
+      document.getElementById('meetingLocationInput').value = loc;
+      saveLocation();
+      updateOutput();
+    }
+
+    function saveLocation() {
+      state.location = document.getElementById('meetingLocationInput').value.trim();
+      saveStorage();
+    }
+
+    function setTime(timeStr) {
+      document.getElementById('meetingTimeInput').value = timeStr;
+      state.meetingTime = timeStr;
+      saveStorage();
+      updateOutput();
+    }
+
+    function updateDateDisplay() {
+      const dateEl = document.getElementById('meetingDateInput');
+      if (dateEl && dateEl.value) {
+        state.meetingDate = dateEl.value;
+        saveStorage();
+      }
+    }
+
+    // 포맷팅된 날짜/시간 스트링 (예: 2026/8/10(월) 저녁 7시)
+    function getFormattedDateTime() {
+      const dateVal = document.getElementById('meetingDateInput').value;
+      const timeVal = document.getElementById('meetingTimeInput').value.trim() || '저녁 7시';
+      
+      if (!dateVal) return `2026/8/10(월) ${timeVal}`;
+
+      const dateObj = new Date(dateVal + 'T00:00:00');
+      const year = dateObj.getFullYear();
+      const month = dateObj.getMonth() + 1;
+      const day = dateObj.getDate();
+      
+      const dayOfWeekNames = ['일', '월', '화', '수', '목', '금', '토'];
+      const dayOfWeek = dayOfWeekNames[dateObj.getDay()];
+
+      return `${year}/${month}/${day}(${dayOfWeek}) ${timeVal}`;
+    }
+
+    // 출석 칩 렌더링 (아바타 카드형 감성 디자인)
+    function renderAttendanceChips() {
+      const sundayContainer = document.getElementById('sundayAttendanceChips');
+      const cellContainer = document.getElementById('cellAttendanceChips');
+
+      sundayContainer.innerHTML = '';
+      cellContainer.innerHTML = '';
+
+      let sundayAttCount = 0;
+      let cellAttCount = 0;
+
+      state.members.forEach(name => {
+        const isSundayAtt = !!state.sundayAttendance[name];
+        const isCellAtt = !!state.cellAttendance[name];
+
+        if (isSundayAtt) sundayAttCount++;
+        if (isCellAtt) cellAttCount++;
+
+        // 주일예배 버튼 (성 제외, 순수 이름만, 미니멀 세그먼트)
+        const sundayBtn = document.createElement('button');
+        sundayBtn.type = 'button';
+        sundayBtn.onclick = () => toggleAttendance('sunday', name);
+        sundayBtn.className = `py-2 px-2.5 rounded-lg border text-xs font-medium transition-colors flex items-center justify-between active:scale-95 ${
+          isSundayAtt 
+            ? 'bg-zinc-900 text-white border-zinc-900' 
+            : 'bg-white text-zinc-400 border-zinc-200 hover:border-zinc-300 hover:text-zinc-600'
+        }`;
+        sundayBtn.innerHTML = `
+          <span class="truncate">${name}</span>
+          <span class="text-[10px] font-mono ${isSundayAtt ? 'text-zinc-400' : 'opacity-0'}">✓</span>
+        `;
+        sundayContainer.appendChild(sundayBtn);
+
+        // 셀모임 버튼 (성 제외, 순수 이름만, 미니멀 세그먼트)
+        const cellBtn = document.createElement('button');
+        cellBtn.type = 'button';
+        cellBtn.onclick = () => toggleAttendance('cell', name);
+        cellBtn.className = `py-2 px-2.5 rounded-lg border text-xs font-medium transition-colors flex items-center justify-between active:scale-95 ${
+          isCellAtt 
+            ? 'bg-zinc-900 text-white border-zinc-900' 
+            : 'bg-white text-zinc-400 border-zinc-200 hover:border-zinc-300 hover:text-zinc-600'
+        }`;
+        cellBtn.innerHTML = `
+          <span class="truncate">${name}</span>
+          <span class="text-[10px] font-mono ${isCellAtt ? 'text-zinc-400' : 'opacity-0'}">✓</span>
+        `;
+        cellContainer.appendChild(cellBtn);
+      });
+
+      // 인원수 배지 갱신
+      document.getElementById('sundayWorshipBadge').innerText = `${sundayAttCount} / ${state.members.length}명`;
+      document.getElementById('cellMeetingBadge').innerText = `${cellAttCount} / ${state.members.length}명`;
+    }
+
+    // 출석 토글
+    function toggleAttendance(type, name) {
+      if (navigator.vibrate) navigator.vibrate(10);
+      if (type === 'sunday') {
+        state.sundayAttendance[name] = !state.sundayAttendance[name];
+      } else {
+        state.cellAttendance[name] = !state.cellAttendance[name];
+      }
+      saveStorage();
+      renderAll();
+    }
+
+    // 전원 선택 / 전원 해제
+    function selectAll(type, value) {
+      state.members.forEach(name => {
+        if (type === 'sunday') {
+          state.sundayAttendance[name] = value;
+        } else {
+          state.cellAttendance[name] = value;
+        }
+      });
+      saveStorage();
+      renderAll();
+    }
+
+    // 결석자 목록 추출 (정렬 순서 유지)
+    function getAbsentees(type) {
+      const attMap = (type === 'sunday') ? state.sundayAttendance : state.cellAttendance;
+      const orderList = (type === 'sunday') ? state.sundayAbsenceOrder : state.cellAbsenceOrder;
+      
+      const realAbsentees = state.members.filter(name => !attMap[name]);
+      const validSaved = orderList.filter(name => realAbsentees.includes(name));
+      const newlyAdded = realAbsentees.filter(name => !validSaved.includes(name));
+      return [...validSaved, ...newlyAdded];
+    }
+
+    // SortableJS 초기화
+    let sundaySortable = null;
+    let cellSortable = null;
+
+    function initSortables() {
+      const sundayList = document.getElementById('sundayAbsenceList');
+      const cellList = document.getElementById('cellAbsenceList');
+
+      if (sundayList) {
+        if (sundaySortable) sundaySortable.destroy();
+        sundaySortable = new Sortable(sundayList, {
+          handle: '.drag-handle',
+          animation: 150,
+          ghostClass: 'sortable-ghost',
+          chosenClass: 'sortable-chosen',
+          onEnd: function() {
+            const names = Array.from(sundayList.querySelectorAll('[data-name]')).map(el => el.getAttribute('data-name')).filter(Boolean);
+            state.sundayAbsenceOrder = names;
+            saveStorage();
+            updateOutput();
+          }
+        });
+      }
+
+      if (cellList) {
+        if (cellSortable) cellSortable.destroy();
+        cellSortable = new Sortable(cellList, {
+          handle: '.drag-handle',
+          animation: 150,
+          ghostClass: 'sortable-ghost',
+          chosenClass: 'sortable-chosen',
+          onEnd: function() {
+            const names = Array.from(cellList.querySelectorAll('[data-name]')).map(el => el.getAttribute('data-name')).filter(Boolean);
+            state.cellAbsenceOrder = names;
+            saveStorage();
+            updateOutput();
+          }
+        });
+      }
+    }
+
+    // 버튼으로 결석자 순서 위/아래 이동
+    function moveAbsenceCard(type, name, dir) {
+      const currentList = getAbsentees(type);
+      const idx = currentList.indexOf(name);
+      if (idx < 0) return;
+      const targetIdx = idx + dir;
+      if (targetIdx < 0 || targetIdx >= currentList.length) return;
+
+      const temp = currentList[idx];
+      currentList[idx] = currentList[targetIdx];
+      currentList[targetIdx] = temp;
+
+      if (type === 'sunday') {
+        state.sundayAbsenceOrder = currentList;
+      } else {
+        state.cellAbsenceOrder = currentList;
+      }
+      saveStorage();
+      renderAbsenceList();
+      updateOutput();
+    }
+
+    // 결석자 사유 입력란 렌더링 (미니멀 스타일)
+    function renderAbsenceList() {
+      const sundayList = document.getElementById('sundayAbsenceList');
+      const cellList = document.getElementById('cellAbsenceList');
+
+      const sundayAbsentees = getAbsentees('sunday');
+      const cellAbsentees = getAbsentees('cell');
+
+      document.getElementById('sundayAbsenceCount').innerText = sundayAbsentees.length;
+      document.getElementById('cellAbsenceCount').innerText = cellAbsentees.length;
+
+      // 주일예배 결석자
+      if (sundayAbsentees.length === 0) {
+        sundayList.innerHTML = `<div class="text-xs text-zinc-400 py-2 px-3 bg-zinc-50 rounded-lg border border-zinc-200">전원 참석</div>`;
+      } else {
+        sundayList.innerHTML = '';
+        sundayAbsentees.forEach((name, idx) => {
+          const reason = state.sundayReasons[name] || '';
+          const row = document.createElement('div');
+          row.setAttribute('data-name', name);
+          row.className = 'p-3 rounded-lg bg-white border border-zinc-200 space-y-2';
+          row.innerHTML = `
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="drag-handle w-5 h-5 flex items-center justify-center text-zinc-400 hover:text-zinc-700 cursor-grab text-xs font-bold" title="드래그하여 순서 변경">
+                  <span>☰</span>
+                </div>
+                <span class="font-medium text-xs text-zinc-900">${name}</span>
+              </div>
+              <div class="flex items-center gap-1">
+                ${idx > 0 ? `<button type="button" onclick="moveAbsenceCard('sunday', '${name}', -1)" class="px-1.5 py-0.5 text-[11px] text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded" title="위로">▲</button>` : ''}
+                ${idx < sundayAbsentees.length - 1 ? `<button type="button" onclick="moveAbsenceCard('sunday', '${name}', 1)" class="px-1.5 py-0.5 text-[11px] text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded" title="아래로">▼</button>` : ''}
+              </div>
+            </div>
+            <input type="text" value="${escapeHtml(reason)}" placeholder="불참 사유를 입력하세요"
+              oninput="setReason('sunday', '${name}', this.value)"
+              class="w-full px-2.5 py-1.5 text-xs bg-white border border-zinc-200 rounded focus:outline-none focus:border-zinc-900 font-normal">
+            <div class="flex flex-wrap gap-1">
+              ${REASON_PRESETS.map(preset => `
+                <button type="button" onclick="setReasonAndInput('sunday', '${name}', '${preset}')" 
+                  class="text-[11px] px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded hover:bg-zinc-200 transition">
+                  ${preset}
+                </button>
+              `).join('')}
+            </div>
+          `;
+          sundayList.appendChild(row);
+        });
+      }
+
+      // 셀모임 결석자
+      if (cellAbsentees.length === 0) {
+        cellList.innerHTML = `<div class="text-xs text-zinc-400 py-2 px-3 bg-zinc-50 rounded-lg border border-zinc-200">전원 참석</div>`;
+      } else {
+        cellList.innerHTML = '';
+        cellAbsentees.forEach((name, idx) => {
+          const reason = state.cellReasons[name] || '';
+          const row = document.createElement('div');
+          row.setAttribute('data-name', name);
+          row.className = 'p-3 rounded-lg bg-white border border-zinc-200 space-y-2';
+          row.innerHTML = `
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="drag-handle w-5 h-5 flex items-center justify-center text-zinc-400 hover:text-zinc-700 cursor-grab text-xs font-bold" title="드래그하여 순서 변경">
+                  <span>☰</span>
+                </div>
+                <span class="font-medium text-xs text-zinc-900">${name}</span>
+              </div>
+              <div class="flex items-center gap-1">
+                ${idx > 0 ? `<button type="button" onclick="moveAbsenceCard('cell', '${name}', -1)" class="px-1.5 py-0.5 text-[11px] text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded" title="위로">▲</button>` : ''}
+                ${idx < cellAbsentees.length - 1 ? `<button type="button" onclick="moveAbsenceCard('cell', '${name}', 1)" class="px-1.5 py-0.5 text-[11px] text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded" title="아래로">▼</button>` : ''}
+              </div>
+            </div>
+            <input type="text" value="${escapeHtml(reason)}" placeholder="불참 사유를 입력하세요"
+              oninput="setReason('cell', '${name}', this.value)"
+              class="w-full px-2.5 py-1.5 text-xs bg-white border border-zinc-200 rounded focus:outline-none focus:border-zinc-900 font-normal">
+            <div class="flex flex-wrap gap-1">
+              ${REASON_PRESETS.map(preset => `
+                <button type="button" onclick="setReasonAndInput('cell', '${name}', '${preset}')" 
+                  class="text-[11px] px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded hover:bg-zinc-200 transition">
+                  ${preset}
+                </button>
+              `).join('')}
+            </div>
+          `;
+          cellList.appendChild(row);
+        });
+      }
+
+      // Sortable 인스턴스 연결
+      initSortables();
+    }
+
+    function setReason(type, name, val) {
+      if (type === 'sunday') {
+        state.sundayReasons[name] = val;
+      } else {
+        state.cellReasons[name] = val;
+      }
+      saveStorage();
+      updateOutput();
+    }
+
+    function setReasonAndInput(type, name, val) {
+      setReason(type, name, val);
+      renderAbsenceList();
+    }
+
+    // 최종 카톡 보고서 텍스트 생성 (드래그된 결석자 순서 반영)
+    function generateReportText() {
+      const leader = state.leaderName ? `${state.leaderName} ` : '';
+      const dateTimeStr = getFormattedDateTime();
+      const locationStr = state.location || '3층 DCC';
+      const totalCount = state.members.length;
+      const allMembersStr = state.members.join(', ');
+
+      // 참석자
+      const sundayAttendees = state.members.filter(m => state.sundayAttendance[m]);
+      const cellAttendees = state.members.filter(m => state.cellAttendance[m]);
+
+      const sundayAttStr = sundayAttendees.join(', ');
+      const cellAttStr = cellAttendees.join(', ');
+
+      // 결석자 (사용자가 드래그한 순서대로 반영)
+      const sundayAbsentees = getAbsentees('sunday');
+      const cellAbsentees = getAbsentees('cell');
+
+      // 4. 결석자 텍스트 빌드
+      let sundayAbsenceText = '';
+      if (sundayAbsentees.length > 0) {
+        const details = sundayAbsentees.map(name => {
+          const reason = (state.sundayReasons[name] || '').trim();
+          return reason ? `${name}(${reason})` : name;
+        }).join(', ');
+        sundayAbsenceText = `주일예배(${sundayAbsentees.length}명): ${details}`;
+      } else {
+        sundayAbsenceText = `주일예배: 없음`;
+      }
+
+      let cellAbsenceText = '';
+      if (cellAbsentees.length > 0) {
+        const details = cellAbsentees.map(name => {
+          const reason = (state.cellReasons[name] || '').trim();
+          return reason ? `${name} - ${reason}` : name;
+        }).join('\n');
+        cellAbsenceText = `셀모임 (${cellAbsentees.length}명)\n${details}`;
+      } else {
+        cellAbsenceText = `셀모임: 없음`;
+      }
+
+      // 5. 특이사항
+      const notes = (document.getElementById('notesInput').value || '').trim();
+      const notesSection = notes ? `5.  셀모임 참석자 및 특이사항\n${notes}` : `5.  셀모임 참석자 및 특이사항\n- 특이사항 없음`;
+
+      // 최종 결합 (사용자 제공 포맷과 100% 일치)
+      const report = `[${leader}셀모임 보고서] \n\n1. ${dateTimeStr} \n\n2. 장소: ${locationStr}\n\n3. 출석인원 (총원 ${totalCount}명)\n${allMembersStr}\n\n- 주일예배 (${sundayAttendees.length}명)\n${sundayAttStr}\n\n- 셀모임 (${cellAttendees.length}명)\n${cellAttStr}\n\n4. 결석자\n${sundayAbsenceText}\n\n${cellAbsenceText}\n\n${notesSection}`;
+
+      return report;
+    }
+
+    // 미리보기 업데이트
+    function updateOutput() {
+      const text = generateReportText();
+      document.getElementById('reportPreviewText').innerText = text;
+      const senderEl = document.getElementById('previewSenderName');
+      if (senderEl) senderEl.innerText = state.leaderName || '송예찬';
+      state.notes = document.getElementById('notesInput').value;
+      saveStorage();
+    }
+
+    function renderAll() {
+      renderAttendanceChips();
+      renderAbsenceList();
+      updateOutput();
+    }
+
+    // 클립보드 복사 (복사 시 지난 기록에 자동 누적 저장)
+    async function copyToClipboard() {
+      const text = generateReportText();
+      const copyBtnText = document.getElementById('copyBtnText');
+
+      // 1. 복사할 때마다 지난 기록 보관함에 자동 저장
+      saveCurrentToHistory(false);
+
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          // Fallback
+          const textarea = document.createElement('textarea');
+          textarea.value = text;
+          textarea.style.position = 'fixed';
+          textarea.style.left = '-999999px';
+          document.body.appendChild(textarea);
+          textarea.focus();
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+        }
+
+        // 성공 피드백
+        if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+        showToast('📋 카카오톡 보고서가 복사되었습니다! (지난 기록에도 자동 보관됨)');
+        
+        copyBtnText.innerText = '✓ 복사 완료! (카톡에 붙여넣기)';
+        setTimeout(() => {
+          copyBtnText.innerText = '카카오톡 내용 복사하기';
+        }, 2500);
+
+      } catch (err) {
+        console.error('Failed to copy', err);
+        showToast('복사 완료! (수동 확인 필요)');
+      }
+    }
+
+    // 수동 저장하기 버튼 동작
+    function manualSave() {
+      saveStorage();
+      saveCurrentToHistory(false);
+      if (navigator.vibrate) navigator.vibrate([30, 50]);
+
+      const saveBtnText = document.getElementById('saveBtnText');
+      if (saveBtnText) saveBtnText.innerText = '저장됨 ✓';
+
+      const sectionSaveBtnText = document.getElementById('sectionSaveBtnText');
+      if (sectionSaveBtnText) sectionSaveBtnText.innerText = '저장 완료 ✓';
+
+      const badge = document.getElementById('saveStatusBadge');
+      if (badge) {
+        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>방금 저장됨`;
+      }
+
+      showToast('💾 현재 작성한 내용이 안전하게 저장되었습니다!');
+
+      setTimeout(() => {
+        if (saveBtnText) saveBtnText.innerText = '저장';
+        if (sectionSaveBtnText) sectionSaveBtnText.innerText = '보고서 저장하기';
+      }, 2000);
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMessage');
+      toastMsg.innerText = msg;
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }, 2500);
+    }
+
+    // 새 보고서 작성 (이전 내용은 히스토리에 자동 보존하고 새 주차 시작)
+    function resetAttendanceAndReasons() {
+      if (!confirm('현재 작성된 내용을 [지난 기록]에 자동 보관하고, 이번 주 새 보고서를 작성하시겠습니까?')) return;
+      
+      // 1. 현재 내용 자동 백업
+      saveCurrentToHistory(false);
+
+      // 2. 날짜를 오늘 날짜로 갱신
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      state.meetingDate = `${year}-${month}-${day}`;
+      document.getElementById('meetingDateInput').value = state.meetingDate;
+
+      // 3. 출석 및 사유 초기화 (전원 출석 기본값)
+      state.members.forEach(name => {
+        state.sundayAttendance[name] = true;
+        state.cellAttendance[name] = true;
+      });
+      state.sundayReasons = {};
+      state.cellReasons = {};
+      state.notes = '';
+      document.getElementById('notesInput').value = '';
+
+      saveStorage();
+      renderAll();
+      showToast('이전 내용은 [지난 기록]에 보관되었습니다. 이번 주 보고서를 작성하세요!');
+    }
+
+    // === 지난 보고서 히스토리 관리 로직 ===
+    function saveCurrentToHistory(showFeedback = false) {
+      const currentSnapshot = {
+        id: 'rep_' + Date.now(),
+        savedAt: new Date().toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        leaderName: state.leaderName,
+        meetingDate: state.meetingDate,
+        meetingTime: state.meetingTime,
+        dateTimeStr: getFormattedDateTime(),
+        location: state.location,
+        members: [...state.members],
+        sundayAttendance: { ...state.sundayAttendance },
+        cellAttendance: { ...state.cellAttendance },
+        sundayReasons: { ...state.sundayReasons },
+        cellReasons: { ...state.cellReasons },
+        notes: document.getElementById('notesInput').value,
+        fullText: generateReportText()
+      };
+
+      // 같은 날짜/시간의 기록이 이미 있으면 최신 내용으로 갱신
+      const existIdx = state.history.findIndex(h => h.dateTimeStr === currentSnapshot.dateTimeStr);
+      if (existIdx >= 0) {
+        state.history[existIdx] = currentSnapshot;
+      } else {
+        state.history.unshift(currentSnapshot);
+      }
+
+      // 최대 30개까지 보관
+      if (state.history.length > 30) {
+        state.history = state.history.slice(0, 30);
+      }
+
+      saveStorage();
+      if (showFeedback) {
+        showToast('📜 지난 기록 보관함에 현재 내용이 저장되었습니다!');
+        renderHistoryList();
+      }
+    }
+
+    function openHistoryModal() {
+      renderHistoryList();
+      document.getElementById('historyModal').classList.remove('hidden');
+    }
+
+    function closeHistoryModal() {
+      document.getElementById('historyModal').classList.add('hidden');
+    }
+
+    function renderHistoryList() {
+      const container = document.getElementById('historyListContainer');
+      container.innerHTML = '';
+
+      if (!state.history || state.history.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-slate-400 space-y-2">
+            <span class="text-3xl block">📭</span>
+            <p class="text-xs">아직 보관된 지난 보고서가 없습니다.<br>보고서를 복사하거나 작성할 때마다 이곳에 자동 누적됩니다.</p>
+          </div>
+        `;
+        return;
+      }
+
+      state.history.forEach(item => {
+        const sundayAttCount = item.members.filter(m => item.sundayAttendance[m]).length;
+        const cellAttCount = item.members.filter(m => item.cellAttendance[m]).length;
+        const sundayAbs = item.members.filter(m => !item.sundayAttendance[m]);
+        const cellAbs = item.members.filter(m => !item.cellAttendance[m]);
+
+        const card = document.createElement('div');
+        card.className = 'p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2 hover:border-purple-300 transition shadow-sm';
+        card.innerHTML = `
+          <div class="flex items-start justify-between border-b border-slate-200 pb-2">
+            <div>
+              <div class="font-bold text-sm text-slate-800 flex items-center gap-1.5">
+                <span>📅</span> ${item.dateTimeStr}
+              </div>
+              <div class="text-[11px] text-slate-500 mt-0.5">
+                장소: ${item.location} | 저장: ${item.savedAt}
+              </div>
+            </div>
+            <button onclick="deleteFromHistory('${item.id}')" class="text-xs text-slate-400 hover:text-rose-600 p-1" title="기록 삭제">
+              ✕
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="p-2 bg-indigo-50/60 rounded-lg border border-indigo-100">
+              <span class="font-bold text-indigo-700 block mb-0.5">주일예배 (${sundayAttCount}/${item.members.length}명)</span>
+              <p class="text-[11px] text-slate-600 truncate">
+                ${sundayAbs.length > 0 ? '결석: ' + sundayAbs.map(n => `${n}(${item.sundayReasons[n] || '사유미입력'})`).join(', ') : '전원 참석'}
+              </p>
+            </div>
+            <div class="p-2 bg-emerald-50/60 rounded-lg border border-emerald-100">
+              <span class="font-bold text-emerald-700 block mb-0.5">셀모임 (${cellAttCount}/${item.members.length}명)</span>
+              <p class="text-[11px] text-slate-600 truncate">
+                ${cellAbs.length > 0 ? '결석: ' + cellAbs.map(n => `${n}(${item.cellReasons[n] || '사유미입력'})`).join(', ') : '전원 참석'}
+              </p>
+            </div>
+          </div>
+
+          ${item.notes ? `
+            <div class="text-[11px] text-slate-600 bg-white p-2 rounded-lg border border-slate-200 line-clamp-2">
+              <span class="font-semibold text-purple-700">특이사항:</span> ${item.notes}
+            </div>
+          ` : ''}
+
+          <div class="flex items-center justify-end gap-1.5 pt-1">
+            <button onclick="copyHistoryReportText('${item.id}')" class="px-2.5 py-1 text-xs font-semibold bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-100 transition active:scale-95">
+              📋 카톡 복사
+            </button>
+            <button onclick="loadFromHistory('${item.id}')" class="px-2.5 py-1 text-xs font-semibold bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition active:scale-95">
+              ↩ 이 내용 불러오기
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // 과거 기록을 현재 화면으로 복원
+    function loadFromHistory(id) {
+      const target = state.history.find(h => h.id === id);
+      if (!target) return;
+      if (!confirm(`[${target.dateTimeStr}] 보고서 내용을 현재 화면으로 불러오시겠습니까?`)) return;
+
+      state.leaderName = target.leaderName;
+      state.location = target.location;
+      state.meetingDate = target.meetingDate;
+      state.meetingTime = target.meetingTime;
+      state.members = [...target.members];
+      state.sundayAttendance = { ...target.sundayAttendance };
+      state.cellAttendance = { ...target.cellAttendance };
+      state.sundayReasons = { ...target.sundayReasons };
+      state.cellReasons = { ...target.cellReasons };
+      state.notes = target.notes;
+
+      // 폼 인풋 동기화
+      document.getElementById('leaderNameInput').value = state.leaderName;
+      document.getElementById('meetingLocationInput').value = state.location;
+      document.getElementById('meetingDateInput').value = state.meetingDate;
+      document.getElementById('meetingTimeInput').value = state.meetingTime;
+      document.getElementById('notesInput').value = state.notes;
+
+      saveStorage();
+      renderAll();
+      closeHistoryModal();
+      showToast(`[${target.dateTimeStr}] 보고서 내용이 복원되었습니다.`);
+    }
+
+    // 과거 기록 텍스트 바로 복사
+    async function copyHistoryReportText(id) {
+      const target = state.history.find(h => h.id === id);
+      if (!target) return;
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(target.fullText);
+        } else {
+          const textarea = document.createElement('textarea');
+          textarea.value = target.fullText;
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+        }
+        showToast(`[${target.dateTimeStr}] 보고서가 복사되었습니다!`);
+      } catch (e) {
+        showToast('복사에 실패했습니다.');
+      }
+    }
+
+    // 히스토리 항목 삭제
+    function deleteFromHistory(id) {
+      if (!confirm('이 기록을 삭제하시겠습니까?')) return;
+      state.history = state.history.filter(h => h.id !== id);
+      saveStorage();
+      renderHistoryList();
+    }
+
+    // 전체 히스토리 삭제
+    function clearAllHistory() {
+      if (!confirm('저장된 모든 지난 보고서 기록을 삭제하시겠습니까?')) return;
+      state.history = [];
+      saveStorage();
+      renderHistoryList();
+      showToast('모든 지난 기록이 삭제되었습니다.');
+    }
+
+    // === 멤버 관리 모달 ===
+    function openMemberModal() {
+      renderModalMemberList();
+      document.getElementById('memberModal').classList.remove('hidden');
+    }
+
+    function closeMemberModal() {
+      document.getElementById('memberModal').classList.add('hidden');
+      renderAll();
+    }
+
+    let memberSortable = null;
+
+    function renderModalMemberList() {
+      const listEl = document.getElementById('modalMemberList');
+      listEl.innerHTML = '';
+      state.members.forEach((name, idx) => {
+        const item = document.createElement('div');
+        item.setAttribute('data-member', name);
+        item.className = 'flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200 text-sm';
+        item.innerHTML = `
+          <div class="flex items-center gap-2">
+            <div class="member-drag-handle px-1.5 py-0.5 text-slate-400 hover:text-slate-700 bg-slate-200/70 rounded cursor-grab active:cursor-grabbing text-xs font-bold" title="드래그하여 순서 변경">
+              ☰
+            </div>
+            <span class="text-xs text-slate-400 font-mono w-4">${idx + 1}</span>
+            <span class="font-medium text-slate-800">${name}</span>
+          </div>
+          <div class="flex items-center gap-1">
+            ${idx > 0 ? `<button onclick="moveMember(${idx}, -1)" class="p-1 text-xs text-slate-400 hover:text-slate-700">▲</button>` : ''}
+            ${idx < state.members.length - 1 ? `<button onclick="moveMember(${idx}, 1)" class="p-1 text-xs text-slate-400 hover:text-slate-700">▼</button>` : ''}
+            <button onclick="removeMember(${idx})" class="p-1 text-xs text-rose-500 hover:text-rose-700 font-bold ml-1">✕</button>
+          </div>
+        `;
+        listEl.appendChild(item);
+      });
+
+      if (window.Sortable) {
+        if (memberSortable) memberSortable.destroy();
+        memberSortable = new Sortable(listEl, {
+          handle: '.member-drag-handle',
+          animation: 150,
+          ghostClass: 'sortable-ghost',
+          onEnd: function() {
+            const names = Array.from(listEl.querySelectorAll('[data-member]')).map(el => el.getAttribute('data-member')).filter(Boolean);
+            state.members = names;
+            saveStorage();
+            renderModalMemberList();
+          }
+        });
+      }
+    }
+
+    function addMember() {
+      const input = document.getElementById('newMemberInput');
+      const name = input.value.trim();
+      if (!name) return;
+      if (state.members.includes(name)) {
+        alert('이미 존재하는 셀원입니다.');
+        return;
+      }
+      state.members.push(name);
+      state.sundayAttendance[name] = true;
+      state.cellAttendance[name] = true;
+      input.value = '';
+      saveStorage();
+      renderModalMemberList();
+    }
+
+    function removeMember(idx) {
+      const name = state.members[idx];
+      if (!confirm(`'${name}' 님을 셀원 목록에서 삭제하시겠습니까?`)) return;
+      state.members.splice(idx, 1);
+      delete state.sundayAttendance[name];
+      delete state.cellAttendance[name];
+      delete state.sundayReasons[name];
+      delete state.cellReasons[name];
+      saveStorage();
+      renderModalMemberList();
+    }
+
+    function moveMember(idx, dir) {
+      const targetIdx = idx + dir;
+      if (targetIdx < 0 || targetIdx >= state.members.length) return;
+      const temp = state.members[idx];
+      state.members[idx] = state.members[targetIdx];
+      state.members[targetIdx] = temp;
+      saveStorage();
+      renderModalMemberList();
+    }
+
+    function resetDefaultMembers() {
+      if (!confirm('기본 9명 명단으로 되돌리시겠습니까?')) return;
+      state.members = [...DEFAULT_MEMBERS];
+      saveStorage();
+      renderModalMemberList();
+    }
+
+    function openMobileModal() {
+      const qrContainer = document.getElementById('qrContainer');
+      const qrImage = document.getElementById('qrImage');
+      const qrUrlText = document.getElementById('qrUrlText');
+
+      if (window.location.protocol.startsWith('http')) {
+        let currentUrl = window.location.href;
+        // localhost인 경우 안내
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          qrUrlText.innerHTML = `PC에서 실행 중입니다.<br><b class="text-slate-800">핸드폰으로_실행하기.bat</b> 창에 표시된 IP 주소로 접속하세요!`;
+          qrContainer.classList.add('hidden');
+        } else {
+          qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(currentUrl)}`;
+          qrUrlText.innerText = currentUrl;
+          qrContainer.classList.remove('hidden');
+        }
+      } else {
+        qrContainer.classList.add('hidden');
+      }
+
+      document.getElementById('mobileModal').classList.remove('hidden');
+    }
+
+    function closeMobileModal() {
+      document.getElementById('mobileModal').classList.add('hidden');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+  </script>
+</body>
+</html>
