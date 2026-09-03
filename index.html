@@ -71,16 +71,22 @@
   <!-- 상단 네비게이션 헤더 (미니멀 리니어 스타일) -->
   <header class="sticky top-0 z-30 bg-white border-b border-zinc-200 px-4 py-3">
     <div class="max-w-2xl mx-auto flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <div class="w-7 h-7 rounded-lg bg-zinc-900 text-white flex items-center justify-center shadow-xs">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg bg-zinc-900 text-white flex items-center justify-center shadow-xs shrink-0">
           <!-- 깔끔한 클립보드 체크 SVG 아이콘 -->
           <svg class="w-3.5 h-3.5 text-zinc-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
           </svg>
         </div>
         <h1 class="font-semibold text-sm leading-tight text-zinc-900 tracking-tight">셀모임 보고서</h1>
+        <button onclick="openGuideModal()" class="w-5 h-5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-800 text-[11px] font-bold flex items-center justify-center transition shrink-0" title="사용 방법 보기">
+          ?
+        </button>
       </div>
       <div class="flex items-center gap-1 sm:gap-1.5">
+        <button onclick="openGuideModal()" class="px-2 sm:px-2.5 py-1.5 text-xs font-medium text-zinc-700 bg-white hover:bg-zinc-50 rounded-lg border border-zinc-200 transition active:scale-95 flex items-center gap-1" title="처음 사용자를 위한 사용 방법">
+          <span>💡</span> <span>사용법</span>
+        </button>
         <button onclick="openSyncModal()" id="headerSyncBtn" class="px-2 sm:px-2.5 py-1.5 text-xs font-medium text-zinc-700 bg-white hover:bg-zinc-50 rounded-lg border border-zinc-200 transition active:scale-95 flex items-center gap-1" title="기기 간 데이터 동기화">
           <span>☁️</span> <span id="headerSyncBtnText">동기화</span>
         </button>
@@ -99,6 +105,22 @@
 
   <!-- 메인 컨테이너 (미니멀 노션/리니어 스타일) -->
   <main class="max-w-2xl mx-auto px-4 py-5 space-y-4">
+
+    <!-- 첫 방문 안내 배너 -->
+    <div id="welcomeBanner" class="p-3 bg-zinc-900 text-white rounded-xl text-xs flex items-center justify-between shadow-xs transition">
+      <div class="flex items-center gap-2">
+        <span>💡</span>
+        <span><b>처음 오셨나요?</b> 상단 <b>[사용법]</b>을 누르시면 1분 만에 익히실 수 있습니다!</span>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button onclick="openGuideModal()" class="px-2.5 py-1 bg-white/20 hover:bg-white/30 text-white rounded font-medium text-[11px] transition">
+          가이드 보기
+        </button>
+        <button onclick="dismissWelcomeBanner()" class="text-zinc-400 hover:text-white text-sm font-bold px-1" title="닫기">
+          ✕
+        </button>
+      </div>
+    </div>
 
     <!-- 1. 기본 정보 카드 -->
     <section class="bg-white rounded-xl border border-zinc-200 p-4 sm:p-5 space-y-3.5">
@@ -316,38 +338,82 @@
   </div>
 
   <!-- 핸드폰 연동 안내 모달 -->
-  <div id="mobileModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-md rounded-xl border border-zinc-200 p-5 space-y-3.5 max-h-[90vh] flex flex-col">
+  <!-- 사용 방법 가이드 모달 -->
+  <div id="guideModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-xl border border-zinc-200 p-5 space-y-3.5 max-h-[90vh] flex flex-col">
       <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
-        <h3 class="font-semibold text-sm text-zinc-900">
-          핸드폰 사용 안내
-        </h3>
-        <button onclick="closeMobileModal()" class="text-zinc-400 hover:text-zinc-700 text-sm font-bold p-1">✕</button>
+        <div class="flex items-center gap-2">
+          <span class="text-base">💡</span>
+          <h3 class="font-semibold text-sm text-zinc-900">
+            셀모임 보고서 사용 방법
+          </h3>
+        </div>
+        <button onclick="closeGuideModal()" class="text-zinc-400 hover:text-zinc-700 text-sm font-bold p-1">✕</button>
       </div>
 
       <div class="space-y-3 text-xs text-zinc-600 overflow-y-auto custom-scrollbar pr-1">
-        <div class="p-3 bg-zinc-50 border border-zinc-200 rounded-lg space-y-1">
-          <div class="font-medium text-zinc-900 text-xs">
-            1. 웹 주소 바로 접속
+        <!-- 1단계: 기본 정보 & 셀원 명단 -->
+        <div class="p-3.5 bg-zinc-50 border border-zinc-200 rounded-lg space-y-1.5">
+          <div class="font-semibold text-xs text-zinc-900 flex items-center gap-1.5">
+            <span class="w-4 h-4 rounded-full bg-zinc-900 text-white flex items-center justify-center text-[10px] font-bold">1</span>
+            기본 정보 & 셀원 등록 (최초 1회)
           </div>
-          <p class="leading-relaxed">
-            스마트폰 브라우저에서 <span class="font-mono text-zinc-800 underline">https://cell-meeting-report.vercel.app</span> 으로 접속하시면 됩니다.
+          <ul class="list-disc list-inside space-y-1 text-zinc-600 pl-1 leading-relaxed">
+            <li><b>1. 기본 정보</b>에서 <b>'셀 리더 이름'</b>과 <b>'모임 장소'</b>를 적어두면 자동 저장됩니다.</li>
+            <li>상단 <b>[멤버]</b> 버튼을 눌러 우리 셀원들을 등록하세요. (추가/삭제/순서 이동 지원)</li>
+          </ul>
+        </div>
+
+        <!-- 2단계: 출석 체크 & 결석 사유 -->
+        <div class="p-3.5 bg-zinc-50 border border-zinc-200 rounded-lg space-y-1.5">
+          <div class="font-semibold text-xs text-zinc-900 flex items-center gap-1.5">
+            <span class="w-4 h-4 rounded-full bg-zinc-900 text-white flex items-center justify-center text-[10px] font-bold">2</span>
+            원터치 출석 체크 & 결석 사유 입력
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-zinc-600 pl-1 leading-relaxed">
+            <li>모임에 <b>불참한 사람 버튼을 탭하여 끄면</b>, 아래 <b>4번 결석자란</b>이 자동으로 생깁니다.</li>
+            <li>자주 쓰는 사유 칩(온라인 예배, 직장/야근, 컨디션 등)을 누르면 1초 만에 입력됩니다.</li>
+            <li>결석자 카드의 <b>☰</b> 핸들을 잡고 드래그하면 카톡 보고서의 순서가 바뀝니다.</li>
+          </ul>
+        </div>
+
+        <!-- 3단계: 카톡 복사 -->
+        <div class="p-3.5 bg-zinc-50 border border-zinc-200 rounded-lg space-y-1.5">
+          <div class="font-semibold text-xs text-zinc-900 flex items-center gap-1.5">
+            <span class="w-4 h-4 rounded-full bg-zinc-900 text-white flex items-center justify-center text-[10px] font-bold">3</span>
+            카카오톡 내용 복사 & 지난 기록 자동 보관
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-zinc-600 pl-1 leading-relaxed">
+            <li>하단 노란색 <b>[카카오톡 내용 복사하기]</b>를 누르면 지정된 양식 그대로 복사됩니다.</li>
+            <li>카카오톡 채팅방에 바로 <b>[붙여넣기]</b>하시면 작성이 끝납니다!</li>
+            <li>복사할 때마다 <b>[기록]</b> 보관함에 자동 저장되므로 언제든 지난 내용을 확인할 수 있습니다.</li>
+          </ul>
+        </div>
+
+        <!-- 4단계: 컴퓨터 ⇄ 스마트폰 동기화 -->
+        <div class="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-lg space-y-1.5">
+          <div class="font-semibold text-xs text-emerald-950 flex items-center gap-1.5">
+            <span>☁️</span> 컴퓨터 ⇄ 스마트폰 실시간 동기화
+          </div>
+          <p class="text-emerald-900 leading-relaxed">
+            상단 <b>[동기화]</b>를 누르고 <b>이름 + 번호 4자리</b>(예: <span class="font-mono font-bold">송예찬5032</span>)를 등록해두면, 컴퓨터에서 쓰든 핸드폰에서 쓰든 모든 데이터가 실시간으로 연결됩니다.
           </p>
         </div>
 
-        <div class="p-3 bg-zinc-50 border border-zinc-200 rounded-lg space-y-1">
-          <div class="font-medium text-zinc-900 text-xs">
-            2. 홈 화면에 추가
+        <!-- 5단계: 홈 화면에 앱처럼 추가 -->
+        <div class="p-3.5 bg-blue-50/70 border border-blue-200 rounded-lg space-y-1.5">
+          <div class="font-semibold text-xs text-blue-950 flex items-center gap-1.5">
+            <span>📲</span> 스마트폰 앱처럼 사용하기
           </div>
-          <p class="leading-relaxed">
-            브라우저 메뉴에서 <b>[홈 화면에 추가]</b>를 누르면 바탕화면에 앱 아이콘이 생성되어 편리합니다.
+          <p class="text-blue-900 leading-relaxed">
+            스마트폰 브라우저 메뉴(공유 아이콘 또는 점 세개)에서 <b>[홈 화면에 추가]</b>를 누르면 바탕화면에 바로 실행 아이콘이 생깁니다.
           </p>
         </div>
       </div>
 
       <div class="pt-2 border-t border-zinc-100 flex justify-end">
-        <button onclick="closeMobileModal()" class="px-4 py-2 bg-zinc-900 text-white text-xs font-medium rounded-lg hover:bg-zinc-800 transition active:scale-95">
-          확인
+        <button onclick="closeGuideModal()" class="px-4 py-2 bg-zinc-900 text-white text-xs font-medium rounded-lg hover:bg-zinc-800 transition active:scale-95">
+          확인했습니다
         </button>
       </div>
     </div>
@@ -443,6 +509,7 @@
 
     // 초기화
     window.addEventListener('DOMContentLoaded', async () => {
+      initWelcomeBanner();
       loadStorage();
       initDefaultDate();
       renderAll();
@@ -453,6 +520,19 @@
         await loadFromCloud(true);
       }
     });
+
+    function initWelcomeBanner() {
+      if (localStorage.getItem('cell_welcomed')) {
+        const b = document.getElementById('welcomeBanner');
+        if (b) b.classList.add('hidden');
+      }
+    }
+
+    function dismissWelcomeBanner() {
+      localStorage.setItem('cell_welcomed', 'true');
+      const b = document.getElementById('welcomeBanner');
+      if (b) b.classList.add('hidden');
+    }
 
     // 최근/가까운 날짜 기본 세팅 (저장된 날짜가 없을 때만 오늘로 초기화)
     function initDefaultDate() {
@@ -1351,31 +1431,22 @@
       renderModalMemberList();
     }
 
+    function openGuideModal() {
+      const modal = document.getElementById('guideModal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeGuideModal() {
+      const modal = document.getElementById('guideModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
     function openMobileModal() {
-      const qrContainer = document.getElementById('qrContainer');
-      const qrImage = document.getElementById('qrImage');
-      const qrUrlText = document.getElementById('qrUrlText');
-
-      if (window.location.protocol.startsWith('http')) {
-        let currentUrl = window.location.href;
-        // localhost인 경우 안내
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-          qrUrlText.innerHTML = `PC에서 실행 중입니다.<br><b class="text-slate-800">핸드폰으로_실행하기.bat</b> 창에 표시된 IP 주소로 접속하세요!`;
-          qrContainer.classList.add('hidden');
-        } else {
-          qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(currentUrl)}`;
-          qrUrlText.innerText = currentUrl;
-          qrContainer.classList.remove('hidden');
-        }
-      } else {
-        qrContainer.classList.add('hidden');
-      }
-
-      document.getElementById('mobileModal').classList.remove('hidden');
+      openGuideModal();
     }
 
     function closeMobileModal() {
-      document.getElementById('mobileModal').classList.add('hidden');
+      closeGuideModal();
     }
 
     function escapeHtml(str) {
