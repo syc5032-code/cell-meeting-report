@@ -1,4 +1,4 @@
-﻿import crypto from 'crypto';
+import crypto from 'crypto';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -36,20 +36,8 @@ export default async function handler(req, res) {
       const hash = crypto.createHash('sha256').update(cleanCode).digest('hex').slice(0, 24);
       const filePath = `sync_data/${hash}.json`;
 
-      // 1. 데이터 저장 (신규 생성 또는 덮어쓰기)
+      // 1. 데이터 저장 (동시성 충돌 방지 지수 백오프 자동 재시도 탑재)
       if (action === 'save') {
-        // 기존 파일이 있는지 확인 (sha 확보)
-        let sha = undefined;
-        try {
-          const checkRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, { headers });
-          if (checkRes.ok) {
-            const fileData = await checkRes.json();
-            sha = fileData.sha;
-          }
-        } catch (e) {
-          // 파일 없음
-        }
-
         const payloadContent = {
           code: cleanCode,
           updatedAt: new Date().toISOString(),
@@ -57,22 +45,55 @@ export default async function handler(req, res) {
         };
         const base64Content = Buffer.from(JSON.stringify(payloadContent)).toString('base64');
 
-        const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify({
-            message: `sync: update data for [${cleanCode}]`,
-            content: base64Content,
-            sha: sha
-          })
-        });
+        const MAX_RETRIES = 4;
+        let lastError = null;
 
-        if (!putRes.ok) {
-          const errDetail = await putRes.text();
-          return res.status(putRes.status).json({ error: '동기화 저장에 실패했습니다.', detail: errDetail });
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+          try {
+            // 1) 매 시도마다 최신 sha를 항상 새로 조회 (다른 셀리더의 동시 커밋으로 HEAD가 바뀌었을 때 대비)
+            let sha = undefined;
+            const checkRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, { headers });
+            if (checkRes.ok) {
+              const fileData = await checkRes.json();
+              sha = fileData.sha;
+            }
+
+            // 2) 커밋 저장 시도
+            const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, {
+              method: 'PUT',
+              headers,
+              body: JSON.stringify({
+                message: `sync: update data for [${cleanCode}]`,
+                content: base64Content,
+                sha: sha
+              })
+            });
+
+            if (putRes.ok) {
+              return res.status(200).json({ ok: true, code: cleanCode, message: '저장 성공', attempts: attempt });
+            }
+
+            // 실패 시(409 Conflict 동시 커밋 충돌 등) 에러 기록 및 백오프 대기
+            const errDetail = await putRes.text();
+            lastError = { status: putRes.status, detail: errDetail };
+
+            if (attempt < MAX_RETRIES) {
+              // 지수 백오프 + 랜덤 지터(Jitter)로 다른 동시 요청과의 타이밍 분산
+              const delay = Math.floor(250 * Math.pow(1.5, attempt) + Math.random() * 200);
+              await new Promise(r => setTimeout(r, delay));
+            }
+          } catch (netErr) {
+            lastError = { status: 500, detail: netErr.message };
+            if (attempt < MAX_RETRIES) {
+              await new Promise(r => setTimeout(r, 300));
+            }
+          }
         }
 
-        return res.status(200).json({ ok: true, code: cleanCode, message: '저장 성공' });
+        return res.status(lastError?.status || 500).json({ 
+          error: '동기화 저장에 일시적으로 실패했습니다.', 
+          detail: lastError?.detail 
+        });
       }
 
       // 2. 데이터 불러오기
