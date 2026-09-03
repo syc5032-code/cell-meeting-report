@@ -1,4 +1,6 @@
-﻿export default async function handler(req, res) {
+﻿import crypto from 'crypto';
+
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -14,6 +16,7 @@
     return res.status(500).json({ error: 'GITHUB_TOKEN is not configured' });
   }
 
+  const repo = 'syc5032-code/cell-meeting-report';
   const headers = {
     'Authorization': 'token ' + token,
     'Accept': 'application/vnd.github.v3+json',
@@ -22,79 +25,77 @@
 
   try {
     if (req.method === 'POST') {
-      const { action, syncCode, data, leaderName } = req.body || {};
+      const { action, code, data } = req.body || {};
+      const cleanCode = (code || '').trim();
 
-      if (action === 'create') {
-        const createRes = await fetch('https://api.github.com/gists', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            description: 'Cell Report Sync [' + (leaderName || '셀') + ']',
-            public: false,
-            files: {
-              'cell_data.json': {
-                content: JSON.stringify(data || {})
-              }
-            }
-          })
-        });
-
-        if (!createRes.ok) {
-          const err = await createRes.text();
-          return res.status(createRes.status).json({ error: 'Failed to create sync gist', detail: err });
-        }
-
-        const gist = await createRes.json();
-        return res.status(200).json({ ok: true, syncCode: gist.id });
+      if (!cleanCode) {
+        return res.status(400).json({ error: '동기화 코드를 입력해주세요.' });
       }
 
+      // 사용자가 정한 어떤 쉬운 코드(한글/영문/숫자 등)도 안전한 고유 파일명으로 변환
+      const hash = crypto.createHash('sha256').update(cleanCode).digest('hex').slice(0, 24);
+      const filePath = `sync_data/${hash}.json`;
+
+      // 1. 데이터 저장 (신규 생성 또는 덮어쓰기)
       if (action === 'save') {
-        if (!syncCode) return res.status(400).json({ error: 'syncCode is required' });
+        // 기존 파일이 있는지 확인 (sha 확보)
+        let sha = undefined;
+        try {
+          const checkRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, { headers });
+          if (checkRes.ok) {
+            const fileData = await checkRes.json();
+            sha = fileData.sha;
+          }
+        } catch (e) {
+          // 파일 없음
+        }
 
-        const patchRes = await fetch('https://api.github.com/gists/' + syncCode, {
-          method: 'PATCH',
+        const payloadContent = {
+          code: cleanCode,
+          updatedAt: new Date().toISOString(),
+          data: data || {}
+        };
+        const base64Content = Buffer.from(JSON.stringify(payloadContent)).toString('base64');
+
+        const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, {
+          method: 'PUT',
           headers,
           body: JSON.stringify({
-            description: 'Cell Report Sync [' + (leaderName || '셀') + ']',
-            files: {
-              'cell_data.json': {
-                content: JSON.stringify(data || {})
-              }
-            }
+            message: `sync: update data for [${cleanCode}]`,
+            content: base64Content,
+            sha: sha
           })
         });
 
-        if (!patchRes.ok) {
-          const err = await patchRes.text();
-          return res.status(patchRes.status).json({ error: 'Failed to update sync gist', detail: err });
+        if (!putRes.ok) {
+          const errDetail = await putRes.text();
+          return res.status(putRes.status).json({ error: '동기화 저장에 실패했습니다.', detail: errDetail });
         }
 
-        return res.status(200).json({ ok: true });
+        return res.status(200).json({ ok: true, code: cleanCode, message: '저장 성공' });
       }
 
+      // 2. 데이터 불러오기
       if (action === 'load') {
-        if (!syncCode) return res.status(400).json({ error: 'syncCode is required' });
-
-        const getRes = await fetch('https://api.github.com/gists/' + syncCode, {
-          method: 'GET',
-          headers
-        });
-
+        const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, { headers });
         if (!getRes.ok) {
-          return res.status(404).json({ error: 'Sync code not found or invalid' });
+          return res.status(404).json({ error: `'${cleanCode}' 코드로 저장된 데이터가 없습니다. 먼저 저장해주세요.` });
         }
 
-        const gist = await getRes.json();
-        const file = gist.files && gist.files['cell_data.json'];
-        if (!file || !file.content) {
-          return res.status(404).json({ error: 'No data file found in gist' });
-        }
+        const fileData = await getRes.json();
+        const decodedStr = Buffer.from(fileData.content, 'base64').toString('utf8');
+        const parsed = JSON.parse(decodedStr);
 
-        const parsed = JSON.parse(file.content);
-        return res.status(200).json({ ok: true, data: parsed });
+        return res.status(200).json({ ok: true, data: parsed.data, code: cleanCode, updatedAt: parsed.updatedAt });
       }
 
-      return res.status(400).json({ error: 'Invalid action' });
+      // 3. 코드 존재 여부 확인
+      if (action === 'check') {
+        const checkRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, { headers });
+        return res.status(200).json({ ok: true, exists: checkRes.ok, code: cleanCode });
+      }
+
+      return res.status(400).json({ error: '유효하지 않은 요청입니다.' });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
