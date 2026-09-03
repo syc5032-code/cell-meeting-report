@@ -68,33 +68,36 @@
 </head>
 <body class="bg-[#FAFAFA] text-zinc-900 min-h-screen pb-32">
 
-  <!-- 상단 네비게이션 헤더 (미니멀 리니어 스타일) -->
-  <header class="sticky top-0 z-30 bg-white border-b border-zinc-200 px-4 py-3">
-    <div class="max-w-2xl mx-auto flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <div class="w-7 h-7 rounded-lg bg-zinc-900 text-white flex items-center justify-center shadow-xs shrink-0">
+  <!-- 상단 네비게이션 헤더 (모바일 완벽 최적화 미니멀 스타일) -->
+  <header class="sticky top-0 z-30 bg-white border-b border-zinc-200 px-3 sm:px-4 py-2.5 sm:py-3">
+    <div class="max-w-2xl mx-auto flex items-center justify-between gap-1.5">
+      <!-- 로고 및 타이틀 (줄바꿈 절대 방지) -->
+      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-zinc-900 text-white flex items-center justify-center shadow-xs shrink-0">
           <!-- 깔끔한 클립보드 체크 SVG 아이콘 -->
           <svg class="w-3.5 h-3.5 text-zinc-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
           </svg>
         </div>
-        <h1 class="font-semibold text-sm leading-tight text-zinc-900 tracking-tight">셀모임 보고서</h1>
+        <h1 class="font-semibold text-xs sm:text-sm leading-tight text-zinc-900 tracking-tight whitespace-nowrap">셀모임 보고서</h1>
       </div>
-      <div class="flex items-center gap-1 sm:gap-1.5">
-        <button onclick="openGuideModal()" class="px-2 sm:px-2.5 py-1.5 text-xs font-medium text-zinc-700 bg-white hover:bg-zinc-50 rounded-lg border border-zinc-200 transition active:scale-95 flex items-center gap-1" title="처음 사용자를 위한 사용 방법">
+
+      <!-- 우측 상단 버튼들 (모바일에서 절대 글자 안 깨지게 nowrap & 컴팩트 패딩) -->
+      <div class="flex items-center gap-1 sm:gap-1.5 shrink-0 overflow-x-auto no-scrollbar py-0.5 pl-1">
+        <button onclick="openGuideModal()" class="px-2 sm:px-2.5 py-1.5 text-[11px] sm:text-xs font-medium text-zinc-700 bg-white hover:bg-zinc-50 rounded-lg border border-zinc-200 transition active:scale-95 flex items-center gap-1 whitespace-nowrap shrink-0" title="처음 사용자를 위한 사용 방법">
           <span>💡</span> <span>사용법</span>
         </button>
-        <button onclick="openSyncModal()" id="headerSyncBtn" class="px-2 sm:px-2.5 py-1.5 text-xs font-medium text-zinc-700 bg-white hover:bg-zinc-50 rounded-lg border border-zinc-200 transition active:scale-95 flex items-center gap-1" title="기기 간 데이터 동기화">
+        <button onclick="openSyncModal()" id="headerSyncBtn" class="px-2 sm:px-2.5 py-1.5 text-[11px] sm:text-xs font-medium text-zinc-700 bg-white hover:bg-zinc-50 rounded-lg border border-zinc-200 transition active:scale-95 flex items-center gap-1 whitespace-nowrap shrink-0" title="기기 간 데이터 동기화">
           <span>☁️</span> <span id="headerSyncBtnText">동기화</span>
         </button>
-        <button onclick="openHistoryModal()" class="px-2 sm:px-2.5 py-1.5 text-xs font-medium text-zinc-700 bg-white hover:bg-zinc-50 rounded-lg border border-zinc-200 transition active:scale-95">
+        <button onclick="openHistoryModal()" class="px-2 sm:px-2.5 py-1.5 text-[11px] sm:text-xs font-medium text-zinc-700 bg-white hover:bg-zinc-50 rounded-lg border border-zinc-200 transition active:scale-95 whitespace-nowrap shrink-0">
           기록
         </button>
-        <button onclick="openMemberModal()" class="px-2 sm:px-2.5 py-1.5 text-xs font-medium text-zinc-700 bg-white hover:bg-zinc-50 rounded-lg border border-zinc-200 transition active:scale-95">
+        <button onclick="openMemberModal()" class="px-2 sm:px-2.5 py-1.5 text-[11px] sm:text-xs font-medium text-zinc-700 bg-white hover:bg-zinc-50 rounded-lg border border-zinc-200 transition active:scale-95 whitespace-nowrap shrink-0">
           멤버
         </button>
-        <button onclick="resetAttendanceAndReasons()" class="px-2 sm:px-2.5 py-1.5 text-xs font-medium text-zinc-700 bg-white hover:bg-zinc-50 rounded-lg border border-zinc-200 transition active:scale-95" title="새 보고서 작성">
-          새로 작성
+        <button onclick="resetAttendanceAndReasons()" class="px-2 sm:px-2.5 py-1.5 text-[11px] sm:text-xs font-medium text-zinc-700 bg-white hover:bg-zinc-50 rounded-lg border border-zinc-200 transition active:scale-95 whitespace-nowrap shrink-0" title="새 보고서 작성">
+          <span class="sm:hidden">+ 새로</span><span class="hidden sm:inline">새로 작성</span>
         </button>
       </div>
     </div>
@@ -1654,12 +1657,12 @@
       if (!btn || !btnText) return;
 
       if (state.syncCode) {
-        btnText.innerHTML = `<span class="font-medium text-emerald-900">${escapeHtml(state.syncCode)}</span> <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>`;
-        btn.classList.add('border-emerald-300', 'bg-emerald-50/50');
+        btnText.innerHTML = `<span class="font-medium text-emerald-900 hidden sm:inline">${escapeHtml(state.syncCode)}</span><span class="font-medium text-emerald-900 sm:hidden">연동됨</span> <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block ml-0.5"></span>`;
+        btn.classList.add('border-emerald-300', 'bg-emerald-50/70');
         btn.classList.remove('text-zinc-700', 'bg-white');
       } else {
         btnText.innerText = '동기화';
-        btn.classList.remove('border-emerald-300', 'bg-emerald-50/50');
+        btn.classList.remove('border-emerald-300', 'bg-emerald-50/70');
         btn.classList.add('text-zinc-700', 'bg-white');
       }
     }
