@@ -157,11 +157,46 @@
             class="w-full px-3 py-2 text-sm bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-zinc-900 font-medium transition-colors">
         </div>
 
-        <!-- 모임 시간 표기 -->
+        <!-- 모임 시간 설정 -->
         <div>
-          <label class="block text-xs font-medium text-zinc-500 mb-1">모임 시간 표기</label>
-          <input type="text" id="meetingTimeInput" value="저녁 7시" oninput="setTime(this.value);" 
-            class="w-full px-3 py-2 text-sm bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-zinc-900 font-medium transition-colors" placeholder="예: 저녁 7시">
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs font-medium text-zinc-500">모임 시간 설정</label>
+            <span class="text-[11px] text-zinc-400 font-mono" id="selectedTimeBadge">저녁 7시</span>
+          </div>
+          <div class="flex gap-1.5">
+            <select id="meetingTimeSelect" onchange="handleTimeSelect(this.value)" 
+              class="flex-1 px-3 py-2 text-sm bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-zinc-900 font-medium transition-colors cursor-pointer">
+              <optgroup label="저녁 모임">
+                <option value="저녁 7시">저녁 7시 (기본)</option>
+                <option value="저녁 7시 30분">저녁 7시 30분</option>
+                <option value="저녁 8시">저녁 8시</option>
+                <option value="저녁 8시 30분">저녁 8시 30분</option>
+                <option value="저녁 6시 30분">저녁 6시 30분</option>
+                <option value="저녁 6시">저녁 6시</option>
+              </optgroup>
+              <optgroup label="오후 모임 (주일 셀모임 등)">
+                <option value="오후 1시">오후 1시</option>
+                <option value="오후 1시 30분">오후 1시 30분</option>
+                <option value="오후 2시">오후 2시</option>
+                <option value="오후 2시 30분">오후 2시 30분</option>
+                <option value="오후 3시">오후 3시</option>
+                <option value="오후 3시 30분">오후 3시 30분</option>
+                <option value="오후 4시">오후 4시</option>
+                <option value="오후 5시">오후 5시</option>
+              </optgroup>
+              <optgroup label="오전 모임">
+                <option value="오전 10시">오전 10시</option>
+                <option value="오전 11시">오전 11시</option>
+                <option value="오전 11시 30분">오전 11시 30분</option>
+              </optgroup>
+              <optgroup label="기타">
+                <option value="예배 직후">예배 직후</option>
+                <option value="custom">직접 입력...</option>
+              </optgroup>
+            </select>
+            <input type="text" id="customTimeInput" placeholder="시간 직접 입력" oninput="handleCustomTime(this.value)"
+              class="hidden w-32 px-2.5 py-2 text-sm bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-zinc-900 font-medium transition-colors">
+          </div>
         </div>
       </div>
     </section>
@@ -545,8 +580,7 @@
       }
       const dateEl = document.getElementById('meetingDateInput');
       if (dateEl) dateEl.value = state.meetingDate;
-      const timeEl = document.getElementById('meetingTimeInput');
-      if (timeEl && state.meetingTime) timeEl.value = state.meetingTime;
+      syncTimeSelectUI(state.meetingTime);
       updateDateDisplay();
     }
 
@@ -578,7 +612,7 @@
         const savedTime = localStorage.getItem('cell_meeting_time');
         if (savedTime) {
           state.meetingTime = savedTime;
-          document.getElementById('meetingTimeInput').value = savedTime;
+          syncTimeSelectUI(savedTime);
         }
         const savedSundayAttendance = localStorage.getItem('cell_sunday_att');
         if (savedSundayAttendance) {
@@ -675,9 +709,51 @@
       saveStorage();
     }
 
+    function syncTimeSelectUI(timeStr) {
+      const select = document.getElementById('meetingTimeSelect');
+      const customInput = document.getElementById('customTimeInput');
+      const badge = document.getElementById('selectedTimeBadge');
+      if (!select) return;
+
+      const target = (timeStr || '').trim() || '저녁 7시';
+      if (badge) badge.innerText = target;
+
+      const optionExists = Array.from(select.options).some(opt => opt.value === target);
+      if (optionExists) {
+        select.value = target;
+        if (customInput) customInput.classList.add('hidden');
+      } else {
+        select.value = 'custom';
+        if (customInput) {
+          customInput.classList.remove('hidden');
+          customInput.value = target;
+        }
+      }
+    }
+
+    function handleTimeSelect(val) {
+      const customInput = document.getElementById('customTimeInput');
+      if (val === 'custom') {
+        if (customInput) {
+          customInput.classList.remove('hidden');
+          customInput.value = state.meetingTime || '';
+          customInput.focus();
+        }
+      } else {
+        if (customInput) customInput.classList.add('hidden');
+        setTime(val);
+      }
+    }
+
+    function handleCustomTime(val) {
+      setTime(val.trim() || '저녁 7시');
+    }
+
     function setTime(timeStr) {
-      document.getElementById('meetingTimeInput').value = timeStr;
-      state.meetingTime = timeStr;
+      const target = (timeStr || '').trim() || '저녁 7시';
+      state.meetingTime = target;
+      const badge = document.getElementById('selectedTimeBadge');
+      if (badge) badge.innerText = target;
       saveStorage();
       updateOutput();
     }
@@ -692,8 +768,8 @@
 
     // 포맷팅된 날짜/시간 스트링 (예: 2026/8/10(월) 저녁 7시)
     function getFormattedDateTime() {
-      const dateVal = document.getElementById('meetingDateInput').value;
-      const timeVal = document.getElementById('meetingTimeInput').value.trim() || '저녁 7시';
+      const dateVal = document.getElementById('meetingDateInput') ? document.getElementById('meetingDateInput').value : state.meetingDate;
+      const timeVal = (state.meetingTime || '').trim() || '저녁 7시';
       
       if (!dateVal) return `2026/8/10(월) ${timeVal}`;
 
@@ -1165,8 +1241,12 @@
         fullText: generateReportText()
       };
 
-      // 같은 날짜/시간의 기록이 이미 있으면 최신 내용으로 갱신
-      const existIdx = state.history.findIndex(h => h.dateTimeStr === currentSnapshot.dateTimeStr);
+      // 모임 날짜와 모임 시간이 모두 정확히 일치할 때만 기존 기록 갱신(업데이트)
+      // (같은 날짜라도 모임 시간이 다르면 별개의 기록으로 각각 보관!)
+      const existIdx = state.history.findIndex(h => 
+        h.meetingDate === currentSnapshot.meetingDate && 
+        h.meetingTime === currentSnapshot.meetingTime
+      );
       if (existIdx >= 0) {
         state.history[existIdx] = currentSnapshot;
       } else {
@@ -1286,7 +1366,7 @@
       document.getElementById('leaderNameInput').value = state.leaderName;
       document.getElementById('meetingLocationInput').value = state.location;
       document.getElementById('meetingDateInput').value = state.meetingDate;
-      document.getElementById('meetingTimeInput').value = state.meetingTime;
+      syncTimeSelectUI(state.meetingTime);
       document.getElementById('notesInput').value = state.notes;
 
       saveStorage();
