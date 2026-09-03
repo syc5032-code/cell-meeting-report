@@ -613,6 +613,7 @@
         const savedHistory = localStorage.getItem('cell_report_history');
         if (savedHistory) {
           state.history = JSON.parse(savedHistory);
+          deduplicateHistory();
         }
       } catch (e) {
         console.error('Failed to load storage', e);
@@ -1210,6 +1211,59 @@
     }
 
     // === 지난 보고서 히스토리 관리 로직 ===
+
+    // 날짜 정규화 ('2026/8/31(월)', '2026-08-31' 등을 항상 '2026-8-31'로 통일)
+    function normalizeDate(d) {
+      if (!d) return '';
+      const match = String(d).match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+      if (match) {
+        return `${match[1]}-${parseInt(match[2], 10)}-${parseInt(match[3], 10)}`;
+      }
+      return String(d).trim();
+    }
+
+    // 시간 정규화 ('저녁 7시 30분', '저녁 7시30분', '19:30' 등을 항상 '19:30'으로 통일)
+    function normalizeTime(t) {
+      if (!t) return '19:00';
+      const str = String(t).trim();
+      const match24 = str.match(/^(\d{1,2}):(\d{2})$/);
+      if (match24) {
+        return `${match24[1].padStart(2, '0')}:${match24[2]}`;
+      }
+      const clean = str.replace(/\s+/g, '');
+      const isPM = clean.includes('오후') || clean.includes('저녁');
+      const hMatch = clean.match(/(\d+)시/);
+      const mMatch = clean.match(/(\d+)분/);
+
+      let h = hMatch ? parseInt(hMatch[1], 10) : 19;
+      let m = mMatch ? parseInt(mMatch[1], 10) : 0;
+
+      if (isPM && h < 12) h += 12;
+      if (!isPM && h === 12) h = 0;
+
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+
+    // 기존에 생긴 동일 날짜/시간 중복 카드 자동 병합 정리
+    function deduplicateHistory() {
+      if (!state.history || !Array.isArray(state.history)) return;
+      const seen = new Map();
+      const deduped = [];
+
+      for (const item of state.history) {
+        const dKey = normalizeDate(item.meetingDate || item.dateTimeStr);
+        const tKey = normalizeTime(item.meetingTime || item.dateTimeStr);
+        const key = `${dKey}_${tKey}`;
+
+        if (!seen.has(key)) {
+          seen.set(key, true);
+          deduped.push(item);
+        }
+      }
+      state.history = deduped;
+      saveStorage();
+    }
+
     function saveCurrentToHistory(showFeedback = false) {
       const currentSnapshot = {
         id: 'rep_' + Date.now(),
@@ -1228,12 +1282,16 @@
         fullText: generateReportText()
       };
 
-      // 모임 날짜와 모임 시간이 모두 정확히 일치할 때만 기존 기록 갱신(업데이트)
-      // (같은 날짜라도 모임 시간이 다르면 별개의 기록으로 각각 보관!)
-      const existIdx = state.history.findIndex(h => 
-        h.meetingDate === currentSnapshot.meetingDate && 
-        h.meetingTime === currentSnapshot.meetingTime
-      );
+      const curDateKey = normalizeDate(currentSnapshot.meetingDate || currentSnapshot.dateTimeStr);
+      const curTimeKey = normalizeTime(currentSnapshot.meetingTime || currentSnapshot.dateTimeStr);
+
+      // 모임 날짜와 모임 시간(공백/표기 무관)이 일치할 때 기존 기록 갱신
+      const existIdx = state.history.findIndex(h => {
+        const hDateKey = normalizeDate(h.meetingDate || h.dateTimeStr);
+        const hTimeKey = normalizeTime(h.meetingTime || h.dateTimeStr);
+        return hDateKey === curDateKey && hTimeKey === curTimeKey;
+      });
+
       if (existIdx >= 0) {
         state.history[existIdx] = currentSnapshot;
       } else {
@@ -1253,6 +1311,7 @@
     }
 
     function openHistoryModal() {
+      deduplicateHistory();
       renderHistoryList();
       document.getElementById('historyModal').classList.remove('hidden');
     }
