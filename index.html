@@ -297,40 +297,70 @@
     <span id="toastMessage">복사되었습니다.</span>
   </div>
 
-  <!-- 멤버 관리 모달 -->
-  <div id="memberModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col border border-slate-100">
-      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-        <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
-          <span>👥</span> 셀 멤버 목록 관리
-        </h3>
-        <button onclick="closeMemberModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-sm font-bold transition active:scale-95">✕</button>
+  <!-- 멤버 관리 모달 (일괄 등록 기능 탑재) -->
+  <div id="memberModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-xl border border-zinc-200 p-5 space-y-3.5 max-h-[90vh] flex flex-col shadow-xl">
+      <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+        <div class="flex items-center gap-2">
+          <span class="text-base">👥</span>
+          <h3 class="font-semibold text-sm text-zinc-900">
+            셀원 명단 관리 <span id="modalMemberCount" class="text-xs text-zinc-400 font-normal">(총 0명)</span>
+          </h3>
+        </div>
+        <button onclick="closeMemberModal()" class="text-zinc-400 hover:text-zinc-700 text-sm font-bold p-1" title="닫기">✕</button>
       </div>
 
-      <p class="text-xs text-slate-400 font-medium">
-        셀원 명단은 브라우저에 자동 보존됩니다. 추가/삭제 후 완료를 누르세요.
-      </p>
-
-      <!-- 멤버 추가 인풋 -->
-      <div class="flex gap-2">
-        <input type="text" id="newMemberInput" placeholder="추가할 셀원 이름" 
-          onkeypress="if(event.key === 'Enter') addMember();"
-          class="flex-1 px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:bg-white font-medium">
-        <button onclick="addMember()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-2xl transition active:scale-95 shadow-sm shadow-blue-200">
-          추가
+      <div class="flex items-center justify-between text-xs">
+        <span class="text-zinc-500 font-medium">셀원 등록 및 순서 변경</span>
+        <button type="button" onclick="toggleBulkMemberInput()" id="toggleBulkBtn" class="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 hover:underline">
+          <span>📋</span> <span>카톡 명단 한 번에 붙여넣기</span>
         </button>
       </div>
 
-      <!-- 멤버 리스트 -->
+      <!-- 단일/간이 입력창 (쉼표로 구분하여 여러 명 동시 입력 가능) -->
+      <div id="singleMemberInputRow" class="flex gap-2">
+        <input type="text" id="newMemberInput" placeholder="이름 입력 (쉼표로 여러 명 가능: 김철수, 이영희, 박지성)" 
+          onkeypress="if(event.key === 'Enter') addMember();"
+          class="flex-1 px-3 py-2 text-xs bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-zinc-900 font-normal">
+        <button onclick="addMember()" class="px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-medium rounded-lg transition active:scale-95 shrink-0">
+          + 추가
+        </button>
+      </div>
+
+      <!-- 일괄 등록 펼침 패널 (대량 명단 붙여넣기 전용) -->
+      <div id="bulkMemberPanel" class="hidden p-3 bg-zinc-50 border border-zinc-200 rounded-xl space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-zinc-800">📋 카톡/메모장 명단 일괄 붙여넣기</span>
+          <span class="text-[11px] text-zinc-400">줄바꿈, 쉼표, 띄어쓰기 지원</span>
+        </div>
+        <textarea id="bulkMemberText" rows="4" 
+          placeholder="카톡이나 메모장에서 복사한 명단을 그대로 붙여넣으세요.&#10;예시:&#10;1. 김철수&#10;2. 이영희 (새가족)&#10;3. 박지성, 손흥민, 이강인" 
+          class="w-full p-2.5 text-xs bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-zinc-900 font-normal leading-relaxed custom-scrollbar"></textarea>
+        <div class="flex items-center justify-between gap-2 pt-0.5">
+          <button type="button" onclick="toggleBulkMemberInput()" class="px-2.5 py-1.5 text-xs text-zinc-500 hover:text-zinc-800">
+            닫기
+          </button>
+          <div class="flex items-center gap-1.5">
+            <button type="button" onclick="importBulkMembers(true)" class="px-2.5 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 text-xs font-medium rounded-lg transition" title="기존 예시 명단을 모두 지우고 붙여넣은 명단으로 완전히 새로 세팅합니다">
+              기존 명단 비우고 교체
+            </button>
+            <button type="button" onclick="importBulkMembers(false)" class="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-medium rounded-lg transition">
+              + 기존에 추가
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 멤버 리스트 (드래그 순서 변경) -->
       <div class="flex-1 overflow-y-auto space-y-1.5 custom-scrollbar pr-1 max-h-60" id="modalMemberList">
         <!-- JS로 렌더링 -->
       </div>
 
-      <div class="flex items-center justify-between pt-3 border-t border-zinc-100">
-        <button onclick="resetDefaultMembers()" class="text-xs text-zinc-400 hover:text-rose-500 transition">
+      <div class="flex items-center justify-between pt-2.5 border-t border-zinc-100 text-xs">
+        <button onclick="resetDefaultMembers()" class="text-zinc-400 hover:text-rose-500 transition">
           기본 명단으로 리셋
         </button>
-        <button onclick="closeMemberModal()" class="px-4 py-2 bg-zinc-900 text-white text-xs font-medium rounded-lg hover:bg-zinc-800 transition active:scale-95">
+        <button onclick="closeMemberModal()" class="px-4 py-2 bg-zinc-900 text-white font-medium rounded-lg hover:bg-zinc-800 transition active:scale-95">
           완료
         </button>
       </div>
@@ -1480,28 +1510,40 @@
         saveToCloud(true);
       }
     }
-
     let memberSortable = null;
 
     function renderModalMemberList() {
       const listEl = document.getElementById('modalMemberList');
+      const countEl = document.getElementById('modalMemberCount');
+      if (countEl) countEl.innerText = `(총 ${state.members.length}명)`;
+
       listEl.innerHTML = '';
+      if (state.members.length === 0) {
+        listEl.innerHTML = `
+          <div class="py-8 text-center text-xs text-zinc-400 space-y-1">
+            <p>등록된 셀원이 없습니다.</p>
+            <p class="text-[11px] text-zinc-400">위 입력창이나 [카톡 명단 한 번에 붙여넣기]로 셀원을 추가하세요.</p>
+          </div>
+        `;
+        return;
+      }
+
       state.members.forEach((name, idx) => {
         const item = document.createElement('div');
         item.setAttribute('data-member', name);
-        item.className = 'flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200 text-sm';
+        item.className = 'flex items-center justify-between p-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-xs';
         item.innerHTML = `
           <div class="flex items-center gap-2">
-            <div class="member-drag-handle px-1.5 py-0.5 text-slate-400 hover:text-slate-700 bg-slate-200/70 rounded cursor-grab active:cursor-grabbing text-xs font-bold" title="드래그하여 순서 변경">
+            <div class="member-drag-handle px-1.5 py-0.5 text-zinc-400 hover:text-zinc-700 bg-zinc-200/70 rounded cursor-grab active:cursor-grabbing text-[11px] font-bold" title="드래그하여 순서 변경">
               ☰
             </div>
-            <span class="text-xs text-slate-400 font-mono w-4">${idx + 1}</span>
-            <span class="font-medium text-slate-800">${name}</span>
+            <span class="text-[11px] text-zinc-400 font-mono w-4 text-right">${idx + 1}</span>
+            <span class="font-medium text-zinc-900">${escapeHtml(name)}</span>
           </div>
           <div class="flex items-center gap-1">
-            ${idx > 0 ? `<button onclick="moveMember(${idx}, -1)" class="p-1 text-xs text-slate-400 hover:text-slate-700">▲</button>` : ''}
-            ${idx < state.members.length - 1 ? `<button onclick="moveMember(${idx}, 1)" class="p-1 text-xs text-slate-400 hover:text-slate-700">▼</button>` : ''}
-            <button onclick="removeMember(${idx})" class="p-1 text-xs text-rose-500 hover:text-rose-700 font-bold ml-1">✕</button>
+            ${idx > 0 ? `<button onclick="moveMember(${idx}, -1)" class="p-1 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200 rounded text-[10px]" title="위로">▲</button>` : ''}
+            ${idx < state.members.length - 1 ? `<button onclick="moveMember(${idx}, 1)" class="p-1 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200 rounded text-[10px]" title="아래로">▼</button>` : ''}
+            <button onclick="removeMember(${idx})" class="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded font-bold ml-1" title="삭제">✕</button>
           </div>
         `;
         listEl.appendChild(item);
@@ -1523,20 +1565,136 @@
       }
     }
 
-    function addMember() {
-      const input = document.getElementById('newMemberInput');
-      const name = input.value.trim();
-      if (!name) return;
-      if (state.members.includes(name)) {
-        alert('이미 존재하는 셀원입니다.');
+    // 스마트 명단 파서 (쉼표, 줄바꿈, 띄어쓰기, 번호/괄호 메모 자동 제거)
+    function parseMemberNames(rawText) {
+      if (!rawText) return [];
+      // 1. 줄바꿈, 쉼표, 슬래시, 세미콜론 기준으로 분할
+      const rawLines = rawText.split(/[\n\r,;/]+/);
+      const names = [];
+
+      rawLines.forEach(line => {
+        // 공백으로도 추가 분할
+        const parts = line.split(/\s+/);
+        parts.forEach(part => {
+          let clean = part.trim();
+          // 번호/기호 제거 (예: '1.', '2)', '- ', '•', '[1]', '①')
+          clean = clean.replace(/^[\d\s\.\)\-\[\]•·①-⑳]+/g, '');
+          // 괄호 속 부가 설명 제거 (예: '김철수(새가족)' -> '김철수')
+          clean = clean.replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '');
+          clean = clean.trim();
+
+          // 유효한 2자 이상 이름 (특수문자 제외)
+          if (clean && clean.length >= 2 && !names.includes(clean)) {
+            names.push(clean);
+          }
+        });
+      });
+
+      return names;
+    }
+
+    // 일괄 등록 펼침 패널 토글
+    function toggleBulkMemberInput() {
+      const panel = document.getElementById('bulkMemberPanel');
+      const singleRow = document.getElementById('singleMemberInputRow');
+      const isHidden = panel.classList.contains('hidden');
+
+      if (isHidden) {
+        panel.classList.remove('hidden');
+        singleRow.classList.add('hidden');
+        document.getElementById('bulkMemberText').focus();
+      } else {
+        panel.classList.add('hidden');
+        singleRow.classList.remove('hidden');
+      }
+    }
+
+    // 일괄 등록 실행 (교체 또는 추가)
+    function importBulkMembers(isReplace = false) {
+      const text = document.getElementById('bulkMemberText').value.trim();
+      const parsed = parseMemberNames(text);
+
+      if (parsed.length === 0) {
+        alert('추가할 셀원 이름을 찾지 못했습니다. 카톡 명단을 다시 확인해주세요.');
         return;
       }
-      state.members.push(name);
-      state.sundayAttendance[name] = true;
-      state.cellAttendance[name] = true;
+
+      if (isReplace) {
+        if (!confirm(`기존 명단을 모두 지우고, 새로 입력한 ${parsed.length}명으로 교체하시겠습니까?`)) {
+          return;
+        }
+        state.members = [];
+        state.sundayAttendance = {};
+        state.cellAttendance = {};
+        state.sundayReasons = {};
+        state.cellReasons = {};
+        state.sundayAbsenceOrder = [];
+        state.cellAbsenceOrder = [];
+      }
+
+      let added = 0;
+      let dup = 0;
+
+      parsed.forEach(name => {
+        if (!state.members.includes(name)) {
+          state.members.push(name);
+          state.sundayAttendance[name] = true;
+          state.cellAttendance[name] = true;
+          added++;
+        } else {
+          dup++;
+        }
+      });
+
+      document.getElementById('bulkMemberText').value = '';
+      saveStorage();
+      renderModalMemberList();
+      toggleBulkMemberInput();
+
+      if (isReplace) {
+        showToast(`총 ${added}명의 셀원으로 새로 교체되었습니다!`);
+      } else {
+        const dupMsg = dup > 0 ? ` (중복 ${dup}명 제외)` : '';
+        showToast(`총 ${added}명의 셀원이 추가되었습니다!${dupMsg}`);
+      }
+    }
+
+    // 셀원 추가 (단일 또는 쉼표 구분 다중 추가 지원)
+    function addMember() {
+      const input = document.getElementById('newMemberInput');
+      const val = input.value.trim();
+      if (!val) return;
+
+      const parsed = parseMemberNames(val);
+      if (parsed.length === 0) {
+        alert('올바른 셀원 이름을 입력해주세요.');
+        return;
+      }
+
+      let added = 0;
+      let dup = 0;
+
+      parsed.forEach(name => {
+        if (!state.members.includes(name)) {
+          state.members.push(name);
+          state.sundayAttendance[name] = true;
+          state.cellAttendance[name] = true;
+          added++;
+        } else {
+          dup++;
+        }
+      });
+
       input.value = '';
       saveStorage();
       renderModalMemberList();
+
+      if (parsed.length > 1) {
+        const dupMsg = dup > 0 ? ` (중복 ${dup}명 제외)` : '';
+        showToast(`총 ${added}명의 셀원이 추가되었습니다!${dupMsg}`);
+      } else if (dup > 0) {
+        alert('이미 존재하는 셀원입니다.');
+      }
     }
 
     function removeMember(idx) {
