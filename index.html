@@ -106,32 +106,17 @@
   <!-- 메인 컨테이너 (미니멀 노션/리니어 스타일) -->
   <main class="max-w-2xl mx-auto px-4 py-5 space-y-4">
 
-    <!-- 첫 방문 안내 배너 (모바일 문장 한 줄 완벽 보장 & 버튼 독립 여백 확보) -->
-    <div id="welcomeBanner" class="p-3 bg-zinc-900 text-white rounded-xl text-xs space-y-2.5 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-4 shadow-xs transition">
-      <!-- 상단 문장 영역 (모바일에서도 절대 줄바꿈 없이 한 줄로 시원하게 출력) -->
-      <div class="flex items-center justify-between gap-2">
-        <div class="flex items-center gap-2 min-w-0">
-          <span class="shrink-0 text-sm">💡</span>
-          <span class="text-[11.5px] sm:text-xs whitespace-nowrap leading-tight tracking-tight">
-            <b>처음 오셨나요?</b> 상단 <b>[사용법]</b>을 누르시면 1분 만에 익히실 수 있습니다!
-          </span>
-        </div>
-        <!-- 모바일 닫기 버튼 -->
-        <button onclick="dismissWelcomeBanner()" class="w-6 h-6 flex items-center justify-center text-zinc-400 hover:text-white text-xs font-bold rounded-lg hover:bg-white/10 transition sm:hidden shrink-0" title="닫기">
-          ✕
-        </button>
+    <!-- 첫 방문 안내 배너 (중복 버튼 제거 & 깔끔한 1줄 안내) -->
+    <div id="welcomeBanner" class="px-3 py-2.5 sm:px-3.5 sm:py-2.5 bg-zinc-900 text-white rounded-xl text-xs flex items-center justify-between gap-2 shadow-xs transition">
+      <div class="flex items-center gap-2 min-w-0 cursor-pointer" onclick="openGuideModal()" title="클릭하여 사용법 보기">
+        <span class="shrink-0 text-sm">💡</span>
+        <span class="text-[11px] xs:text-[11.5px] sm:text-xs whitespace-nowrap overflow-hidden text-ellipsis leading-tight">
+          <b>처음 오셨나요?</b> 상단 <b>[사용법]</b>을 누르시면 1분 만에 익히실 수 있습니다!
+        </span>
       </div>
-
-      <!-- 버튼 영역 (문장과 어색하게 붙지 않고 독립된 여백 확보) -->
-      <div class="flex items-center gap-2 shrink-0 justify-end">
-        <button onclick="openGuideModal()" class="w-full sm:w-auto px-3 py-1.5 bg-white/15 hover:bg-white/25 active:bg-white/30 text-white rounded-lg font-medium text-[11px] sm:text-xs transition text-center active:scale-95 flex items-center justify-center gap-1.5">
-          <span>📖</span> <span>1분 가이드 보기</span>
-        </button>
-        <!-- 데스크톱 닫기 버튼 -->
-        <button onclick="dismissWelcomeBanner()" class="hidden sm:flex w-6 h-6 items-center justify-center text-zinc-400 hover:text-white text-xs font-bold rounded-lg hover:bg-white/10 transition shrink-0" title="닫기">
-          ✕
-        </button>
-      </div>
+      <button onclick="dismissWelcomeBanner()" class="w-6 h-6 flex items-center justify-center text-zinc-400 hover:text-white text-xs font-bold rounded-lg hover:bg-white/10 transition shrink-0" title="닫기">
+        ✕
+      </button>
     </div>
 
     <!-- 1. 기본 정보 카드 -->
