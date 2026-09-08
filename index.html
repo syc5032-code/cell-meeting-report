@@ -1181,6 +1181,27 @@
       return String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
     }
 
+    // 기도제목 다중 항목 스마트 파서 (엔터, 슬래시, 세미콜론 등으로 나눈 항목 분리 및 불필요한 번호/기호 자동 정제)
+    function parsePrayerItems(raw) {
+      if (!raw || !raw.trim()) return [];
+      const rawList = raw.split(/[\n\r/;\\]+/);
+      const items = [];
+      rawList.forEach(chunk => {
+        let clean = chunk.trim();
+        if (!clean) return;
+        // 기존에 적혀있는 번호나 기호 접두사 제거 (예: '1.', '2)', '- ', '•', '* ')
+        clean = clean.replace(/^[\d\s\.\)\-\*•·①-⑳]+/, '').trim();
+        if (clean) items.push(clean);
+      });
+      return items;
+    }
+
+    function autoResizePrayerTextarea(el) {
+      if (!el) return;
+      el.style.height = 'auto';
+      el.style.height = Math.max(28, el.scrollHeight) + 'px';
+    }
+
     function renderPrayerList() {
       const container = document.getElementById('prayerListContainer');
       const countBadge = document.getElementById('prayerCountBadge');
@@ -1196,20 +1217,27 @@
         if (prayerVal.trim()) filledCount++;
 
         const row = document.createElement('div');
-        row.className = 'flex items-center gap-2 p-2 sm:p-2.5 rounded-lg bg-zinc-50 border border-zinc-200 focus-within:border-zinc-900 focus-within:bg-white transition-colors';
+        row.className = 'flex items-start gap-2 p-2 sm:p-2.5 rounded-lg bg-zinc-50 border border-zinc-200 focus-within:border-zinc-900 focus-within:bg-white transition-colors';
         row.innerHTML = `
-          <span class="w-14 sm:w-16 shrink-0 text-xs font-semibold text-zinc-800 truncate text-left pl-1">
+          <span class="w-14 sm:w-16 shrink-0 text-xs font-semibold text-zinc-800 truncate text-left pl-1 pt-1">
             ${escapeHtml(name)}
           </span>
-          <input type="text" value="${escapeHtml(prayerVal)}" 
-            placeholder="기도제목을 입력하세요 (나눔 후 기록)"
-            oninput="setPrayer('${name}', this.value)"
-            class="flex-1 text-xs bg-transparent border-none focus:outline-none text-zinc-800 placeholder:text-zinc-400 font-normal">
+          <textarea rows="1" 
+            placeholder="기도제목 입력 (엔터 또는 / 로 여러 개 작성 가능)"
+            oninput="setPrayer('${name}', this.value); autoResizePrayerTextarea(this);"
+            class="flex-1 text-xs bg-transparent border-none focus:outline-none text-zinc-800 placeholder:text-zinc-400 font-normal resize-none overflow-hidden leading-relaxed custom-scrollbar py-0.5"
+            style="min-height: 24px;">${escapeHtml(prayerVal)}</textarea>
           ${prayerVal ? `
-            <button type="button" onclick="clearPrayer('${name}')" class="text-zinc-300 hover:text-zinc-600 text-xs px-1" title="지우기">✕</button>
+            <button type="button" onclick="clearPrayer('${name}')" class="text-zinc-300 hover:text-zinc-600 text-xs px-1 pt-1" title="지우기">✕</button>
           ` : ''}
         `;
         container.appendChild(row);
+
+        // 초기 높이 자동 조절
+        const textarea = row.querySelector('textarea');
+        if (textarea && prayerVal) {
+          setTimeout(() => autoResizePrayerTextarea(textarea), 0);
+        }
       });
 
       if (countBadge) {
@@ -1236,17 +1264,25 @@
       renderPrayerList();
     }
 
+    // 1번 스타일: 카톡 공유용 기도제목 텍스트 생성 (이름\n- 기도제목1\n- 기도제목2)
     function generatePrayerReportText() {
       const mmdd = getPrayerDateMMDD();
-      const lines = [];
+      const sections = [];
+
       state.members.forEach(name => {
         const p = (state.prayers && state.prayers[name] ? state.prayers[name] : '').trim();
-        if (p) {
-          lines.push(`${name}: ${p}`);
-        }
+        if (!p) return;
+
+        const items = parsePrayerItems(p);
+        if (items.length === 0) return;
+
+        // 이름 아래에 - 글머리 기호로 단정하게 나열
+        const formattedLines = items.map(item => `- ${item}`).join('\n');
+        sections.push(`${name}\n${formattedLines}`);
       });
-      if (lines.length === 0) return '';
-      return `[${mmdd} 셀모임 기도제목]\n` + lines.join('\n');
+
+      if (sections.length === 0) return '';
+      return `[${mmdd} 셀모임 기도제목]\n\n` + sections.join('\n\n');
     }
 
     async function copyPrayersToClipboard() {
@@ -1660,18 +1696,21 @@
         mmdd = String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
       }
 
-      const lines = [];
+      const sections = [];
       target.members.forEach(name => {
         const p = (target.prayers[name] || '').trim();
-        if (p) lines.push(`${name}: ${p}`);
+        if (!p) return;
+        const items = parsePrayerItems(p);
+        if (items.length === 0) return;
+        sections.push(`${name}\n` + items.map(it => `- ${it}`).join('\n'));
       });
 
-      if (lines.length === 0) {
+      if (sections.length === 0) {
         showToast('저장된 기도제목이 없습니다.');
         return;
       }
 
-      const text = `[${mmdd} 셀모임 기도제목]\n` + lines.join('\n');
+      const text = `[${mmdd} 셀모임 기도제목]\n\n` + sections.join('\n\n');
       try {
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(text);
