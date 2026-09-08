@@ -428,20 +428,33 @@
   </div>
 
   <!-- 핸드폰 연동 안내 모달 -->
-  <!-- 사용 방법 가이드 모달 -->
+  <!-- 사용 방법 가이드 모달 (보고서 / 기도제목 탭 구분) -->
   <div id="guideModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-lg rounded-xl border border-zinc-200 p-5 space-y-3.5 max-h-[90vh] flex flex-col">
       <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
         <div class="flex items-center gap-2">
           <span class="text-base">💡</span>
           <h3 class="font-semibold text-sm text-zinc-900">
-            셀모임 보고서 사용 방법
+            사용 방법 가이드
           </h3>
         </div>
         <button onclick="closeGuideModal()" class="text-zinc-400 hover:text-zinc-700 text-sm font-bold p-1">✕</button>
       </div>
 
-      <div class="space-y-3 text-xs text-zinc-600 overflow-y-auto custom-scrollbar pr-1">
+      <!-- 가이드 내부 탭 스위처 -->
+      <div class="flex p-1 bg-zinc-100 rounded-lg border border-zinc-200 text-xs font-semibold select-none">
+        <button type="button" id="guideTabBtnReport" onclick="switchGuideTab('report')" 
+          class="flex-1 py-1.5 rounded-md text-center transition-all bg-white text-zinc-900 shadow-xs font-semibold flex items-center justify-center gap-1.5 active:scale-98">
+          <span>📋</span> <span>셀모임 보고서</span>
+        </button>
+        <button type="button" id="guideTabBtnPrayers" onclick="switchGuideTab('prayers')" 
+          class="flex-1 py-1.5 rounded-md text-center transition-all text-zinc-500 hover:text-zinc-800 font-medium flex items-center justify-center gap-1.5 active:scale-98">
+          <span>🙏</span> <span>셀원 기도제목</span>
+        </button>
+      </div>
+
+      <!-- 1. 보고서 탭 가이드 내용 -->
+      <div id="guideTabContentReport" class="space-y-3 text-xs text-zinc-600 overflow-y-auto custom-scrollbar pr-1">
         <!-- 1단계: 기본 정보 & 셀원 명단 -->
         <div class="p-3.5 bg-zinc-50 border border-zinc-200 rounded-lg space-y-1.5">
           <div class="font-semibold text-xs text-zinc-900 flex items-center gap-1.5">
@@ -497,6 +510,68 @@
           </div>
           <p class="text-blue-900 leading-relaxed">
             스마트폰 브라우저 메뉴(공유 아이콘 또는 점 세개)에서 <b>[홈 화면에 추가]</b>를 누르면 바탕화면에 바로 실행 아이콘이 생깁니다.
+          </p>
+        </div>
+      </div>
+
+      <!-- 2. 기도제목 탭 가이드 내용 -->
+      <div id="guideTabContentPrayers" class="space-y-3 text-xs text-zinc-600 overflow-y-auto custom-scrollbar pr-1 hidden">
+        <!-- 1단계: 전용 탭 전환 -->
+        <div class="p-3.5 bg-amber-50/60 border border-amber-200 rounded-lg space-y-1.5">
+          <div class="font-semibold text-xs text-amber-950 flex items-center gap-1.5">
+            <span class="w-4 h-4 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px] font-bold">1</span>
+            상단 [🙏 셀원 기도제목] 탭 선택
+          </div>
+          <p class="text-amber-900 leading-relaxed">
+            메인 화면 상단의 <b>[🙏 셀원 기도제목]</b> 탭을 누르면 오직 셀원들과의 나눔에만 집중할 수 있는 전용 화면으로 전환됩니다.
+          </p>
+        </div>
+
+        <!-- 2단계: 다중 항목 자유로운 입력 -->
+        <div class="p-3.5 bg-zinc-50 border border-zinc-200 rounded-lg space-y-1.5">
+          <div class="font-semibold text-xs text-zinc-900 flex items-center gap-1.5">
+            <span class="w-4 h-4 rounded-full bg-zinc-900 text-white flex items-center justify-center text-[10px] font-bold">2</span>
+            나눔 중 편하게 적기 (엔터 줄바꿈 / 슬래시 지원)
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-zinc-600 pl-1 leading-relaxed">
+            <li>각 셀원 이름 옆 입력창에 나눈 기도제목을 편하게 적으세요.</li>
+            <li>기도제목이 여러 개일 때는 <b>엔터(줄바꿈)</b> 또는 <b>슬래시(`/`)</b>로 나누어 적으시면 됩니다.</li>
+            <li>기존에 <span class="font-mono text-zinc-700">1.</span>이나 <span class="font-mono text-zinc-700">- </span> 같은 번호/기호를 붙여 적어도 시스템이 알아서 단정하게 정리해 줍니다.</li>
+            <li>글이 길어지면 입력창 높이가 자동으로 부드럽게 늘어납니다.</li>
+          </ul>
+        </div>
+
+        <!-- 3단계: 실시간 미리보기 확인 -->
+        <div class="p-3.5 bg-zinc-50 border border-zinc-200 rounded-lg space-y-1.5">
+          <div class="font-semibold text-xs text-zinc-900 flex items-center gap-1.5">
+            <span class="w-4 h-4 rounded-full bg-zinc-900 text-white flex items-center justify-center text-[10px] font-bold">3</span>
+            실시간 카톡 공유 미리보기 확인
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-zinc-600 pl-1 leading-relaxed">
+            <li>입력창 바로 아래 <b>[카카오톡 공유 기도제목 미리보기]</b>에서 카톡에 나갈 모양(이름 아래 단정한 하이픈 리스트)을 실시간으로 확인하실 수 있습니다.</li>
+            <li>결석했거나 기도제목을 적지 않은 셀원은 카톡 복사본에서 <b>자동으로 제외</b>됩니다.</li>
+          </ul>
+        </div>
+
+        <!-- 4단계: 원클릭 복사 & 단톡방 공유 -->
+        <div class="p-3.5 bg-zinc-50 border border-zinc-200 rounded-lg space-y-1.5">
+          <div class="font-semibold text-xs text-zinc-900 flex items-center gap-1.5">
+            <span class="w-4 h-4 rounded-full bg-zinc-900 text-white flex items-center justify-center text-[10px] font-bold">4</span>
+            원클릭 복사 & 셀 단톡방에 붙여넣기
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-zinc-600 pl-1 leading-relaxed">
+            <li>상단의 <b>[🙏 기도제목 복사하기]</b> 또는 하단 플로팅 버튼을 누르면 클립보드에 복사됩니다.</li>
+            <li>셀원 단톡방에 바로 <b>[붙여넣기]</b>하시면 예쁜 말풍선으로 공유됩니다!</li>
+          </ul>
+        </div>
+
+        <!-- 5단계: 교회 보고서와 완전 분리 안내 -->
+        <div class="p-3.5 bg-blue-50/70 border border-blue-200 rounded-lg space-y-1.5">
+          <div class="font-semibold text-xs text-blue-950 flex items-center gap-1.5">
+            <span>🔒</span> 안심하세요! 교회 보고서와 100% 분리
+          </div>
+          <p class="text-blue-900 leading-relaxed">
+            교역자/교회 제출용 보고서에는 셀원들의 개인적인 기도제목이 일체 들어가지 않으니 안심하고 나누셔도 됩니다.
           </p>
         </div>
       </div>
@@ -2110,9 +2185,34 @@
       renderModalMemberList();
     }
 
-    function openGuideModal() {
+    let currentGuideTab = 'report';
+
+    function switchGuideTab(tabName) {
+      currentGuideTab = tabName;
+      const btnReport = document.getElementById('guideTabBtnReport');
+      const btnPrayers = document.getElementById('guideTabBtnPrayers');
+      const contentReport = document.getElementById('guideTabContentReport');
+      const contentPrayers = document.getElementById('guideTabContentPrayers');
+
+      if (tabName === 'report') {
+        if (btnReport) btnReport.className = 'flex-1 py-1.5 rounded-md text-center transition-all bg-white text-zinc-900 shadow-xs font-semibold flex items-center justify-center gap-1.5 active:scale-98';
+        if (btnPrayers) btnPrayers.className = 'flex-1 py-1.5 rounded-md text-center transition-all text-zinc-500 hover:text-zinc-800 font-medium flex items-center justify-center gap-1.5 active:scale-98';
+        if (contentReport) contentReport.classList.remove('hidden');
+        if (contentPrayers) contentPrayers.classList.add('hidden');
+      } else {
+        if (btnPrayers) btnPrayers.className = 'flex-1 py-1.5 rounded-md text-center transition-all bg-white text-zinc-900 shadow-xs font-semibold flex items-center justify-center gap-1.5 active:scale-98';
+        if (btnReport) btnReport.className = 'flex-1 py-1.5 rounded-md text-center transition-all text-zinc-500 hover:text-zinc-800 font-medium flex items-center justify-center gap-1.5 active:scale-98';
+        if (contentReport) contentReport.classList.add('hidden');
+        if (contentPrayers) contentPrayers.classList.remove('hidden');
+      }
+    }
+
+    function openGuideModal(defaultTab) {
       const modal = document.getElementById('guideModal');
       if (modal) modal.classList.remove('hidden');
+      // 메인 화면에서 현재 보고 있는 탭에 맞춰 가이드 모달 탭도 맞춤 자동 선택!
+      const targetTab = defaultTab || (currentMainTab === 'prayers' ? 'prayers' : 'report');
+      switchGuideTab(targetTab);
     }
 
     function closeGuideModal() {
