@@ -379,11 +379,11 @@
           <div class="flex items-center gap-1 p-1 bg-zinc-100 rounded-xl border border-zinc-200 text-xs font-semibold shrink-0">
             <button id="btnRoleCorps" onclick="setDemoRole('corps')" 
               class="px-2.5 py-1.5 rounded-lg transition-all bg-zinc-900 text-white shadow-xs font-semibold flex items-center gap-1">
-              <span>👑</span> <span>김태홍 군단리더 (전체)</span>
+              <span>👑</span> <span>김태홍 군단리더 (총괄)</span>
             </button>
             <button id="btnRoleCell" onclick="setDemoRole('cell')" 
               class="px-2.5 py-1.5 rounded-lg transition-all text-zinc-600 hover:text-zinc-900 font-medium flex items-center gap-1">
-              <span>🌱</span> <span>송예찬 셀리더 (하위만)</span>
+              <span>🌱</span> <span>송예찬 군단리더 (내 산하)</span>
             </button>
           </div>
         </div>
@@ -757,10 +757,10 @@
         <!-- 1: 시점 전환 안내 -->
         <div class="p-3.5 bg-amber-50/70 border border-amber-200 rounded-lg space-y-1.5">
           <div class="font-semibold text-xs text-amber-950 flex items-center gap-1.5">
-            <span>👑</span> 김태홍 군단리더 vs 송예찬 셀리더 시점 전환
+            <span>👑</span> 김태홍 군단리더(총괄) vs 송예찬 군단리더(내 산하) 시점 전환
           </div>
           <p class="text-amber-900 leading-relaxed">
-            상단의 <b>[시점 전환 버튼]</b>을 누르면, 군단 전체 5개 셀을 총괄하는 군단리더 시점과 내 셀(9명)만 관리하는 셀리더 시점의 가시 범위 차이를 직접 체험해보실 수 있습니다.
+            상단의 <b>[시점 전환 버튼]</b>을 누르면, 군단 전체를 총괄하는 시점과 내 산하의 셀들을 총괄하는 시점의 가시 범위 차이를 직접 체험해보실 수 있습니다.
           </p>
         </div>
 
@@ -3070,7 +3070,7 @@
       ]
     };
 
-    // 하위 셀 모의 데이터 레지스트리 (셀리더로 지정 시 자동 마운트)
+    // 하위 셀 모의 데이터 레지스트리 (셀리더 또는 셀원 배정 디모데의 하위 셀)
     const DEMO_SUB_CELLS = {
       "윤수민": {
         id: "cell_soomin",
@@ -3087,13 +3087,32 @@
           { name: "안상현", role: "셀원", sunday: false, sundayReason: "직장/야근", cell: true, cellReason: "" }
         ],
         notes: "- 수민셀 첫 모임 은혜롭게 나눔 완료\n- 우람 디모데와 함께 다음 주 셀원 심방 및 전도 대상자 작정 기도"
+      },
+      "주진": {
+        id: "cell_jujin",
+        leaderName: "주진",
+        isCorpsLeader: false,
+        parentLeader: "송예찬",
+        roleTitle: "디모데 인큐베이팅 셀 (송예찬 직속)",
+        location: "드림홀 카페",
+        meetingDateTime: "2026/9/8(화) 저녁 7시",
+        members: [
+          { name: "주진", role: "디모데", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+          { name: "임하늘", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+          { name: "정태우", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+          { name: "오하은", role: "셀원", sunday: false, sundayReason: "직장/야근", cell: true, cellReason: "" }
+        ],
+        notes: "- 주진 디모데 배정 셀원 첫 모임 은혜롭게 나눔\n- 셀원 신앙 점검 및 심방 일정 조율"
       }
     };
 
     function getSubCellLeaders() {
       if (!state.members) return [];
       return state.members.filter(name => {
-        return name !== state.leaderName && getMemberRole(name) === '셀리더';
+        if (name === state.leaderName) return false;
+        const role = getMemberRole(name);
+        // 셀리더이거나, 디모데이지만 셀원을 배정받아 하위셀을 인도하는 경우
+        return role === '셀리더' || (role === '디모데' && DEMO_SUB_CELLS[name]);
       });
     }
 
@@ -3269,7 +3288,7 @@
           notice.innerHTML = `
             <span class="text-base">🌱</span>
             <div>
-              <b>송예찬 셀리더 시점</b>: 김태홍 군단리더의 타 셀(권회인셀, 박창현셀 등)은 <b>완전히 숨겨지며</b>, ${subText}
+              <b>송예찬 군단리더 시점</b>: 김태홍 군단리더의 타 셀(권회인셀, 박창현셀 등)은 <b>완전히 숨겨지며</b>, ${subText}
             </div>
           `;
           notice.className = 'text-xs p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-emerald-900 flex items-start gap-2 leading-relaxed';
