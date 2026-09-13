@@ -64,6 +64,16 @@
     .drag-handle:active {
       cursor: grabbing;
     }
+    .badge-att {
+      background-color: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    .badge-abs {
+      background-color: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
   </style>
 </head>
 <body class="bg-[#FAFAFA] text-zinc-900 min-h-screen pb-32">
@@ -122,13 +132,18 @@
     <!-- 상단 세그먼트 탭 스위처 -->
     <div class="flex p-1 bg-zinc-200/70 backdrop-blur-xs rounded-xl border border-zinc-200 text-xs select-none">
       <button type="button" id="tabBtnReport" onclick="switchMainTab('report')" 
-        class="flex-1 py-2 rounded-lg text-center transition-all bg-white text-zinc-900 shadow-xs font-semibold flex items-center justify-center gap-1.5 active:scale-98">
-        <span>📋</span> <span>셀모임 보고서</span>
+        class="flex-1 py-2 rounded-lg text-center transition-all bg-white text-zinc-900 shadow-xs font-semibold flex items-center justify-center gap-1 active:scale-98">
+        <span>📋</span> <span>보고서</span>
       </button>
       <button type="button" id="tabBtnPrayers" onclick="switchMainTab('prayers')" 
-        class="flex-1 py-2 rounded-lg text-center transition-all text-zinc-500 hover:text-zinc-800 font-medium flex items-center justify-center gap-1.5 active:scale-98">
-        <span>🙏</span> <span>셀원 기도제목</span>
+        class="flex-1 py-2 rounded-lg text-center transition-all text-zinc-500 hover:text-zinc-800 font-medium flex items-center justify-center gap-1 active:scale-98">
+        <span>🙏</span> <span>기도제목</span>
         <span id="tabPrayerBadge" class="hidden text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-mono font-medium leading-none">0</span>
+      </button>
+      <button type="button" id="tabBtnNetwork" onclick="switchMainTab('network')" 
+        class="flex-1 py-2 rounded-lg text-center transition-all text-zinc-500 hover:text-zinc-800 font-medium flex items-center justify-center gap-1 active:scale-98">
+        <span>🌳</span> <span>군단 현황</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-mono font-medium leading-none">체험</span>
       </button>
     </div>
 
@@ -345,6 +360,151 @@
       </section>
     </div>
 
+    <!-- 탭 3: 계층형 군단 & 셀 네트워크 현황 (체험 시뮬레이터) -->
+    <div id="tabContentNetwork" class="space-y-4 hidden">
+      <!-- 상단 시점 전환 (Role Switcher) 바 -->
+      <div class="bg-white p-3.5 sm:p-4 rounded-xl border border-zinc-200 shadow-xs space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-zinc-100 pb-3">
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10px] font-bold tracking-wider text-amber-800 uppercase bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                시점 전환 시뮬레이터 (가상 데이터)
+              </span>
+              <span class="text-[10px] text-zinc-400">실제 데이터 무영향</span>
+            </div>
+            <h2 class="text-sm sm:text-base font-bold text-zinc-900 mt-1 flex items-center gap-1.5">
+              <span>🌳</span> 군단 & 셀 계층형 출석 현황
+            </h2>
+          </div>
+          <div class="flex items-center gap-1 p-1 bg-zinc-100 rounded-xl border border-zinc-200 text-xs font-semibold shrink-0">
+            <button id="btnRoleCorps" onclick="setDemoRole('corps')" 
+              class="px-2.5 py-1.5 rounded-lg transition-all bg-zinc-900 text-white shadow-xs font-semibold flex items-center gap-1">
+              <span>👑</span> <span>김태홍 군단장 (전체)</span>
+            </button>
+            <button id="btnRoleCell" onclick="setDemoRole('cell')" 
+              class="px-2.5 py-1.5 rounded-lg transition-all text-zinc-600 hover:text-zinc-900 font-medium flex items-center gap-1">
+              <span>🌱</span> <span>송예찬 셀리더 (하위만)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 현재 시점 설명 알림 -->
+        <div id="demoRoleNotice" class="text-xs p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 flex items-start gap-2 leading-relaxed">
+          <span class="text-base">👑</span>
+          <div>
+            <b>김태홍 군단장 시점</b>: 군단 산하의 <b>모든 셀(김태홍 직속, 송예찬셀, 권회인셀, 박창현셀, 조국현셀 등 5개 셀)</b>과 <b>말단 셀원들(총 46명)</b>까지 전체 출석 통계와 셀별 보고서를 한눈에 조회합니다.
+          </div>
+        </div>
+      </div>
+
+      <!-- 1. 종합 출석 브리핑 카드 -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <!-- 관리 총원 -->
+        <div class="bg-white p-3 rounded-xl border border-zinc-200 shadow-xs">
+          <span class="text-[11px] text-zinc-500 font-medium">관리 총원</span>
+          <div class="text-xl sm:text-2xl font-black text-zinc-900 mt-0.5" id="demoMetricTotal">46명</div>
+          <span class="text-[10px] text-zinc-400 truncate block" id="demoMetricCellCount">총 5개 셀 합산</span>
+        </div>
+
+        <!-- 주일예배 출석 -->
+        <div class="bg-white p-3 rounded-xl border border-zinc-200 shadow-xs">
+          <span class="text-[11px] text-indigo-600 font-medium">주일예배 출석</span>
+          <div class="text-xl sm:text-2xl font-black text-indigo-950 mt-0.5" id="demoMetricSunday">36명</div>
+          <div class="flex items-center gap-1 text-[10px] text-indigo-700 font-medium mt-0.5">
+            <span id="demoMetricSundayRate">78.3%</span>
+            <span class="text-zinc-300">|</span>
+            <span class="text-rose-600" id="demoMetricSundayAbs">결석 10명</span>
+          </div>
+        </div>
+
+        <!-- 셀모임 출석 -->
+        <div class="bg-white p-3 rounded-xl border border-zinc-200 shadow-xs">
+          <span class="text-[11px] text-emerald-600 font-medium">셀모임 출석</span>
+          <div class="text-xl sm:text-2xl font-black text-emerald-950 mt-0.5" id="demoMetricCell">28명</div>
+          <div class="flex items-center gap-1 text-[10px] text-emerald-700 font-medium mt-0.5">
+            <span id="demoMetricCellRate">60.9%</span>
+            <span class="text-zinc-300">|</span>
+            <span class="text-rose-600" id="demoMetricCellAbs">결석 18명</span>
+          </div>
+        </div>
+
+        <!-- 셀 보고서 작성 현황 -->
+        <div class="bg-white p-3 rounded-xl border border-zinc-200 shadow-xs">
+          <span class="text-[11px] text-amber-700 font-medium">보고서 제출 현황</span>
+          <div class="text-xl sm:text-2xl font-black text-amber-950 mt-0.5" id="demoMetricReportStatus">100%</div>
+          <span class="text-[10px] text-amber-800 truncate block" id="demoMetricReportDetail">5/5개 셀 완료</span>
+        </div>
+      </div>
+
+      <!-- 2. 셀별 출석률 랭킹/비교 바 -->
+      <div class="bg-white p-4 rounded-xl border border-zinc-200 shadow-xs space-y-3">
+        <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+          <h3 class="text-xs font-bold text-zinc-600 uppercase tracking-wider flex items-center gap-1.5">
+            <span>📊</span> 셀별 출석률 비교
+          </h3>
+          <span class="text-[11px] text-zinc-400">주일예배 출석 기준</span>
+        </div>
+
+        <div id="demoCellComparisonList" class="space-y-2.5">
+          <!-- JS 렌더링 -->
+        </div>
+      </div>
+
+      <!-- 3. 계층형 조직도 트리 뷰 (Tree View) -->
+      <div class="bg-white p-4 rounded-xl border border-zinc-200 shadow-xs space-y-3.5">
+        <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <h3 class="text-xs font-bold text-zinc-600 uppercase tracking-wider whitespace-nowrap">
+              🌳 셀 조직도 및 출석부
+            </h3>
+            <span class="hidden sm:inline-block text-[10px] bg-zinc-100 text-zinc-600 px-1.5 py-0.5 rounded font-medium">클릭 시 접기/펼치기</span>
+          </div>
+          <button onclick="toggleAllDemoCards()" class="text-[11px] text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap shrink-0">
+            전체 펼치기 / 접기
+          </button>
+        </div>
+
+        <!-- 트리 목록 -->
+        <div id="demoTreeContainer" class="space-y-3">
+          <!-- JS 렌더링 -->
+        </div>
+      </div>
+
+      <!-- 4. 전체 결석자 통합 명단 (군단장 특화 관리 기능) -->
+      <div class="bg-white p-4 rounded-xl border border-zinc-200 shadow-xs space-y-3">
+        <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+          <h3 class="text-xs font-bold text-zinc-600 uppercase tracking-wider flex items-center gap-1.5 whitespace-nowrap">
+            <span>⚠️</span> 결석자 통합 현황
+          </h3>
+          <span class="text-[11px] text-zinc-400 font-mono shrink-0 ml-2" id="demoAbsenteeCountBadge">주일 10명 / 셀 18명</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="demoAbsenteeSection">
+          <!-- 주일예배 결석자 -->
+          <div class="p-3 bg-zinc-50 rounded-xl border border-zinc-200 space-y-2">
+            <div class="text-xs font-bold text-zinc-800 flex items-center justify-between">
+              <span>주일예배 결석자</span>
+              <span class="text-rose-600 font-mono text-[11px]" id="demoSundayAbsCount">10명</span>
+            </div>
+            <div class="space-y-1 text-xs" id="demoSundayAbsList">
+              <!-- JS 렌더링 -->
+            </div>
+          </div>
+
+          <!-- 셀모임 결석자 -->
+          <div class="p-3 bg-zinc-50 rounded-xl border border-zinc-200 space-y-2">
+            <div class="text-xs font-bold text-zinc-800 flex items-center justify-between">
+              <span>셀모임 결석자</span>
+              <span class="text-rose-600 font-mono text-[11px]" id="demoCellAbsCount">18명</span>
+            </div>
+            <div class="space-y-1 text-xs max-h-56 overflow-y-auto pr-1 custom-scrollbar" id="demoCellAbsList">
+              <!-- JS 렌더링 -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- 하단 플로팅 고정 바 (미니멀) -->
@@ -458,12 +618,16 @@
       <!-- 가이드 내부 탭 스위처 -->
       <div class="flex p-1 bg-zinc-100 rounded-lg border border-zinc-200 text-xs font-semibold select-none">
         <button type="button" id="guideTabBtnReport" onclick="switchGuideTab('report')" 
-          class="flex-1 py-1.5 rounded-md text-center transition-all bg-white text-zinc-900 shadow-xs font-semibold flex items-center justify-center gap-1.5 active:scale-98">
-          <span>📋</span> <span>셀모임 보고서</span>
+          class="flex-1 py-1.5 rounded-md text-center transition-all bg-white text-zinc-900 shadow-xs font-semibold flex items-center justify-center gap-1 active:scale-98">
+          <span>📋</span> <span>보고서</span>
         </button>
         <button type="button" id="guideTabBtnPrayers" onclick="switchGuideTab('prayers')" 
-          class="flex-1 py-1.5 rounded-md text-center transition-all text-zinc-500 hover:text-zinc-800 font-medium flex items-center justify-center gap-1.5 active:scale-98">
-          <span>🙏</span> <span>셀원 기도제목</span>
+          class="flex-1 py-1.5 rounded-md text-center transition-all text-zinc-500 hover:text-zinc-800 font-medium flex items-center justify-center gap-1 active:scale-98">
+          <span>🙏</span> <span>기도제목</span>
+        </button>
+        <button type="button" id="guideTabBtnNetwork" onclick="switchGuideTab('network')" 
+          class="flex-1 py-1.5 rounded-md text-center transition-all text-zinc-500 hover:text-zinc-800 font-medium flex items-center justify-center gap-1 active:scale-98">
+          <span>🌳</span> <span>군단 현황</span>
         </button>
       </div>
 
@@ -580,6 +744,43 @@
         </div>
       </div>
 
+      <!-- 3. 군단 현황 탭 가이드 내용 -->
+      <div id="guideTabContentNetwork" class="space-y-3 text-xs text-zinc-600 overflow-y-auto custom-scrollbar pr-1 hidden">
+        <!-- 1: 시점 전환 안내 -->
+        <div class="p-3.5 bg-amber-50/70 border border-amber-200 rounded-lg space-y-1.5">
+          <div class="font-semibold text-xs text-amber-950 flex items-center gap-1.5">
+            <span>👑</span> 김태홍 군단장 vs 송예찬 셀리더 시점 전환
+          </div>
+          <p class="text-amber-900 leading-relaxed">
+            상단의 <b>[시점 전환 버튼]</b>을 누르면, 군단 전체 5개 셀(46명)을 총괄하는 군단장 시점과 내 셀(9명)만 관리하는 셀리더 시점의 가시 범위 차이를 직접 체험해보실 수 있습니다.
+          </p>
+        </div>
+
+        <!-- 2: 주요 대시보드 기능 -->
+        <div class="p-3.5 bg-zinc-50 border border-zinc-200 rounded-lg space-y-1.5">
+          <div class="font-semibold text-xs text-zinc-900 flex items-center gap-1.5">
+            <span>📊</span> 핵심 대시보드 기능
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-zinc-600 pl-1 leading-relaxed">
+            <li><b>종합 브리핑 카드</b>: 관리 총원, 주일/셀모임 출석률, 보고서 제출 완료율을 즉시 확인합니다.</li>
+            <li><b>셀별 출석률 비교</b>: 각 셀의 주일예배 참여율을 막대 게이지로 직관적으로 비교합니다.</li>
+            <li><b>계층형 조직도 & 출석부</b>: 셀 카드를 클릭하여 셀원별 주일/셀 출석 여부 및 불참 사유를 펼쳐봅니다.</li>
+            <li><b>[보고서 보기 ↗]</b>: 각 셀이 작성한 카톡 제출 보고서 원문을 팝업으로 상세 조회합니다.</li>
+            <li><b>결석자 통합 현황</b>: 주일예배 및 셀모임 결석자를 한곳에 모아 심방 대상자를 빠르게 모니터링합니다.</li>
+          </ul>
+        </div>
+
+        <!-- 3: 안전한 가상 시뮬레이터 -->
+        <div class="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-lg space-y-1.5">
+          <div class="font-semibold text-xs text-emerald-950 flex items-center gap-1.5">
+            <span>🛡️</span> 안심 가상 데이터 시뮬레이터
+          </div>
+          <p class="text-emerald-900 leading-relaxed">
+            실제 태홍이형의 데이터나 현재 작성 중인 내 셀의 실제 데이터와 완전히 분리된 안전한 가상 데이터 모드이므로 안심하고 둘러보실 수 있습니다.
+          </p>
+        </div>
+      </div>
+
       <div class="pt-2 border-t border-zinc-100 flex justify-end">
         <button onclick="closeGuideModal()" class="px-4 py-2 bg-zinc-900 text-white text-xs font-medium rounded-lg hover:bg-zinc-800 transition active:scale-95">
           확인했습니다
@@ -641,6 +842,47 @@
 
       <div class="pt-2 border-t border-zinc-100 flex justify-end">
         <button onclick="closeSyncModal()" class="px-4 py-2 bg-zinc-900 text-white text-xs font-medium rounded-lg hover:bg-zinc-800 transition active:scale-95">
+          닫기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 가상 보고서 상세 조회 모달 -->
+  <div id="demoReportDetailModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-2xl border border-zinc-200 p-5 space-y-3.5 max-h-[90vh] flex flex-col shadow-xl">
+      <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+        <div class="flex items-center gap-2">
+          <span class="text-base">📋</span>
+          <h3 class="font-bold text-sm text-zinc-900" id="demoModalCellTitle">셀모임 보고서 상세</h3>
+        </div>
+        <button onclick="closeDemoDetailModal()" class="text-zinc-400 hover:text-zinc-700 text-sm font-bold p-1">✕</button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto space-y-3 text-xs text-zinc-700 pr-1 custom-scrollbar">
+        <!-- 메타 정보 -->
+        <div class="p-3 bg-zinc-50 rounded-xl border border-zinc-200 grid grid-cols-2 gap-2">
+          <div><span class="text-zinc-400">셀리더:</span> <b id="demoModalLeader"></b></div>
+          <div><span class="text-zinc-400">장소:</span> <b id="demoModalLocation"></b></div>
+          <div><span class="text-zinc-400">일시:</span> <b id="demoModalDateTime"></b></div>
+          <div><span class="text-zinc-400">출석률:</span> <b id="demoModalRate" class="text-emerald-700"></b></div>
+        </div>
+
+        <!-- 특이사항 -->
+        <div class="p-3 bg-amber-50/50 border border-amber-200 rounded-xl space-y-1">
+          <span class="font-bold text-amber-950">💡 셀 특이사항</span>
+          <p id="demoModalNotes" class="text-zinc-800 leading-relaxed whitespace-pre-wrap"></p>
+        </div>
+
+        <!-- 보고서 전문 -->
+        <div class="space-y-1">
+          <span class="font-bold text-zinc-700">카카오톡 보고서 원문</span>
+          <pre id="demoModalFullText" class="p-3 bg-zinc-100 rounded-xl border border-zinc-200 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-zinc-800 select-all"></pre>
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-zinc-100 flex justify-end">
+        <button onclick="closeDemoDetailModal()" class="px-4 py-2 bg-zinc-900 text-white text-xs font-semibold rounded-lg hover:bg-zinc-800 transition active:scale-95">
           닫기
         </button>
       </div>
@@ -1280,7 +1522,7 @@
     }
 
     // ==========================================
-    // 📑 상단 탭 (보고서 vs 기도제목) 제어
+    // 📑 상단 탭 (보고서 vs 기도제목 vs 군단 현황) 제어
     // ==========================================
     let currentMainTab = 'report';
 
@@ -1288,28 +1530,29 @@
       currentMainTab = tabName;
       const tabBtnReport = document.getElementById('tabBtnReport');
       const tabBtnPrayers = document.getElementById('tabBtnPrayers');
+      const tabBtnNetwork = document.getElementById('tabBtnNetwork');
       const contentReport = document.getElementById('tabContentReport');
       const contentPrayers = document.getElementById('tabContentPrayers');
+      const contentNetwork = document.getElementById('tabContentNetwork');
       const copyBtnText = document.getElementById('copyBtnText');
 
+      const activeBtnClass = 'flex-1 py-2 rounded-lg text-center transition-all bg-white text-zinc-900 shadow-xs font-semibold flex items-center justify-center gap-1 active:scale-98';
+      const inactiveBtnClass = 'flex-1 py-2 rounded-lg text-center transition-all text-zinc-500 hover:text-zinc-800 font-medium flex items-center justify-center gap-1 active:scale-98';
+
+      if (tabBtnReport) tabBtnReport.className = inactiveBtnClass;
+      if (tabBtnPrayers) tabBtnPrayers.className = inactiveBtnClass;
+      if (tabBtnNetwork) tabBtnNetwork.className = inactiveBtnClass;
+
+      if (contentReport) contentReport.classList.add('hidden');
+      if (contentPrayers) contentPrayers.classList.add('hidden');
+      if (contentNetwork) contentNetwork.classList.add('hidden');
+
       if (tabName === 'report') {
-        if (tabBtnReport) {
-          tabBtnReport.className = 'flex-1 py-2 rounded-lg text-center transition-all bg-white text-zinc-900 shadow-xs font-semibold flex items-center justify-center gap-1.5 active:scale-98';
-        }
-        if (tabBtnPrayers) {
-          tabBtnPrayers.className = 'flex-1 py-2 rounded-lg text-center transition-all text-zinc-500 hover:text-zinc-800 font-medium flex items-center justify-center gap-1.5 active:scale-98';
-        }
+        if (tabBtnReport) tabBtnReport.className = activeBtnClass;
         if (contentReport) contentReport.classList.remove('hidden');
-        if (contentPrayers) contentPrayers.classList.add('hidden');
         if (copyBtnText) copyBtnText.innerText = '카카오톡 내용 복사하기';
-      } else {
-        if (tabBtnPrayers) {
-          tabBtnPrayers.className = 'flex-1 py-2 rounded-lg text-center transition-all bg-white text-zinc-900 shadow-xs font-semibold flex items-center justify-center gap-1.5 active:scale-98';
-        }
-        if (tabBtnReport) {
-          tabBtnReport.className = 'flex-1 py-2 rounded-lg text-center transition-all text-zinc-500 hover:text-zinc-800 font-medium flex items-center justify-center gap-1.5 active:scale-98';
-        }
-        if (contentReport) contentReport.classList.add('hidden');
+      } else if (tabName === 'prayers') {
+        if (tabBtnPrayers) tabBtnPrayers.className = activeBtnClass;
         if (contentPrayers) contentPrayers.classList.remove('hidden');
         if (copyBtnText) copyBtnText.innerText = '🙏 셀 카톡방에 기도제목 복사하기';
 
@@ -1317,6 +1560,12 @@
         setTimeout(() => {
           document.querySelectorAll('#prayerListContainer textarea').forEach(autoResizePrayerTextarea);
         }, 50);
+      } else if (tabName === 'network') {
+        if (tabBtnNetwork) tabBtnNetwork.className = activeBtnClass;
+        if (contentNetwork) contentNetwork.classList.remove('hidden');
+        if (copyBtnText) copyBtnText.innerText = '🌳 군단 출석 현황 요약 복사하기';
+
+        renderDemoDashboard();
       }
 
       updatePrayerPreview();
@@ -1325,6 +1574,8 @@
     function handleBottomCopyClick() {
       if (currentMainTab === 'prayers') {
         copyPrayersToClipboard();
+      } else if (currentMainTab === 'network') {
+        copyDemoNetworkSummary();
       } else {
         copyToClipboard();
       }
@@ -2208,19 +2459,31 @@
       currentGuideTab = tabName;
       const btnReport = document.getElementById('guideTabBtnReport');
       const btnPrayers = document.getElementById('guideTabBtnPrayers');
+      const btnNetwork = document.getElementById('guideTabBtnNetwork');
       const contentReport = document.getElementById('guideTabContentReport');
       const contentPrayers = document.getElementById('guideTabContentPrayers');
+      const contentNetwork = document.getElementById('guideTabContentNetwork');
+
+      const activeBtnClass = 'flex-1 py-1.5 rounded-md text-center transition-all bg-white text-zinc-900 shadow-xs font-semibold flex items-center justify-center gap-1 active:scale-98';
+      const inactiveBtnClass = 'flex-1 py-1.5 rounded-md text-center transition-all text-zinc-500 hover:text-zinc-800 font-medium flex items-center justify-center gap-1 active:scale-98';
+
+      if (btnReport) btnReport.className = inactiveBtnClass;
+      if (btnPrayers) btnPrayers.className = inactiveBtnClass;
+      if (btnNetwork) btnNetwork.className = inactiveBtnClass;
+
+      if (contentReport) contentReport.classList.add('hidden');
+      if (contentPrayers) contentPrayers.classList.add('hidden');
+      if (contentNetwork) contentNetwork.classList.add('hidden');
 
       if (tabName === 'report') {
-        if (btnReport) btnReport.className = 'flex-1 py-1.5 rounded-md text-center transition-all bg-white text-zinc-900 shadow-xs font-semibold flex items-center justify-center gap-1.5 active:scale-98';
-        if (btnPrayers) btnPrayers.className = 'flex-1 py-1.5 rounded-md text-center transition-all text-zinc-500 hover:text-zinc-800 font-medium flex items-center justify-center gap-1.5 active:scale-98';
+        if (btnReport) btnReport.className = activeBtnClass;
         if (contentReport) contentReport.classList.remove('hidden');
-        if (contentPrayers) contentPrayers.classList.add('hidden');
-      } else {
-        if (btnPrayers) btnPrayers.className = 'flex-1 py-1.5 rounded-md text-center transition-all bg-white text-zinc-900 shadow-xs font-semibold flex items-center justify-center gap-1.5 active:scale-98';
-        if (btnReport) btnReport.className = 'flex-1 py-1.5 rounded-md text-center transition-all text-zinc-500 hover:text-zinc-800 font-medium flex items-center justify-center gap-1.5 active:scale-98';
-        if (contentReport) contentReport.classList.add('hidden');
+      } else if (tabName === 'prayers') {
+        if (btnPrayers) btnPrayers.className = activeBtnClass;
         if (contentPrayers) contentPrayers.classList.remove('hidden');
+      } else if (tabName === 'network') {
+        if (btnNetwork) btnNetwork.className = activeBtnClass;
+        if (contentNetwork) contentNetwork.classList.remove('hidden');
       }
     }
 
@@ -2228,7 +2491,7 @@
       const modal = document.getElementById('guideModal');
       if (modal) modal.classList.remove('hidden');
       // 메인 화면에서 현재 보고 있는 탭에 맞춰 가이드 모달 탭도 맞춤 자동 선택!
-      const targetTab = defaultTab || (currentMainTab === 'prayers' ? 'prayers' : 'report');
+      const targetTab = defaultTab || (currentMainTab === 'prayers' ? 'prayers' : (currentMainTab === 'network' ? 'network' : 'report'));
       switchGuideTab(targetTab);
     }
 
@@ -2605,6 +2868,492 @@
       updateSyncHeaderUI();
       renderSyncModal();
       showToast('동기화 연결이 해제되었습니다.');
+    }
+
+    // ==========================================
+    // 🌳 군단 & 계층형 셀 네트워크 현황 (가상 시뮬레이터)
+    // ==========================================
+    const DEMO_CORPS_DATA = {
+      corpsName: "김태홍 군단",
+      corpsLeader: "김태홍",
+      cells: [
+        {
+          id: "cell_taehong",
+          leaderName: "김태홍",
+          isCorpsLeader: true,
+          parentLeader: null,
+          roleTitle: "군단장 / 셀리더",
+          location: "워십홀",
+          meetingDateTime: "2026/9/10(목) 저녁 7시 30분",
+          members: [
+            { name: "김태홍", role: "군단장", sunday: false, sundayReason: "몽골", cell: true, cellReason: "" },
+            { name: "송예찬", role: "셀리더", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "권회인", role: "셀리더", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "박창현", role: "셀리더", sunday: true, sundayReason: "", cell: false, cellReason: "직장/야근" },
+            { name: "조국현", role: "셀리더", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "권성수", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "개인사유(셀조율중)" },
+            { name: "강은석", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "김기현", role: "셀원", sunday: false, sundayReason: "장기결석", cell: false, cellReason: "장기결석" },
+            { name: "김성엽", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "장기결석" },
+            { name: "김예찬", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "개인사유" },
+            { name: "김준형", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "직장/야근" },
+            { name: "노원유", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "박선재", role: "셀원", sunday: false, sundayReason: "몽골", cell: true, cellReason: "" },
+            { name: "송인석", role: "셀원", sunday: false, sundayReason: "몽골", cell: true, cellReason: "" },
+            { name: "이명학", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "개인사유" },
+            { name: "이승주", role: "셀원", sunday: false, sundayReason: "장기결석", cell: false, cellReason: "장기결석" },
+            { name: "조정현", role: "셀원", sunday: false, sundayReason: "장기결석", cell: false, cellReason: "장기결석" },
+            { name: "천대훈", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "한민우", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "직장/야근" },
+            { name: "홍조은", role: "셀원", sunday: false, sundayReason: "건강문제", cell: false, cellReason: "몸살/컨디션" }
+          ],
+          notes: "- 천대훈 당분간 ZOOM으로 셀모임 참석\n- 권성수 셀조율중으로 권회인과 개인적 이야기 나눔 확인\n- 조국현 셀리더 전도 목표 동기부여 잘되어감.\n- 리더MT 추가 신청자: 한은택, 이진석(+차재아)"
+        },
+        {
+          id: "cell_yechan",
+          leaderName: "송예찬",
+          isCorpsLeader: false,
+          parentLeader: "김태홍",
+          roleTitle: "셀리더 (김태홍 직속)",
+          location: "본당",
+          meetingDateTime: "2026/9/7(월) 저녁 7시 30분",
+          members: [
+            { name: "송예찬", role: "셀리더", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "주진", role: "예비리더", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "박승곤", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "김한빈", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "직장/야근" },
+            { name: "양광모", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "개인 사정" },
+            { name: "육현조", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "직장/야근" },
+            { name: "윤수민", role: "셀원", sunday: false, sundayReason: "몽골 컨퍼런스", cell: false, cellReason: "몽골 컨퍼런스" },
+            { name: "최상진", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "최근 시술 받은 곳 염증" },
+            { name: "최진성", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "춤 레슨 진행" }
+          ],
+          notes: "- 셀모임에 적은 수가 모였지만, 뜨겁게 기도하고 나눔도 깊게 함.\n- 진이는 오늘 1박2일 제주도 여행가는 친구한테 복음 전하려고 함.\n- 승곤이는 대학교 동창, 모레는 형님 만나서 복음 전한다고 함."
+        },
+        {
+          id: "cell_hoin",
+          leaderName: "권회인",
+          isCorpsLeader: false,
+          parentLeader: "김태홍",
+          roleTitle: "셀리더 (김태홍 직속)",
+          location: "2층 세미나실",
+          meetingDateTime: "2026/9/9(수) 저녁 8시",
+          members: [
+            { name: "권회인", role: "셀리더", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "이진우", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "박소영", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "조은서", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "최동현", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "정민기", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "직장/야근" }
+          ],
+          notes: "- 새가족 심방 완료 및 순조로운 정착 중.\n- 다음 주 수요일 셀 회식 일정 조율 완료."
+        },
+        {
+          id: "cell_changhyun",
+          leaderName: "박창현",
+          isCorpsLeader: false,
+          parentLeader: "김태홍",
+          roleTitle: "셀리더 (김태홍 직속)",
+          location: "카페 로뎀",
+          meetingDateTime: "2026/9/8(화) 저녁 7시",
+          members: [
+            { name: "박창현", role: "셀리더", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "오세훈", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "임재원", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "한상민", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "김대호", role: "셀원", sunday: false, sundayReason: "지방 출장", cell: false, cellReason: "지방 출장" }
+          ],
+          notes: "- 셀원들 모두 큐티 나눔 성실히 동참 중.\n- 9월 셋째 주 야외 셀모임 추진 중."
+        },
+        {
+          id: "cell_gookhyun",
+          leaderName: "조국현",
+          isCorpsLeader: false,
+          parentLeader: "김태홍",
+          roleTitle: "셀리더 (김태홍 직속)",
+          location: "소예배실",
+          meetingDateTime: "2026/9/8(화) 저녁 7시 30분",
+          members: [
+            { name: "조국현", role: "셀리더", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "서동하", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "장우진", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "유태민", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "남궁혁", role: "셀원", sunday: false, sundayReason: "자격증 시험", cell: false, cellReason: "자격증 시험" },
+            { name: "배성재", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "몸살/컨디션" }
+          ],
+          notes: "- 셀원 전도 대상자 작정 기도 및 카드 작성 완료.\n- 동하 직장 적응 기도제목 나눔."
+        }
+      ]
+    };
+
+    let currentDemoRole = 'corps'; // 'corps' (김태홍) 또는 'cell' (송예찬)
+    let allDemoExpanded = true;
+
+    function setDemoRole(role) {
+      currentDemoRole = role;
+      const btnCorps = document.getElementById('btnRoleCorps');
+      const btnCell = document.getElementById('btnRoleCell');
+      const notice = document.getElementById('demoRoleNotice');
+
+      if (role === 'corps') {
+        if (btnCorps) btnCorps.className = 'px-2.5 py-1.5 rounded-lg transition-all bg-zinc-900 text-white shadow-xs font-semibold flex items-center gap-1';
+        if (btnCell) btnCell.className = 'px-2.5 py-1.5 rounded-lg transition-all text-zinc-600 hover:text-zinc-900 font-medium flex items-center gap-1';
+        if (notice) {
+          notice.innerHTML = `
+            <span class="text-base">👑</span>
+            <div>
+              <b>김태홍 군단장 시점</b>: 군단 산하의 <b>모든 셀(김태홍 직속, 송예찬셀, 권회인셀, 박창현셀, 조국현셀 등 5개 셀)</b>과 <b>말단 셀원들(총 46명)</b>까지 전체 출석 통계와 셀별 보고서를 한눈에 조회합니다.
+            </div>
+          `;
+          notice.className = 'text-xs p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 flex items-start gap-2 leading-relaxed';
+        }
+      } else {
+        if (btnCell) btnCell.className = 'px-2.5 py-1.5 rounded-lg transition-all bg-zinc-900 text-white shadow-xs font-semibold flex items-center gap-1';
+        if (btnCorps) btnCorps.className = 'px-2.5 py-1.5 rounded-lg transition-all text-zinc-600 hover:text-zinc-900 font-medium flex items-center gap-1';
+        if (notice) {
+          notice.innerHTML = `
+            <span class="text-base">🌱</span>
+            <div>
+              <b>송예찬 셀리더 시점</b>: 김태홍 군단장의 타 셀(권회인셀, 박창현셀 등)은 <b>완전히 숨겨지며</b>, 오직 <b>송예찬 본인 셀과 내 아래 하위셀들(총 9명)만</b> 독립적으로 표시됩니다.
+            </div>
+          `;
+          notice.className = 'text-xs p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-emerald-900 flex items-start gap-2 leading-relaxed';
+        }
+      }
+
+      renderDemoDashboard();
+    }
+
+    function getDemoActiveCells() {
+      if (currentDemoRole === 'corps') {
+        return DEMO_CORPS_DATA.cells;
+      } else {
+        return DEMO_CORPS_DATA.cells.filter(c => c.leaderName === '송예찬' || c.parentLeader === '송예찬');
+      }
+    }
+
+    function renderDemoDashboard() {
+      const container = document.getElementById('tabContentNetwork');
+      if (!container || container.classList.contains('hidden')) return;
+
+      const activeCells = getDemoActiveCells();
+
+      let totalMembers = 0;
+      let sundayAttCount = 0;
+      let cellAttCount = 0;
+      const sundayAbsList = [];
+      const cellAbsList = [];
+
+      activeCells.forEach(cell => {
+        cell.members.forEach(m => {
+          totalMembers++;
+          if (m.sunday) sundayAttCount++;
+          else sundayAbsList.push({ cellName: cell.leaderName + '셀', name: m.name, reason: m.sundayReason || '사유미입력' });
+
+          if (m.cell) cellAttCount++;
+          else cellAbsList.push({ cellName: cell.leaderName + '셀', name: m.name, reason: m.cellReason || '사유미입력' });
+        });
+      });
+
+      const sundayRate = totalMembers > 0 ? ((sundayAttCount / totalMembers) * 100).toFixed(1) : 0;
+      const cellRate = totalMembers > 0 ? ((cellAttCount / totalMembers) * 100).toFixed(1) : 0;
+
+      // 1. 메트릭 카드 갱신
+      const metricTotalEl = document.getElementById('demoMetricTotal');
+      const metricCellCountEl = document.getElementById('demoMetricCellCount');
+      const metricSundayEl = document.getElementById('demoMetricSunday');
+      const metricSundayRateEl = document.getElementById('demoMetricSundayRate');
+      const metricSundayAbsEl = document.getElementById('demoMetricSundayAbs');
+      const metricCellEl = document.getElementById('demoMetricCell');
+      const metricCellRateEl = document.getElementById('demoMetricCellRate');
+      const metricCellAbsEl = document.getElementById('demoMetricCellAbs');
+      const metricReportStatusEl = document.getElementById('demoMetricReportStatus');
+      const metricReportDetailEl = document.getElementById('demoMetricReportDetail');
+
+      if (metricTotalEl) metricTotalEl.innerText = totalMembers + '명';
+      if (metricCellCountEl) metricCellCountEl.innerText = currentDemoRole === 'corps' ? `군단 전체 (${activeCells.length}개 셀)` : `송예찬 산하 (${activeCells.length}개 셀)`;
+      
+      if (metricSundayEl) metricSundayEl.innerText = sundayAttCount + '명';
+      if (metricSundayRateEl) metricSundayRateEl.innerText = sundayRate + '%';
+      if (metricSundayAbsEl) metricSundayAbsEl.innerText = '결석 ' + sundayAbsList.length + '명';
+
+      if (metricCellEl) metricCellEl.innerText = cellAttCount + '명';
+      if (metricCellRateEl) metricCellRateEl.innerText = cellRate + '%';
+      if (metricCellAbsEl) metricCellAbsEl.innerText = '결석 ' + cellAbsList.length + '명';
+
+      if (metricReportStatusEl) metricReportStatusEl.innerText = '100%';
+      if (metricReportDetailEl) metricReportDetailEl.innerText = `${activeCells.length}/${activeCells.length}개 셀 완료`;
+
+      // 2. 셀별 비교 바
+      const compContainer = document.getElementById('demoCellComparisonList');
+      if (compContainer) {
+        compContainer.innerHTML = '';
+        activeCells.forEach(cell => {
+          const sAtt = cell.members.filter(m => m.sunday).length;
+          const rate = ((sAtt / cell.members.length) * 100).toFixed(0);
+
+          const row = document.createElement('div');
+          row.className = 'space-y-1';
+          row.innerHTML = `
+            <div class="flex items-center justify-between text-xs font-semibold text-zinc-800">
+              <span class="flex items-center gap-1.5">
+                ${cell.isCorpsLeader ? '<span class="text-amber-500">👑</span>' : '<span class="text-blue-500">🏠</span>'}
+                <span>${cell.leaderName}셀</span>
+                <span class="text-[11px] font-normal text-zinc-400 font-mono">(${sAtt}/${cell.members.length}명)</span>
+              </span>
+              <span class="font-mono text-indigo-600">${rate}%</span>
+            </div>
+            <div class="w-full bg-zinc-100 rounded-full h-2 overflow-hidden flex">
+              <div class="bg-indigo-500 h-full rounded-full transition-all duration-500" style="width: ${rate}%"></div>
+            </div>
+          `;
+          compContainer.appendChild(row);
+        });
+      }
+
+      // 3. 계층형 조직도 트리
+      const treeContainer = document.getElementById('demoTreeContainer');
+      if (treeContainer) {
+        treeContainer.innerHTML = '';
+        activeCells.forEach(cell => {
+          const sAtt = cell.members.filter(m => m.sunday).length;
+          const cAtt = cell.members.filter(m => m.cell).length;
+          const isOwner = (currentDemoRole === 'cell' && cell.leaderName === '송예찬') || (currentDemoRole === 'corps' && cell.isCorpsLeader);
+
+          const card = document.createElement('div');
+          card.className = `rounded-xl border transition-all ${isOwner ? 'bg-amber-50/20 border-amber-300 shadow-xs' : 'bg-white border-zinc-200'}`;
+          card.innerHTML = `
+            <div class="p-3.5 flex items-start justify-between cursor-pointer select-none" onclick="toggleDemoCard('${cell.id}')">
+              <div class="flex items-start gap-2.5">
+                <span class="text-lg mt-0.5">${cell.isCorpsLeader ? '👑' : '🏠'}</span>
+                <div>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="font-bold text-sm text-zinc-900">${cell.leaderName} 셀</span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 border border-zinc-200 font-medium">${cell.location}</span>
+                    ${cell.isCorpsLeader ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">군단장 직속</span>' : ''}
+                    ${cell.parentLeader === '김태홍' && !cell.isCorpsLeader ? '<span class="text-[10px] text-zinc-400">↳ 상위: 김태홍</span>' : ''}
+                  </div>
+                  <div class="flex items-center gap-2 text-xs text-zinc-500 mt-1 font-mono flex-wrap">
+                    <span>주일 <b>${sAtt}/${cell.members.length}</b>명</span>
+                    <span class="text-zinc-300">|</span>
+                    <span>셀모임 <b>${cAtt}/${cell.members.length}</b>명</span>
+                    <span class="text-zinc-300">|</span>
+                    <span class="text-[11px] text-zinc-400 font-sans">${cell.meetingDateTime}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button type="button" onclick="event.stopPropagation(); openDemoDetailModal('${cell.id}')" 
+                  class="px-2.5 py-1 text-[11px] font-semibold bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 rounded-lg transition active:scale-95 shadow-2xs">
+                  보고서 보기 ↗
+                </button>
+                <span id="demoArrow_${cell.id}" class="text-zinc-400 text-xs px-1">▼</span>
+              </div>
+            </div>
+
+            <!-- 셀원 목록 아코디언 본문 -->
+            <div id="demoBody_${cell.id}" class="border-t border-zinc-100 p-3 bg-zinc-50/70 space-y-2 text-xs">
+              <div class="font-medium text-zinc-500 text-[11px] flex justify-between">
+                <span>셀원별 출석 현황 (${cell.members.length}명)</span>
+                <span>녹색: 참석 | 적색: 결석</span>
+              </div>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                ${cell.members.map(m => `
+                  <div class="p-2 rounded-lg bg-white border border-zinc-200 flex flex-col justify-between">
+                    <div class="flex items-center justify-between">
+                      <span class="font-semibold text-zinc-800 ${m.role === '셀리더' ? 'text-blue-600 font-bold' : ''}">
+                        ${m.name} ${m.role === '셀리더' ? '<span class="text-[9px] bg-blue-50 text-blue-700 px-1 py-0.2 rounded border border-blue-200">리더</span>' : ''}
+                      </span>
+                      <div class="flex items-center gap-1 font-mono text-[10px]">
+                        <span class="px-1 rounded ${m.sunday ? 'badge-att' : 'badge-abs'}" title="주일예배">${m.sunday ? '주일✓' : '주일✕'}</span>
+                        <span class="px-1 rounded ${m.cell ? 'badge-att' : 'badge-abs'}" title="셀모임">${m.cell ? '셀✓' : '셀✕'}</span>
+                      </div>
+                    </div>
+                    ${(!m.sunday && m.sundayReason) || (!m.cell && m.cellReason) ? `
+                      <div class="text-[10px] text-rose-600 truncate mt-1 pt-1 border-t border-zinc-100">
+                        ${!m.sunday && m.sundayReason ? `주일: ${m.sundayReason}` : ''}
+                        ${!m.cell && m.cellReason ? `셀: ${m.cellReason}` : ''}
+                      </div>
+                    ` : ''}
+                  </div>
+                `).join('')}
+              </div>
+
+              <!-- 셀 특이사항 미리보기 -->
+              <div class="p-2 bg-amber-50/60 border border-amber-200 rounded-lg text-[11px] text-amber-900 mt-2">
+                <span class="font-bold">💡 셀 특이사항:</span> ${cell.notes.split('\n')[0]}
+              </div>
+            </div>
+          `;
+          treeContainer.appendChild(card);
+        });
+      }
+
+      // 4. 결석자 통합 렌더링
+      const absBadge = document.getElementById('demoAbsenteeCountBadge');
+      const sundayCount = document.getElementById('demoSundayAbsCount');
+      const cellCount = document.getElementById('demoCellAbsCount');
+      if (absBadge) absBadge.innerText = `주일 ${sundayAbsList.length}명 / 셀 ${cellAbsList.length}명`;
+      if (sundayCount) sundayCount.innerText = sundayAbsList.length + '명';
+      if (cellCount) cellCount.innerText = cellAbsList.length + '명';
+
+      const sundayAbsContainer = document.getElementById('demoSundayAbsList');
+      if (sundayAbsContainer) {
+        sundayAbsContainer.innerHTML = '';
+        if (sundayAbsList.length === 0) {
+          sundayAbsContainer.innerHTML = '<div class="text-zinc-400 text-[11px] py-1">전원 참석 완료 🎉</div>';
+        } else {
+          sundayAbsList.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between p-1.5 bg-white rounded border border-zinc-200';
+            div.innerHTML = `
+              <span class="font-medium text-zinc-900">${item.name} <span class="text-[10px] text-zinc-400">(${item.cellName})</span></span>
+              <span class="text-[11px] text-rose-600">${item.reason}</span>
+            `;
+            sundayAbsContainer.appendChild(div);
+          });
+        }
+      }
+
+      const cellAbsContainer = document.getElementById('demoCellAbsList');
+      if (cellAbsContainer) {
+        cellAbsContainer.innerHTML = '';
+        if (cellAbsList.length === 0) {
+          cellAbsContainer.innerHTML = '<div class="text-zinc-400 text-[11px] py-1">전원 참석 완료 🎉</div>';
+        } else {
+          cellAbsList.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between p-1.5 bg-white rounded border border-zinc-200';
+            div.innerHTML = `
+              <span class="font-medium text-zinc-900">${item.name} <span class="text-[10px] text-zinc-400">(${item.cellName})</span></span>
+              <span class="text-[11px] text-rose-600">${item.reason}</span>
+            `;
+            cellAbsContainer.appendChild(div);
+          });
+        }
+      }
+    }
+
+    function toggleDemoCard(id) {
+      const body = document.getElementById('demoBody_' + id);
+      const arrow = document.getElementById('demoArrow_' + id);
+      if (!body) return;
+      if (body.classList.contains('hidden')) {
+        body.classList.remove('hidden');
+        if (arrow) arrow.innerText = '▼';
+      } else {
+        body.classList.add('hidden');
+        if (arrow) arrow.innerText = '▲';
+      }
+    }
+
+    function toggleAllDemoCards() {
+      allDemoExpanded = !allDemoExpanded;
+      DEMO_CORPS_DATA.cells.forEach(cell => {
+        const body = document.getElementById('demoBody_' + cell.id);
+        const arrow = document.getElementById('demoArrow_' + cell.id);
+        if (body) {
+          if (allDemoExpanded) {
+            body.classList.remove('hidden');
+            if (arrow) arrow.innerText = '▼';
+          } else {
+            body.classList.add('hidden');
+            if (arrow) arrow.innerText = '▲';
+          }
+        }
+      });
+    }
+
+    function openDemoDetailModal(cellId) {
+      const cell = DEMO_CORPS_DATA.cells.find(c => c.id === cellId);
+      if (!cell) return;
+
+      const sAtt = cell.members.filter(m => m.sunday).length;
+      const cAtt = cell.members.filter(m => m.cell).length;
+
+      const modalTitle = document.getElementById('demoModalCellTitle');
+      const modalLeader = document.getElementById('demoModalLeader');
+      const modalLocation = document.getElementById('demoModalLocation');
+      const modalDateTime = document.getElementById('demoModalDateTime');
+      const modalRate = document.getElementById('demoModalRate');
+      const modalNotes = document.getElementById('demoModalNotes');
+      const modalFullText = document.getElementById('demoModalFullText');
+
+      if (modalTitle) modalTitle.innerText = `${cell.leaderName} 셀모임 보고서 상세`;
+      if (modalLeader) modalLeader.innerText = cell.leaderName;
+      if (modalLocation) modalLocation.innerText = cell.location;
+      if (modalDateTime) modalDateTime.innerText = cell.meetingDateTime;
+      if (modalRate) modalRate.innerText = `주일 ${sAtt}/${cell.members.length}명 | 셀 ${cAtt}/${cell.members.length}명`;
+      if (modalNotes) modalNotes.innerText = cell.notes || '특이사항 없음';
+
+      // 가상 카톡 보고서 원문 생성
+      const report = `[${cell.leaderName} 셀모임 보고서]\n\n1. ${cell.meetingDateTime}\n\n2. 장소: ${cell.location}\n\n3. 출석인원 (총원 ${cell.members.length}명)\n${cell.members.map(m => m.name).join(', ')}\n\n- 주일예배 (${sAtt}명)\n${cell.members.filter(m => m.sunday).map(m => m.name).join(', ')}\n\n- 셀모임 (${cAtt}명)\n${cell.members.filter(m => m.cell).map(m => m.name).join(', ')}\n\n4. 결석자\n주일예배: ${cell.members.filter(m => !m.sunday).map(m => `${m.name}(${m.sundayReason})`).join(', ') || '없음'}\n\n셀모임: ${cell.members.filter(m => !m.cell).map(m => `${m.name}(${m.cellReason})`).join(', ') || '없음'}\n\n5. 셀모임 참석자 및 특이사항\n${cell.notes}`;
+
+      if (modalFullText) modalFullText.innerText = report;
+
+      const modal = document.getElementById('demoReportDetailModal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeDemoDetailModal() {
+      const modal = document.getElementById('demoReportDetailModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function copyDemoNetworkSummary() {
+      const activeCells = getDemoActiveCells();
+      let totalMembers = 0;
+      let sundayAtt = 0;
+      let cellAtt = 0;
+      const sundayAbs = [];
+      const cellAbs = [];
+
+      activeCells.forEach(cell => {
+        cell.members.forEach(m => {
+          totalMembers++;
+          if (m.sunday) sundayAtt++;
+          else sundayAbs.push(`${m.name}(${cell.leaderName}셀${m.sundayReason ? ', ' + m.sundayReason : ''})`);
+          if (m.cell) cellAtt++;
+          else cellAbs.push(`${m.name}(${cell.leaderName}셀${m.cellReason ? ', ' + m.cellReason : ''})`);
+        });
+      });
+
+      const sundayRate = totalMembers > 0 ? ((sundayAtt / totalMembers) * 100).toFixed(1) : 0;
+      const cellRate = totalMembers > 0 ? ((cellAtt / totalMembers) * 100).toFixed(1) : 0;
+
+      const headerTitle = currentDemoRole === 'corps' ? '👑 [김태홍 군단 출석 현황 요약]' : '🌱 [송예찬 셀 네트워크 출석 현황]';
+
+      let text = `${headerTitle}\n\n`;
+      text += `1. 종합 출석률 (${activeCells.length}개 셀, 총원 ${totalMembers}명)\n`;
+      text += `- 주일예배: ${sundayAtt}/${totalMembers}명 (${sundayRate}%)\n`;
+      text += `- 셀모임: ${cellAtt}/${totalMembers}명 (${cellRate}%)\n\n`;
+
+      text += `2. 셀별 주일예배 출석\n`;
+      activeCells.forEach(c => {
+        const s = c.members.filter(m => m.sunday).length;
+        const r = ((s / c.members.length) * 100).toFixed(0);
+        text += `• ${c.leaderName}셀: ${s}/${c.members.length}명 (${r}%)\n`;
+      });
+
+      text += `\n3. 결석자 현황\n`;
+      text += `- 주일예배 (${sundayAbs.length}명): ${sundayAbs.join(', ') || '전원 참석'}\n`;
+      text += `- 셀모임 (${cellAbs.length}명): ${cellAbs.join(', ') || '전원 참석'}`;
+
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast('👑 군단 출석 현황 요약이 복사되었습니다!');
+        }).catch(() => {
+          showToast('복사에 실패했습니다.');
+        });
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('👑 군단 출석 현황 요약이 복사되었습니다!');
+      }
     }
   </script>
 </body>
