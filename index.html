@@ -151,6 +151,8 @@
     <div id="tabContentReport" class="space-y-4">
       <!-- 관리자 전용 편집 대상 셀 전환 배너 -->
       <div id="adminEditingBanner"></div>
+      <!-- 주일 기점 주차 안내 및 제출 상태 배너 -->
+      <div id="weeklyReportBanner"></div>
 
       <!-- 1. 기본 정보 카드 -->
       <section class="bg-white rounded-xl border border-zinc-200 p-4 sm:p-5 space-y-3.5">
@@ -389,6 +391,8 @@
 
       <!-- 메인 군단/셀 대시보드 본문 -->
       <div id="networkMainDashboard" class="space-y-4">
+        <!-- 주일 기점 주차 탐색기 (교회 주간 기준) -->
+        <div id="demoSundayNavigator" class="flex items-center justify-between bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs"></div>
         <!-- 상단 시점 전환 (Role Switcher) 바 -->
         <div class="bg-white p-3.5 sm:p-4 rounded-xl border border-zinc-200 shadow-xs space-y-3">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-zinc-100 pb-3">
@@ -533,6 +537,9 @@
             </div>
           </div>
         </div>
+
+        <!-- 셀리더 이중 모임 출석 특이사항 스마트 안내 배너 -->
+        <div id="demoDualAttendanceNotice" class="hidden p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl"></div>
       </div>
       <!-- networkMainDashboard 닫기 -->
       </div>
@@ -963,6 +970,8 @@
         '주진': '디모데',
         '최진성': '셀리더'
       },
+      submittedWeeks: {},     // 주일 날짜별 제출 여부 { '2026-09-13': true, ... }
+      selectedSunday: '',     // 현재 조회 중인 기준 주일 (YYYY-MM-DD)
       leaderCellStatus: {     // 셀리더/디모데의 셀오픈 여부 ('open' | 'unopened')
         '송예찬': 'open',
         '박승곤': 'open',
@@ -1127,6 +1136,162 @@
       localStorage.setItem('cell_welcomed', 'true');
       const b = document.getElementById('welcomeBanner');
       if (b) b.classList.add('hidden');
+    }
+
+    
+    // === 주일(Sunday) 기점 주차 관리 로직 (교회 주간 사이클) ===
+
+    // 특정 날짜가 속한 주차의 기준 주일(Sunday, YYYY-MM-DD) 계산
+    // 한국 교회/청년부 기준: 일요일(주일)부터 토요일까지를 한 주차로 관리
+    function getSundayOfWeek(d = new Date()) {
+      try {
+        let date;
+        if (typeof d === 'string') {
+          const match = d.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+          if (match) {
+            date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+          } else {
+            date = new Date(d);
+          }
+        } else if (d instanceof Date) {
+          date = new Date(d.getTime());
+        } else {
+          date = new Date();
+        }
+        if (isNaN(date.getTime())) date = new Date();
+        const day = date.getDay(); // 0: 일요일, 1: 월요일, ..., 6: 토요일
+        // 일요일을 주차 시작일(기준일)로 설정
+        date.setDate(date.getDate() - day);
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const dayStr = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dayStr}`;
+      } catch (e) {
+        return '2026-09-13';
+      }
+    }
+
+    // 주일 날짜를 읽기 쉬운 한국어 텍스트로 변환 (예: 2026년 9월 13일(주일) 주간)
+    function formatSundayTitle(sundayStr) {
+      if (!sundayStr) return '';
+      const parts = sundayStr.split('-');
+      if (parts.length < 3) return sundayStr;
+      return `${parts[0]}년 ${parseInt(parts[1], 10)}월 ${parseInt(parts[2], 10)}일(주일) 주간`;
+    }
+
+    // 메인 보고서 상단 주일 주차 및 제출 상태 배너 렌더링
+    function renderWeeklyReportBanner() {
+      const banner = document.getElementById('weeklyReportBanner');
+      if (!banner) return;
+
+      const currentSunday = getSundayOfWeek(state.meetingDate || new Date());
+      const isThisWeek = (currentSunday === getSundayOfWeek(new Date()));
+      const isSubmitted = !!(state.submittedWeeks && state.submittedWeeks[currentSunday]);
+
+      let statusBadgeHtml = '';
+      let borderClass = '';
+      let bgClass = '';
+
+      if (isSubmitted) {
+        bgClass = 'bg-emerald-50/70 border-emerald-200 text-emerald-950';
+        statusBadgeHtml = `
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-300">
+            <span>✅</span> <span>이번 주차 제출 완료</span>
+          </span>
+        `;
+      } else {
+        bgClass = 'bg-amber-50/80 border-amber-200 text-amber-950';
+        statusBadgeHtml = `
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-xs font-bold border border-amber-300">
+            <span>📝</span> <span>보고서 작성 중 (미제출)</span>
+          </span>
+        `;
+      }
+
+      banner.className = `p-3.5 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs ${bgClass}`;
+      banner.innerHTML = `
+        <div class="flex items-start gap-2.5">
+          <span class="text-xl shrink-0 mt-0.5">${isSubmitted ? '✨' : '📅'}</span>
+          <div>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="font-bold text-sm sm:text-base tracking-tight text-zinc-900">
+                ${formatSundayTitle(currentSunday)} 보고서
+              </span>
+              ${isThisWeek ? '<span class="text-[10px] px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-800 font-bold border border-indigo-200">이번 주</span>' : ''}
+              ${statusBadgeHtml}
+            </div>
+            <div class="text-[11px] text-zinc-600 mt-1 leading-relaxed">
+              ${isSubmitted 
+                ? '• 이번 주 보고서가 저장 및 복사되어 <b>군단 대시보드에 독립 보고서로 정상 반영</b>되었습니다.' 
+                : '• 매주 주일(일요일) 기점으로 새 주차가 시작됩니다. 보고서를 작성 후 <b>[카카오톡 복사]</b> 또는 <b>[저장]</b>을 누르면 제출 상태로 전환됩니다.'}
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+          <button type="button" onclick="startNewSundayReport()" 
+            class="px-3 py-1.5 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-800 rounded-lg text-xs font-semibold transition active:scale-95 shadow-2xs flex items-center gap-1">
+            <span>🔄</span> <span>새 주차 보고서 작성</span>
+          </button>
+          <button type="button" onclick="openHistoryModal()" 
+            class="px-2.5 py-1.5 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 rounded-lg text-xs font-medium transition active:scale-95 shadow-2xs">
+            지난 기록 ↗
+          </button>
+        </div>
+      `;
+    }
+
+    // 주일 기점 새 주차 보고서 작성 시작 (기존 내용은 히스토리에 보존하고 이번 주 보고서로 리셋)
+    function startNewSundayReport() {
+      if (!confirm('현재 작성된 내용을 [지난 기록 보관함]에 안전하게 보관하고, 새 주차 보고서를 작성하시겠습니까?')) return;
+      
+      saveCurrentToHistory(false);
+
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      state.meetingDate = `${year}-${month}-${day}`;
+      const dateEl = document.getElementById('meetingDateInput');
+      if (dateEl) dateEl.value = state.meetingDate;
+
+      const currentSunday = getSundayOfWeek(today);
+      state.selectedSunday = currentSunday;
+
+      if (!state.submittedWeeks) state.submittedWeeks = {};
+      state.submittedWeeks[currentSunday] = false;
+      localStorage.setItem('cell_submitted_weeks', JSON.stringify(state.submittedWeeks));
+      state.isSubmitted = false;
+      localStorage.setItem('cell_is_submitted', 'false');
+
+      state.members.forEach(name => {
+        state.sundayAttendance[name] = true;
+        state.cellAttendance[name] = true;
+      });
+      state.sundayReasons = {};
+      state.cellReasons = {};
+      state.notes = '';
+      const notesEl = document.getElementById('notesInput');
+      if (notesEl) notesEl.value = '';
+      state.prayers = {};
+
+      saveStorage();
+      renderAll();
+      renderWeeklyReportBanner();
+      if (typeof renderDemoDashboard === 'function' && currentMainTab === 'network') renderDemoDashboard();
+      showToast('📅 새로운 주차 보고서 작성을 시작합니다! (이전 내용은 지난 기록에 안전하게 보관됨)');
+    }
+
+    // 군단 대시보드 주차 네비게이터 이동
+    function changeDemoSunday(daysOffset) {
+      const cur = new Date((state.selectedSunday || getSundayOfWeek(new Date())).replace(/-/g, '/'));
+      cur.setDate(cur.getDate() + daysOffset);
+      state.selectedSunday = getSundayOfWeek(cur);
+      renderDemoDashboard();
+    }
+
+    function resetDemoSundayToThisWeek() {
+      state.selectedSunday = getSundayOfWeek(new Date());
+      renderDemoDashboard();
     }
 
     // 최근/가까운 날짜 기본 세팅 (저장된 날짜가 없을 때만 오늘로 초기화)
@@ -1840,6 +2005,7 @@
       updateOutput();
       updatePrayerPreview();
       updateTabBadges();
+      if (typeof renderWeeklyReportBanner === 'function') renderWeeklyReportBanner();
       if (typeof renderAdminEditingBanner === 'function') renderAdminEditingBanner();
     }
 
@@ -2058,8 +2224,13 @@
       const text = generateReportText();
       const copyBtnText = document.getElementById('copyBtnText');
 
+      const curSunday = getSundayOfWeek(state.meetingDate || new Date());
+      if (!state.submittedWeeks) state.submittedWeeks = {};
+      state.submittedWeeks[curSunday] = true;
+      localStorage.setItem('cell_submitted_weeks', JSON.stringify(state.submittedWeeks));
       state.isSubmitted = true;
       localStorage.setItem('cell_is_submitted', 'true');
+      if (typeof renderWeeklyReportBanner === 'function') renderWeeklyReportBanner();
 
       // 1. 복사할 때마다 지난 기록 보관함에 자동 저장 & 클라우드 동기화
       saveCurrentToHistory(false);
@@ -2100,8 +2271,13 @@
 
     // 수동 저장하기 버튼 동작
     function manualSave() {
+      const curSunday = getSundayOfWeek(state.meetingDate || new Date());
+      if (!state.submittedWeeks) state.submittedWeeks = {};
+      state.submittedWeeks[curSunday] = true;
+      localStorage.setItem('cell_submitted_weeks', JSON.stringify(state.submittedWeeks));
       state.isSubmitted = true;
       localStorage.setItem('cell_is_submitted', 'true');
+      if (typeof renderWeeklyReportBanner === 'function') renderWeeklyReportBanner();
       saveStorage();
       saveCurrentToHistory(false);
       if (state.syncCode) {
@@ -4246,6 +4422,32 @@
 
       updateDemoRoleSwitcherUI();
 
+      // 주일 기점 주차 네비게이터 렌더링
+      const navEl = document.getElementById('demoSundayNavigator');
+      if (navEl) {
+        const curSunday = state.selectedSunday || getSundayOfWeek(new Date());
+        const thisWeekSunday = getSundayOfWeek(new Date());
+        const isThisWeek = (curSunday === thisWeekSunday);
+
+        navEl.innerHTML = `
+          <button type="button" onclick="changeDemoSunday(-7)" 
+            class="px-2.5 py-1 bg-white hover:bg-zinc-100 text-zinc-700 rounded-lg border border-zinc-200 font-semibold transition active:scale-95 shadow-2xs flex items-center gap-1">
+            <span>◀</span> <span>이전 주</span>
+          </button>
+          <div class="text-center flex items-center gap-2 flex-wrap justify-center">
+            <span class="text-base">📅</span>
+            <span class="font-bold text-zinc-900 text-xs sm:text-sm tracking-tight">${formatSundayTitle(curSunday)}</span>
+            ${isThisWeek 
+              ? '<span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">이번 주</span>' 
+              : '<button type="button" onclick="resetDemoSundayToThisWeek()" class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold border border-indigo-200 transition">이번 주로 이동 ↩</button>'}
+          </div>
+          <button type="button" onclick="changeDemoSunday(7)" 
+            class="px-2.5 py-1 bg-white hover:bg-zinc-100 text-zinc-700 rounded-lg border border-zinc-200 font-semibold transition active:scale-95 shadow-2xs flex items-center gap-1">
+            <span>다음 주</span> <span>▶</span>
+          </button>
+        `;
+      }
+
       const activeCells = getDemoActiveCells();
 
       // 중복 인원(하위 셀리더 등) 고유 집계 (Unique Deduplication)
@@ -4621,12 +4823,27 @@
                           <span class="px-1 rounded ${m.cell ? 'badge-att' : 'badge-abs'}" title="셀모임">${m.cell ? '셀✓' : '셀✕'}</span>
                         </div>
                       </div>
-                      ${(!m.sunday && m.sundayReason) || (!m.cell && m.cellReason) ? `
-                        <div class="text-[10px] text-rose-600 truncate mt-1 pt-1 border-t border-zinc-100">
-                          ${!m.sunday && m.sundayReason ? `주일: ${m.sundayReason}` : ''}
-                          ${!m.cell && m.cellReason ? `셀: ${m.cellReason}` : ''}
-                        </div>
-                      ` : ''}
+                      ${(() => {
+                        const isLeader = (m.role === '셀리더' || m.role === '군단리더');
+                        const selfCellActive = isLeader && (isSubSubmitted || (SUB_CELL_REPORTS[m.name] && SUB_CELL_REPORTS[m.name].isSubmitted) || activeCells.some(ac => ac.leaderName === m.name && ac.members && ac.members.some(mem => mem.name === m.name && mem.cell)));
+                        
+                        if (!m.cell && selfCellActive) {
+                          return `
+                            <div class="text-[10px] mt-1 pt-1 border-t border-zinc-100 flex items-center justify-between gap-1">
+                              <span class="text-rose-600 font-medium truncate" title="상위 모임 불참: ${m.cellReason || '사유미입력'}">상위: ${m.cellReason || '결석'}</span>
+                              <span class="text-emerald-700 font-bold bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200 whitespace-nowrap shrink-0">본인셀 참석✓</span>
+                            </div>
+                          `;
+                        } else if ((!m.sunday && m.sundayReason) || (!m.cell && m.cellReason)) {
+                          return `
+                            <div class="text-[10px] text-rose-600 truncate mt-1 pt-1 border-t border-zinc-100">
+                              ${!m.sunday && m.sundayReason ? `주일: ${m.sundayReason}` : ''}
+                              ${!m.cell && m.cellReason ? `셀: ${m.cellReason}` : ''}
+                            </div>
+                          `;
+                        }
+                        return '';
+                      })()}
                     </div>
                   `}).join('')}
                 </div>
@@ -4683,6 +4900,48 @@
             `;
             cellAbsContainer.appendChild(div);
           });
+        }
+      }
+
+      // 5. 셀리더 이중 모임 출석 인정 스마트 안내 (상위 모임 결석 + 본인 셀 모임 참석)
+      const attendedSelfLeaders = [];
+      activeCells.forEach(c => {
+        if (!c.members) return;
+        c.members.forEach(m => {
+          if (m.name !== c.leaderName && (m.role === '셀리더' || m.role === '군단리더') && !m.cell) {
+            const selfCell = activeCells.find(ac => ac.leaderName === m.name);
+            if (selfCell && selfCell.members && selfCell.members.some(mem => mem.name === m.name && mem.cell)) {
+              attendedSelfLeaders.push({
+                name: m.name,
+                parentLeader: c.leaderName,
+                reason: m.cellReason || '사유미입력'
+              });
+            }
+          }
+        });
+      });
+
+      const dualNoticeEl = document.getElementById('demoDualAttendanceNotice');
+      if (dualNoticeEl) {
+        if (attendedSelfLeaders.length > 0) {
+          dualNoticeEl.classList.remove('hidden');
+          dualNoticeEl.innerHTML = `
+            <div class="flex items-start gap-2">
+              <span class="text-base shrink-0 mt-0.5">💡</span>
+              <div class="space-y-1 w-full">
+                <div class="font-bold text-xs text-emerald-950 flex items-center justify-between flex-wrap gap-1">
+                  <span>셀리더 출석 특이사항 안내 (본인 셀모임 완수 인정)</span>
+                  <span class="text-[10px] bg-emerald-200/70 text-emerald-900 px-1.5 py-0.2 rounded font-semibold">군단 전체 출석 정상 인정</span>
+                </div>
+                <div class="text-[11px] text-emerald-800 leading-relaxed">
+                  ${attendedSelfLeaders.map(l => `• <b>${l.name}</b> 셀리더: 상위 ${l.parentLeader}셀 모임은 불참(사유: <i>${l.reason}</i>)하였으나, <b>본인 셀모임을 직접 인도·완수</b>하였습니다.`).join('<br>')}
+                  <br>• 군단 전체 고유 성도 집계에서는 본인 셀모임을 완수하였으므로 <b>정상 출석 1명(셀✓)으로 인정</b>되어 결석자에서 제외되었습니다.
+                </div>
+              </div>
+            </div>
+          `;
+        } else {
+          dualNoticeEl.classList.add('hidden');
         }
       }
     }
