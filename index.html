@@ -986,6 +986,8 @@
 
     // 셀원 직책 조회/지정 헬퍼
     function getMemberRole(name, cellData) {
+      if (name === '조국현') return '디모데';
+      if (name === '권회인' || name === '박창현') return '셀리더';
       if (cellData && cellData.memberRoles && cellData.memberRoles[name]) {
         return cellData.memberRoles[name];
       }
@@ -1002,6 +1004,8 @@
     }
 
     function isLeaderCellOpen(name, cellData) {
+      if (name === '권회인' || name === '박창현') return true;
+      if (name === '조국현') return false;
       if (cellData && cellData.leaderCellStatus && cellData.leaderCellStatus[name] !== undefined) {
         return cellData.leaderCellStatus[name] === 'open';
       }
@@ -1473,17 +1477,23 @@
         if (!state.memberRoles['최진성']) state.memberRoles['최진성'] = '셀리더';
         if (!state.memberRoles['주진']) state.memberRoles['주진'] = '디모데';
         if (!state.memberRoles['양광모']) state.memberRoles['양광모'] = '디모데';
+        state.memberRoles['조국현'] = '디모데';
+        state.memberRoles['권회인'] = '셀리더';
+        state.memberRoles['박창현'] = '셀리더';
 
         const savedLeaderCellStatus = localStorage.getItem('cell_leader_cell_status');
         if (savedLeaderCellStatus) {
           state.leaderCellStatus = JSON.parse(savedLeaderCellStatus);
         }
         if (!state.leaderCellStatus) state.leaderCellStatus = {};
-        // 박승곤, 윤수민은 셀오픈 셀리더이므로 open 보장
+        // 박승곤, 윤수민, 권회인, 박창현은 셀오픈 셀리더이므로 open 보장
         if (state.leaderCellStatus['박승곤'] === undefined) state.leaderCellStatus['박승곤'] = 'open';
         if (state.leaderCellStatus['윤수민'] === undefined) state.leaderCellStatus['윤수민'] = 'open';
         if (state.leaderCellStatus['주진'] === undefined) state.leaderCellStatus['주진'] = 'open';
         if (state.leaderCellStatus['송예찬'] === undefined) state.leaderCellStatus['송예찬'] = 'open';
+        state.leaderCellStatus['권회인'] = 'open';
+        state.leaderCellStatus['박창현'] = 'open';
+        state.leaderCellStatus['조국현'] = 'unopened';
         if (state.leaderCellStatus['김한빈'] === undefined) state.leaderCellStatus['김한빈'] = 'unopened';
         if (state.leaderCellStatus['육현조'] === undefined) state.leaderCellStatus['육현조'] = 'unopened';
         if (state.leaderCellStatus['최진성'] === undefined) state.leaderCellStatus['최진성'] = 'unopened';
@@ -3940,9 +3950,22 @@
             { name: "조정현", role: "셀원", sunday: false, sundayReason: "장기결석", cell: false, cellReason: "장기결석" },
             { name: "천대훈", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
             { name: "한민우", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "직장/야근" },
-            { name: "홍조은", role: "셀원", sunday: false, sundayReason: "건강문제", cell: false, cellReason: "몸살/컨디션" }
           ],
-          notes: "- 천대훈 당분간 ZOOM으로 셀모임 참석\n- 권성수 셀조율중으로 권회인과 개인적 이야기 나눔 확인\n- 조국현 셀리더 전도 목표 동기부여 잘되어감.\n- 리더MT 추가 신청자: 한은택, 이진석(+차재아)"
+          memberRoles: {
+            '김태홍': '군단리더',
+            '송예찬': '셀리더',
+            '권회인': '셀리더',
+            '박창현': '셀리더',
+            '조국현': '디모데'
+          },
+          leaderCellStatus: {
+            '김태홍': 'open',
+            '송예찬': 'open',
+            '권회인': 'open',
+            '박창현': 'open',
+            '조국현': 'unopened'
+          },
+          notes: "- 천대훈 당분간 ZOOM으로 셀모임 참석\n- 권성수 셀조율중으로 권회인과 개인적 이야기 나눔 확인\n- 조국현 디모데 전도 목표 동기부여 잘되어감.\n- 리더MT 추가 신청자: 한은택, 이진석(+차재아)"
         }
       ]
     };
@@ -4655,7 +4678,17 @@
       } else {
         taehongCell = {
           ...defaultTaehong,
-          members: defaultTaehong.members.map(m => ({ ...m }))
+          leaderCellStatus: defaultTaehong.leaderCellStatus || {
+            '김태홍': 'open',
+            '송예찬': 'open',
+            '권회인': 'open',
+            '박창현': 'open',
+            '조국현': 'unopened'
+          },
+          members: defaultTaehong.members.map(m => ({
+            ...m,
+            role: getMemberRole(m.name)
+          }))
         };
       }
 
