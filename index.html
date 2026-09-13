@@ -3527,31 +3527,26 @@
       const banner = document.getElementById('adminEditingBanner');
       if (!banner) return;
 
-      if (!isSongYechanAdmin()) {
+      // 평소(송예찬 본인 셀 작성 중)에는 배너를 숨겨서 오직 '내꺼만' 깔끔하게 보이게 함!
+      if (!isSongYechanAdmin() || adminEditingTarget === 'yechan') {
         banner.innerHTML = '';
         return;
       }
 
+      // 군단 현황 등에서 다른 셀(김태홍 셀 등)을 직접 수정 중일 때만 상단에 안내 및 복귀 버튼 제공
       banner.innerHTML = `
-        <div class="p-3 bg-gradient-to-r from-amber-500/10 via-amber-50 to-emerald-50 border border-amber-300 rounded-xl shadow-xs space-y-2 mb-3">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-amber-950 flex items-center gap-1.5">
-              <span class="text-base">👑</span> <span>송예찬 총괄 관리자 편집 모드</span>
-            </span>
-            <span class="text-[11px] text-zinc-500 hidden sm:inline">수정할 셀을 선택하면 출석/사유/특이사항을 직접 편집할 수 있습니다.</span>
+        <div class="p-3 bg-gradient-to-r from-amber-500/15 to-amber-50 border border-amber-300 rounded-xl shadow-xs flex items-center justify-between gap-3 mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-base">👑</span>
+            <div>
+              <div class="text-xs font-bold text-amber-950">김태홍 셀 보고서 직접 수정 중 (20명)</div>
+              <div class="text-[11px] text-amber-800">김태홍 군단리더 셀의 출석, 결석사유, 특이사항을 직접 편집하고 있습니다.</div>
+            </div>
           </div>
-          <div class="grid grid-cols-2 gap-2">
-            <button type="button" onclick="switchAdminEditingCell('yechan')"
-              class="py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${adminEditingTarget === 'yechan' ? 'bg-emerald-700 text-white shadow-xs ring-2 ring-emerald-600' : 'bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50'}">
-              <span>🌱</span> <span>송예찬 셀 편집 (9명)</span>
-              ${adminEditingTarget === 'yechan' ? '<span class="text-[10px] bg-emerald-800 text-emerald-100 px-1.5 py-0.2 rounded-full font-medium">편집중</span>' : ''}
-            </button>
-            <button type="button" onclick="switchAdminEditingCell('taehong')"
-              class="py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${adminEditingTarget === 'taehong' ? 'bg-amber-600 text-white shadow-xs ring-2 ring-amber-500' : 'bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50'}">
-              <span>👑</span> <span>김태홍 셀 편집 (20명)</span>
-              ${adminEditingTarget === 'taehong' ? '<span class="text-[10px] bg-amber-700 text-amber-100 px-1.5 py-0.2 rounded-full font-medium">편집중</span>' : ''}
-            </button>
-          </div>
+          <button type="button" onclick="switchAdminEditingCell('yechan')"
+            class="py-1.5 px-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold transition active:scale-95 shrink-0 flex items-center gap-1 shadow-2xs">
+            <span>🌱</span> <span>내 셀(송예찬) 보고서로 돌아가기</span>
+          </button>
         </div>
       `;
     }
@@ -3577,7 +3572,7 @@
       }
     }
 
-    let currentDemoRole = 'corps'; // 송예찬 관리자는 'corps' 또는 'cell', 'taehong' 자유 전환
+    let currentDemoRole = 'corps'; // 기본값: 김태홍 군단 대시보드 (태홍이형 시점)
     let allDemoExpanded = true;
 
     function updateDemoRoleSwitcherUI() {
@@ -3585,33 +3580,28 @@
       if (!container) return;
 
       if (!isSongYechanAdmin()) {
-        // 일반 접속자(비관리자)는 타 셀 전환 버튼 숨기고 본인 셀만 단독 표시
+        // 일반 접속자: 김태홍은 군단장이므로 군단 현황, 그 외 셀리더는 본인 셀 단독
         const isTaehong = isCurrentUserTaehong();
-        currentDemoRole = isTaehong ? 'taehong' : 'cell';
-        const displayLeader = isTaehong ? '김태홍' : (state.leaderName || '내');
+        currentDemoRole = isTaehong ? 'corps' : 'cell';
+        const displayLeader = isTaehong ? '김태홍 군단' : (state.leaderName || '내 셀');
         container.innerHTML = `
           <div class="px-3 py-1.5 bg-zinc-100 text-zinc-800 border border-zinc-200 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs">
-            <span>${isTaehong ? '👑' : '🌱'}</span> <span>${escapeHtml(displayLeader)} 셀 현황 (본인)</span>
+            <span>${isTaehong ? '👑' : '🌱'}</span> <span>${escapeHtml(displayLeader)} 현황 (본인)</span>
           </div>
         `;
       } else {
-        // 송예찬 총괄 관리자: 3개 뷰 전환 버튼 제공
-        const isYechan = currentDemoRole === 'cell' || currentDemoRole === 'yechan';
-        const isTaehong = currentDemoRole === 'taehong';
-        const isCorps = currentDemoRole === 'corps';
+        // 송예찬 총괄 관리자: 군단 대시보드(태홍이형 시점) vs 내 셀 현황(송예찬) 2개 토글
+        const isCorps = currentDemoRole === 'corps' || currentDemoRole === 'taehong';
+        const isCell = currentDemoRole === 'cell';
 
         container.innerHTML = `
           <button id="btnRoleCorps" onclick="setDemoRole('corps')" 
-            class="px-2.5 py-1.5 rounded-lg transition-all ${isCorps ? 'bg-zinc-900 text-white shadow-xs font-semibold' : 'text-zinc-600 hover:text-zinc-900 font-medium'} flex items-center gap-1">
-            <span>🌳</span> <span>전체 합산 (군단)</span>
-          </button>
-          <button id="btnRoleTaehong" onclick="setDemoRole('taehong')" 
-            class="px-2.5 py-1.5 rounded-lg transition-all ${isTaehong ? 'bg-zinc-900 text-white shadow-xs font-semibold' : 'text-zinc-600 hover:text-zinc-900 font-medium'} flex items-center gap-1">
-            <span>👑</span> <span>태홍군단 (김태홍)</span>
+            class="px-3 py-1.5 rounded-lg transition-all ${isCorps ? 'bg-zinc-900 text-white shadow-xs font-semibold' : 'text-zinc-600 hover:text-zinc-900 font-medium'} flex items-center gap-1.5">
+            <span>👑</span> <span>김태홍 군단 대시보드 (태홍이형 시점)</span>
           </button>
           <button id="btnRoleCell" onclick="setDemoRole('cell')" 
-            class="px-2.5 py-1.5 rounded-lg transition-all ${isYechan ? 'bg-zinc-900 text-white shadow-xs font-semibold' : 'text-zinc-600 hover:text-zinc-900 font-medium'} flex items-center gap-1">
-            <span>🌱</span> <span>내 군단 (송예찬)</span>
+            class="px-3 py-1.5 rounded-lg transition-all ${isCell ? 'bg-zinc-900 text-white shadow-xs font-semibold' : 'text-zinc-600 hover:text-zinc-900 font-medium'} flex items-center gap-1.5">
+            <span>🌱</span> <span>내 셀 현황 (송예찬)</span>
           </button>
         `;
       }
@@ -3741,24 +3731,23 @@
         }
       });
 
-      // 비관리자: 오직 본인 셀만 반환!
+      // 비관리자: 김태홍은 군단리더이므로 군단 전체 반환, 그 외 일반 셀리더는 본인 셀만 반환
       if (!isSongYechanAdmin()) {
         if (isCurrentUserTaehong()) {
-          return [taehongCell];
+          return [taehongCell, yechanCell, ...dynamicSubCells];
         } else {
           return [yechanCell];
         }
       }
 
-      // 관리자(송예찬): 시점에 따라 반환
-      if (currentDemoRole === 'taehong') {
-        return [taehongCell];
-      } else if (currentDemoRole === 'cell' || currentDemoRole === 'yechan') {
-        return [yechanCell, ...dynamicSubCells];
-      } else {
-        // corps (전체 합산 비교)
-        return [taehongCell, yechanCell, ...dynamicSubCells];
+      // 송예찬 총괄 관리자:
+      // "나도 내꺼만 보이게 해주고" -> 'cell' 선택 시 오직 송예찬 본인 셀만 단독 반환!
+      if (currentDemoRole === 'cell') {
+        return [yechanCell];
       }
+
+      // "군단데이터만 태홍이형 입장에서 보이는 대시보드도 보이게 해줘" -> 김태홍 군단 전체 반환!
+      return [taehongCell, yechanCell, ...dynamicSubCells];
     }
 
     function renderDemoDashboard() {
@@ -3842,12 +3831,10 @@
 
       if (metricTotalEl) metricTotalEl.innerText = totalMembers + '명';
       if (metricCellCountEl) {
-        if (currentDemoRole === 'taehong') {
-          metricCellCountEl.innerText = `김태홍 셀 (1개 셀)`;
-        } else if (currentDemoRole === 'corps') {
-          metricCellCountEl.innerText = `군단 전체 (${activeCells.length}개 셀)`;
+        if (currentDemoRole === 'cell') {
+          metricCellCountEl.innerText = `송예찬 셀 (단독)`;
         } else {
-          metricCellCountEl.innerText = `송예찬 산하 (${activeCells.length}개 셀)`;
+          metricCellCountEl.innerText = `김태홍 군단 (${activeCells.length}개 셀)`;
         }
       }
       
@@ -3870,63 +3857,45 @@
         ? taehongCell.members.filter(m => (m.role === '셀리더' || m.role === '군단리더') && m.name !== taehongCell.leaderName && !activeCells.some(ac => ac.leaderName === m.name && ac.id !== taehongCell.id)).map(m => m.name)
         : [];
       
-      const unopenedLeaders = (currentDemoRole === 'corps') 
-        ? [...new Set([...taehongUnopened, ...songUnopened])]
-        : (currentDemoRole === 'taehong' ? taehongUnopened : songUnopened);
+      const unopenedLeaders = (currentDemoRole === 'cell') 
+        ? songUnopened 
+        : [...new Set([...taehongUnopened, ...songUnopened])];
 
       const openLeadersCount = activeCells.length;
       const totalLeadersCount = openLeadersCount + unopenedLeaders.length;
 
       if (notice) {
-        if (currentDemoRole === 'taehong') {
-          const unassignedMsg = unopenedLeaders.length > 0 
-            ? `<div class="mt-1.5 pt-1.5 border-t border-amber-200/80 text-[11px] text-amber-950 font-normal space-y-0.5">
-                <div>👑 <b>김태홍 셀 리더십: ${totalLeadersCount}명</b> (셀오픈 <b>${openLeadersCount}개 셀</b> / ⏳ 미제출·미오픈 <b>${unopenedLeaders.length}명</b>)</div>
-                <div class="text-[10px] text-amber-800">• <b>보고서 미제출/미오픈 리더:</b> ${unopenedLeaders.join(', ')} (모체 셀에서 함께 출석 집계)</div>
-               </div>`
-            : `<div class="mt-1.5 pt-1.5 border-t border-amber-200/80 text-[11px] text-amber-950">👑 <b>김태홍 셀 총 리더십: ${totalLeadersCount}명 (전원 셀오픈)</b></div>`;
-          notice.innerHTML = `
-            <span class="text-base">👑</span>
-            <div class="w-full">
-              <b>김태홍 셀리더 시점</b>: 김태홍 본인 셀(<b>총원 ${totalMembers}명</b>)의 출석 통계와 셀모임 보고서만 단독으로 표시됩니다.
-              ${unassignedMsg}
-            </div>
-          `;
-          notice.className = 'text-xs p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 flex items-start gap-2 leading-relaxed';
-        } else if (currentDemoRole === 'corps') {
-          const unassignedMsg = unopenedLeaders.length > 0 
-            ? `<div class="mt-1.5 pt-1.5 border-t border-indigo-200/80 text-[11px] text-indigo-950 font-normal space-y-0.5">
-                <div>👑 <b>군단 총 리더십: ${totalLeadersCount}명</b> (실제 제출 <b>${openLeadersCount}개 셀</b> / ⏳ 미제출·미오픈 <b>${unopenedLeaders.length}명</b>)</div>
-                <div class="text-[10px] text-indigo-800">• <b>보고서 미제출/미오픈 리더:</b> ${unopenedLeaders.join(', ')} (모체 셀에서 함께 출석 집계되며 독립 출석률 비교에서는 제외)</div>
-               </div>`
-            : `<div class="mt-1.5 pt-1.5 border-t border-indigo-200/80 text-[11px] text-indigo-950">👑 <b>군단 총 리더십: ${totalLeadersCount}명 (전원 셀오픈)</b></div>`;
-          notice.innerHTML = `
-            <span class="text-base">🌳</span>
-            <div class="w-full">
-              <b>군단 전체 합산 시점</b>: 군단 산하의 <b>실제 저장된 셀(${activeCells.length}개 셀)</b>과 <b>셀원들(실제 고유 ${totalMembers}명)</b>의 출석 통계와 셀별 비교를 한눈에 조회합니다.
-              ${unassignedMsg}
-            </div>
-          `;
-          notice.className = 'text-xs p-2.5 rounded-xl bg-indigo-50/80 border border-indigo-200 text-indigo-900 flex items-start gap-2 leading-relaxed';
-        } else {
-          const subCells = activeCells.filter(c => c.parentLeader === '송예찬');
+        if (currentDemoRole === 'cell') {
           const unassignedMsg = unopenedLeaders.length > 0 
             ? `<div class="mt-1.5 pt-1.5 border-t border-emerald-200/80 text-[11px] text-emerald-950 font-normal space-y-0.5">
-                <div>👑 <b>송예찬 산하 총 리더십: ${totalLeadersCount}명</b> (셀오픈 <b>${openLeadersCount}개 셀</b> / ⏳ 미오픈 <b>${unopenedLeaders.length}명</b>)</div>
+                <div>👑 <b>송예찬 산하 리더십: ${totalLeadersCount}명</b> (셀오픈 <b>${openLeadersCount}개 셀</b> / ⏳ 미오픈 <b>${unopenedLeaders.length}명</b>)</div>
                 <div class="text-[10px] text-emerald-800">• <b>셀미오픈 리더:</b> ${unopenedLeaders.join(', ')} (송예찬 셀 소속으로 함께 출석 집계 중)</div>
                </div>`
-            : `<div class="mt-1.5 pt-1.5 border-t border-emerald-200/80 text-[11px] text-emerald-950">👑 <b>송예찬 산하 총 리더십: ${totalLeadersCount}명 (전원 셀오픈)</b></div>`;
-          const subText = subCells.length > 0
-            ? `<b>송예찬 본인 셀 및 하위 ${subCells.map(c => c.leaderName + '셀').join(', ')}(총 ${activeCells.length}개 셀, ${totalMembers}명)</b>이 자동 계층 연동되어 표시됩니다.`
-            : `오직 <b>송예찬 본인 셀(총 ${totalMembers}명)만</b> 독립적으로 표시됩니다. (김태홍 셀 등 타 셀은 완전히 숨겨짐)`;
+            : '';
           notice.innerHTML = `
             <span class="text-base">🌱</span>
             <div class="w-full">
-              <b>송예찬 셀리더 시점</b>: ${subText}
+              <b>송예찬 셀 단독 현황 (내 셀)</b>: 오직 송예찬 본인 셀(<b>총원 ${totalMembers}명</b>)의 출석 통계만 단독으로 표시됩니다.
               ${unassignedMsg}
             </div>
           `;
           notice.className = 'text-xs p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-emerald-900 flex items-start gap-2 leading-relaxed';
+        } else {
+          // corps: 태홍이형 시점 군단 대시보드
+          const unassignedMsg = unopenedLeaders.length > 0 
+            ? `<div class="mt-1.5 pt-1.5 border-t border-amber-200/80 text-[11px] text-amber-950 font-normal space-y-0.5">
+                <div>👑 <b>김태홍 군단 총 리더십: ${totalLeadersCount}명</b> (실제 제출 <b>${openLeadersCount}개 셀</b> / ⏳ 미제출·미오픈 <b>${unopenedLeaders.length}명</b>)</div>
+                <div class="text-[10px] text-amber-800">• <b>보고서 미제출/미오픈 리더:</b> ${unopenedLeaders.join(', ')} (모체 셀에서 함께 출석 집계 중)</div>
+               </div>`
+            : `<div class="mt-1.5 pt-1.5 border-t border-amber-200/80 text-[11px] text-amber-950">👑 <b>김태홍 군단 총 리더십: ${totalLeadersCount}명 (전원 셀오픈)</b></div>`;
+          notice.innerHTML = `
+            <span class="text-base">👑</span>
+            <div class="w-full">
+              <b>김태홍 군단 대시보드 (태홍이형 시점)</b>: 군단리더(김태홍) 입장에서 군단 전체(<b>${activeCells.length}개 셀, 고유 총원 ${totalMembers}명</b>)의 출석 통계와 셀별 현황을 총괄 조회합니다.
+              ${unassignedMsg}
+            </div>
+          `;
+          notice.className = 'text-xs p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 flex items-start gap-2 leading-relaxed';
         }
       }
 
