@@ -1309,6 +1309,64 @@
       updateDateDisplay();
     }
 
+    
+    // 과거 3주차 (8/30 주간-8/31 모임, 9/6 주간-9/7 모임) 기본 히스토리 보장
+    function ensureDefaultHistorySeeds() {
+      if (!state.history) state.history = [];
+
+      const hasAug31 = state.history.some(h => {
+        const d = (h.meetingDate || h.dateTimeStr || '');
+        return d.includes('2026-8-31') || d.includes('2026-08-31') || d.includes('8/31');
+      });
+
+      if (!hasAug31) {
+        state.history.push({
+          id: 'rep_seed_20260831',
+          savedAt: '8. 31. 오후 9:30',
+          leaderName: '송예찬',
+          meetingDate: '2026-08-31',
+          meetingTime: '19:30',
+          dateTimeStr: '2026/8/31(월) 저녁 7시 30분',
+          sundayDate: '2026-08-30',
+          location: '3층 DCC',
+          members: [...DEFAULT_MEMBERS],
+          sundayAttendance: DEFAULT_MEMBERS.reduce((acc, m) => ({ ...acc, [m]: true }), {}),
+          cellAttendance: DEFAULT_MEMBERS.reduce((acc, m) => ({ ...acc, [m]: m !== '김한빈' }), {}),
+          sundayReasons: {},
+          cellReasons: { '김한빈': '직장/야근' },
+          notes: '8월 마지막 주 셀모임 나눔',
+          prayers: {},
+          fullText: ''
+        });
+      }
+
+      const hasSep07 = state.history.some(h => {
+        const d = (h.meetingDate || h.dateTimeStr || '');
+        return d.includes('2026-9-7') || d.includes('2026-09-07') || d.includes('9/7');
+      });
+
+      if (!hasSep07) {
+        state.history.push({
+          id: 'rep_seed_20260907',
+          savedAt: '9. 7. 오후 9:30',
+          leaderName: '송예찬',
+          meetingDate: '2026-09-07',
+          meetingTime: '19:30',
+          dateTimeStr: '2026/9/7(월) 저녁 7시 30분',
+          sundayDate: '2026-09-06',
+          location: '3층 DCC',
+          members: [...DEFAULT_MEMBERS],
+          sundayAttendance: DEFAULT_MEMBERS.reduce((acc, m) => ({ ...acc, [m]: true }), {}),
+          cellAttendance: DEFAULT_MEMBERS.reduce((acc, m) => ({ ...acc, [m]: m !== '양광모' }), {}),
+          sundayReasons: {},
+          cellReasons: { '양광모': '디모데 훈련' },
+          notes: '9월 첫 주 셀모임 나눔',
+          prayers: {},
+          fullText: ''
+        });
+      }
+    }
+
     // 로컬 스토리지 불러오기
     function loadStorage() {
       try {
@@ -1411,6 +1469,7 @@
           state.history = JSON.parse(savedHistory);
           deduplicateHistory();
         }
+        ensureDefaultHistorySeeds();
         const savedIsSubmitted = localStorage.getItem('cell_is_submitted');
         if (savedIsSubmitted !== null) {
           state.isSubmitted = (savedIsSubmitted === 'true');
@@ -2553,6 +2612,7 @@
       state.location = target.location;
       state.meetingDate = target.meetingDate;
       state.meetingTime = target.meetingTime;
+      state.selectedSunday = getSundayOfWeek(target.meetingDate || target.dateTimeStr);
       state.members = [...target.members];
       state.sundayAttendance = { ...target.sundayAttendance };
       state.cellAttendance = { ...target.cellAttendance };
@@ -4175,9 +4235,127 @@
       renderDemoDashboard();
     }
 
+// 기준 주일(targetSunday) 주차에 맞춘 송예찬 셀 데이터 구성 (8/30 주간->8/31모임, 9/6 주간->9/7모임, 9/13 주간->9/14모임)
+    function getYechanCellForSunday(targetSunday = null) {
+      const sunday = targetSunday || state.selectedSunday || getSundayOfWeek(state.meetingDate || new Date());
+      const yechanSubmitted = hasLeaderSubmittedReport('송예찬', sunday);
+
+      // 1. state.history에서 해당 주일 주간(sundayDate)에 일치하는 기록 검색
+      let histItem = null;
+      if (state.history && state.history.length > 0) {
+        histItem = state.history.find(h => {
+          const hSunday = h.sundayDate || getSundayOfWeek(h.meetingDate || h.dateTimeStr);
+          return hSunday === sunday;
+        });
+      }
+
+      // 2. 만약 히스토리에 해당 주차 기록이 있는 경우 그 기록을 바탕으로 구성
+      if (histItem) {
+        const hMembers = histItem.members || DEFAULT_MEMBERS;
+        const mDateTime = (histItem.meetingDate && histItem.meetingDate.trim())
+          ? `${histItem.meetingDate}${histItem.meetingTime ? ' ' + histItem.meetingTime : ''}`
+          : (histItem.dateTimeStr || `${sunday} 모임`);
+
+        return {
+          id: "cell_yechan",
+          leaderName: histItem.leaderName || "송예찬",
+          isCorpsLeader: false,
+          parentLeader: "김태홍",
+          roleTitle: "셀리더 (김태홍 직속)",
+          location: histItem.location || "3층 DCC",
+          meetingDateTime: mDateTime,
+          members: hMembers.map(name => ({
+            name,
+            role: getMemberRole(name),
+            sunday: histItem.sundayAttendance ? !!histItem.sundayAttendance[name] : true,
+            sundayReason: histItem.sundayReasons ? (histItem.sundayReasons[name] || '') : '',
+            cell: histItem.cellAttendance ? !!histItem.cellAttendance[name] : true,
+            cellReason: histItem.cellReasons ? (histItem.cellReasons[name] || '') : ''
+          })),
+          notes: histItem.notes || '',
+          isSubmittedReport: true
+        };
+      }
+
+      // 3. 특정 과거 주간 기본값 (히스토리에 아직 없는 경우 대비)
+      if (sunday === '2026-08-30') {
+        return {
+          id: "cell_yechan",
+          leaderName: "송예찬",
+          isCorpsLeader: false,
+          parentLeader: "김태홍",
+          roleTitle: "셀리더 (김태홍 직속)",
+          location: "3층 DCC",
+          meetingDateTime: "2026-08-31 19:30",
+          members: DEFAULT_MEMBERS.map(name => ({
+            name,
+            role: getMemberRole(name),
+            sunday: true,
+            sundayReason: '',
+            cell: name !== '김한빈',
+            cellReason: name === '김한빈' ? '직장/야근' : ''
+          })),
+          notes: '8월 마지막 주 셀모임 나눔',
+          isSubmittedReport: true
+        };
+      } else if (sunday === '2026-09-06') {
+        return {
+          id: "cell_yechan",
+          leaderName: "송예찬",
+          isCorpsLeader: false,
+          parentLeader: "김태홍",
+          roleTitle: "셀리더 (김태홍 직속)",
+          location: "3층 DCC",
+          meetingDateTime: "2026-09-07 19:30",
+          members: DEFAULT_MEMBERS.map(name => ({
+            name,
+            role: getMemberRole(name),
+            sunday: true,
+            sundayReason: '',
+            cell: name !== '양광모',
+            cellReason: name === '양광모' ? '디모데 훈련' : ''
+          })),
+          notes: '9월 첫 주 셀모임 나눔',
+          isSubmittedReport: true
+        };
+      }
+
+      // 4. 이번 주(9/13 주간) 또는 현재 실시간 폼 상태 사용
+      const yechanMeetingDate = (state.meetingDate && state.meetingDate.trim())
+        ? `${state.meetingDate}${state.meetingTime ? ' ' + state.meetingTime : ''}`
+        : "2026-09-14 19:30";
+
+      return {
+        id: "cell_yechan",
+        leaderName: state.leaderName || "송예찬",
+        isCorpsLeader: false,
+        parentLeader: "김태홍",
+        roleTitle: "셀리더 (김태홍 직속)",
+        location: state.location || "본당",
+        meetingDateTime: yechanMeetingDate,
+        members: state.members.map(name => ({
+          name,
+          role: getMemberRole(name),
+          sunday: !!state.sundayAttendance[name],
+          sundayReason: state.sundayReasons[name] || '',
+          cell: !!state.cellAttendance[name],
+          cellReason: state.cellReasons[name] || ''
+        })),
+        notes: state.notes || '',
+        isSubmittedReport: yechanSubmitted
+      };
+    }
+
     function getDemoActiveCells() {
-      // 1. 김태홍 셀 구성 (실제 20명 데이터)
-      const taehongMeetingDate = "2026/9/10(목) 저녁 7시 30분";
+      const targetSunday = state.selectedSunday || getSundayOfWeek(state.meetingDate || new Date());
+
+      // 1. 김태홍 셀 구성 (주일 주차별 날짜 동기화)
+      let taehongMeetingDate = "2026/9/17(목) 저녁 7시 30분";
+      if (targetSunday === '2026-08-30') {
+        taehongMeetingDate = "2026/9/3(목) 저녁 7시 30분";
+      } else if (targetSunday === '2026-09-06') {
+        taehongMeetingDate = "2026/9/10(목) 저녁 7시 30분";
+      }
       let taehongCell;
       const defaultTaehong = DEMO_CORPS_DATA.cells.find(c => c.id === 'cell_taehong') || DEMO_CORPS_DATA.cells[0];
       const isSyncedTaehong = isCurrentUserTaehong() && state.members && state.members.length >= 15;
@@ -4211,8 +4389,9 @@
         };
       }
 
-      // 2. 송예찬 셀 구성
-      let yechanCell;
+      
+      // 2. 송예찬 셀 구성 (선택된 주일 주차 기준 동적 획득)
+      let yechanCell = getYechanCellForSunday(targetSunday);
       const yechanSubmitted = hasLeaderSubmittedReport('송예찬');
       if (adminEditingTarget === 'taehong' && cachedYechanData) {
         // 관리자가 김태홍 셀 편집 중일 때 송예찬 셀 데이터는 cachedYechanData 사용
@@ -4239,55 +4418,11 @@
           notes: yd.notes || '',
           isSubmittedReport: yechanSubmitted
         };
-      } else if (!isCurrentUserTaehong()) {
-        const yechanMeetingDate = (state.meetingDate && state.meetingDate.trim())
-          ? `${state.meetingDate}${state.meetingTime ? ' ' + state.meetingTime : ''}`
-          : "2026/9/13(일) 저녁 7시";
-        yechanCell = {
-          id: "cell_yechan",
-          leaderName: state.leaderName || "송예찬",
-          isCorpsLeader: false,
-          parentLeader: "김태홍",
-          roleTitle: "셀리더 (김태홍 직속)",
-          location: state.location || "본당",
-          meetingDateTime: yechanMeetingDate,
-          members: state.members.map(name => ({
-            name,
-            role: getMemberRole(name),
-            sunday: !!state.sundayAttendance[name],
-            sundayReason: state.sundayReasons[name] || '',
-            cell: !!state.cellAttendance[name],
-            cellReason: state.cellReasons[name] || ''
-          })),
-          notes: state.notes || '',
-          isSubmittedReport: yechanSubmitted
-        };
-      } else {
-        // 김태홍 로그인 상태일 때
-        yechanCell = {
-          id: "cell_yechan",
-          leaderName: "송예찬",
-          isCorpsLeader: false,
-          parentLeader: "김태홍",
-          roleTitle: "셀리더 (김태홍 직속)",
-          location: "3층 DCC",
-          meetingDateTime: "2026/9/13(일) 저녁 7시",
-          members: DEFAULT_MEMBERS.map(name => ({
-            name,
-            role: getMemberRole(name),
-            sunday: true,
-            sundayReason: '',
-            cell: true,
-            cellReason: ''
-          })),
-          notes: '',
-          isSubmittedReport: yechanSubmitted
-        };
       }
 
       // 3. 실제 등록된 하위 셀 (본인 셀모임 보고서가 제출된 셀들만 독립 셀로 분리!)
       const dynamicSubCells = [];
-      const submittedLeaders = getSubmittedSubCellLeaders();
+      const submittedLeaders = getSubmittedSubCellLeaders(null, targetSunday);
       submittedLeaders.forEach(name => {
         const rep = SUB_CELL_REPORTS[name];
         if (rep) {
