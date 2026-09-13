@@ -1419,13 +1419,15 @@
         if (isCellAtt) cellAttCount++;
 
         const isOpen = isLeaderCellOpen(name);
+        let roleLabel = '';
+        let roleBadgeClass = '';
 
         if (role === '셀리더') {
-          roleLabel = name === state.leaderName ? '👑리더' : (isOpen ? '👑셀리더' : '👑리더(준비)');
-          roleBadgeClass = isOpen ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-amber-50 text-amber-800 border-amber-200';
+          roleLabel = '👑리더';
+          roleBadgeClass = 'bg-amber-100 text-amber-900 border-amber-300';
         } else if (role === '디모데') {
-          roleLabel = isOpen ? '🌿디모데(오픈)' : '🌿디모데';
-          roleBadgeClass = isOpen ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+          roleLabel = '🌿디모데';
+          roleBadgeClass = 'bg-emerald-100 text-emerald-900 border-emerald-300';
         }
 
         const sundayRoleBadge = roleLabel 
@@ -2493,12 +2495,12 @@
           roleBadge = '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-bold shrink-0">👑 리더 (본인)</span>';
         } else if (role === '셀리더') {
           roleBadge = isOpen 
-            ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 font-bold shrink-0">👑 셀리더</span>' 
-            : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-medium shrink-0">👑 셀리더 (준비중)</span>';
+            ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 font-bold shrink-0">👑 셀리더 (셀오픈)</span>' 
+            : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-medium shrink-0">👑 셀리더 (미오픈)</span>';
         } else if (role === '디모데') {
           roleBadge = isOpen 
-            ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium shrink-0">🌿 디모데(오픈)</span>' 
-            : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium shrink-0">🌿 디모데</span>';
+            ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium shrink-0">🌿 디모데 (셀오픈)</span>' 
+            : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium shrink-0">🌿 디모데 (미오픈)</span>';
         }
 
         const item = document.createElement('div');
@@ -4047,24 +4049,11 @@
                     let badgeClass = '';
 
                     if (m.role === '셀리더' || m.role === '군단리더') {
-                      if (m.name === cell.leaderName) {
-                        badgeText = '리더';
-                        badgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
-                      } else if (isOpen) {
-                        badgeText = '셀리더';
-                        badgeClass = 'bg-amber-100 text-amber-900 border-amber-300 font-bold';
-                      } else {
-                        badgeText = '리더(준비중)';
-                        badgeClass = 'bg-amber-50/80 text-amber-800 border-amber-200 font-medium';
-                      }
+                      badgeText = '리더';
+                      badgeClass = 'bg-amber-50 text-amber-800 border-amber-200 font-semibold';
                     } else if (m.role === '디모데') {
-                      if (isOpen) {
-                        badgeText = '디모데(오픈)';
-                        badgeClass = 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold';
-                      } else {
-                        badgeText = '디모데';
-                        badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200 font-medium';
-                      }
+                      badgeText = '디모데';
+                      badgeClass = 'bg-emerald-50 text-emerald-800 border-emerald-200 font-medium';
                     }
 
                     return `
