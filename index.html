@@ -955,7 +955,22 @@
       cellAbsenceOrder: [],   // 셀모임 결석자 사용자 지정 순서
       memberRoles: {          // 셀원별 직책 ('셀원' | '디모데' | '셀리더')
         '송예찬': '셀리더',
-        '주진': '디모데'
+        '김한빈': '셀리더',
+        '박승곤': '셀리더',
+        '양광모': '디모데',
+        '육현조': '셀리더',
+        '윤수민': '셀리더',
+        '주진': '디모데',
+        '최진성': '셀리더'
+      },
+      leaderCellStatus: {     // 셀리더/디모데의 셀오픈 여부 ('open' | 'unopened')
+        '송예찬': 'open',
+        '박승곤': 'open',
+        '윤수민': 'open',
+        '주진': 'open',
+        '김한빈': 'unopened',
+        '육현조': 'unopened',
+        '최진성': 'unopened'
       },
       history: []           // 지난 보고서 히스토리 보관함
     };
@@ -965,6 +980,8 @@
       if (!state.memberRoles) state.memberRoles = {};
       if (state.memberRoles[name]) return state.memberRoles[name];
       if (name === state.leaderName) return '셀리더';
+      if (name === '박승곤' || name === '윤수민' || name === '김한빈' || name === '육현조' || name === '최진성') return '셀리더';
+      if (name === '주진' || name === '양광모') return '디모데';
       return '셀원';
     }
 
@@ -974,8 +991,8 @@
       if (state.leaderCellStatus[name] !== undefined) {
         return state.leaderCellStatus[name] === 'open';
       }
-      // 기본값 fallback: 데모에서 실제 하위셀이 있는 인원은 기본 open
-      if (name === '윤수민' || name === '주진' || (typeof DEMO_SUB_CELLS !== 'undefined' && DEMO_SUB_CELLS[name])) {
+      // 기본값 fallback: 박승곤, 윤수민, 주진은 셀오픈 리더/디모데
+      if (name === '박승곤' || name === '윤수민' || name === '주진' || (typeof DEMO_SUB_CELLS !== 'undefined' && DEMO_SUB_CELLS[name])) {
         return true;
       }
       return false;
@@ -992,8 +1009,8 @@
       }
       const role = getMemberRole(name);
       const statusLabel = status === 'open' 
-        ? (role === '디모데' ? '🌿 셀오픈 (인큐베이팅)' : '👑 셀오픈') 
-        : (role === '디모데' ? '🌱 미오픈 (부리더/훈련)' : '⏳ 미오픈 (대기/재정비)');
+        ? (role === '디모데' ? '🌿 디모데 (셀오픈)' : '👑 셀리더 (셀오픈)') 
+        : (role === '디모데' ? '🌱 디모데 (준비/훈련)' : '👑 셀리더 (오픈 준비중)');
       showToast(`${name} 님이 '${statusLabel}' 상태로 설정되었습니다.`);
     }
 
@@ -1002,7 +1019,7 @@
       state.memberRoles[name] = role;
       if (!state.leaderCellStatus) state.leaderCellStatus = {};
       if ((role === '셀리더' || role === '디모데') && !state.leaderCellStatus[name]) {
-        state.leaderCellStatus[name] = (name === '윤수민' || name === '주진' || (typeof DEMO_SUB_CELLS !== 'undefined' && DEMO_SUB_CELLS[name])) ? 'open' : 'unopened';
+        state.leaderCellStatus[name] = (name === '박승곤' || name === '윤수민' || name === '주진' || (typeof DEMO_SUB_CELLS !== 'undefined' && DEMO_SUB_CELLS[name])) ? 'open' : 'unopened';
       }
       saveStorage();
       renderAll();
@@ -1182,15 +1199,30 @@
         const savedRoles = localStorage.getItem('cell_member_roles');
         if (savedRoles) {
           state.memberRoles = JSON.parse(savedRoles);
-        } else if (!state.memberRoles) {
-          state.memberRoles = { '송예찬': '셀리더', '주진': '디모데' };
         }
+        if (!state.memberRoles) state.memberRoles = {};
+        if (!state.memberRoles['송예찬']) state.memberRoles['송예찬'] = '셀리더';
+        if (!state.memberRoles['박승곤']) state.memberRoles['박승곤'] = '셀리더';
+        if (!state.memberRoles['윤수민']) state.memberRoles['윤수민'] = '셀리더';
+        if (!state.memberRoles['김한빈']) state.memberRoles['김한빈'] = '셀리더';
+        if (!state.memberRoles['육현조']) state.memberRoles['육현조'] = '셀리더';
+        if (!state.memberRoles['최진성']) state.memberRoles['최진성'] = '셀리더';
+        if (!state.memberRoles['주진']) state.memberRoles['주진'] = '디모데';
+        if (!state.memberRoles['양광모']) state.memberRoles['양광모'] = '디모데';
+
         const savedLeaderCellStatus = localStorage.getItem('cell_leader_cell_status');
         if (savedLeaderCellStatus) {
           state.leaderCellStatus = JSON.parse(savedLeaderCellStatus);
-        } else if (!state.leaderCellStatus) {
-          state.leaderCellStatus = { '윤수민': 'open', '주진': 'open' };
         }
+        if (!state.leaderCellStatus) state.leaderCellStatus = {};
+        // 박승곤, 윤수민은 셀오픈 셀리더이므로 open 보장
+        if (state.leaderCellStatus['박승곤'] === undefined) state.leaderCellStatus['박승곤'] = 'open';
+        if (state.leaderCellStatus['윤수민'] === undefined) state.leaderCellStatus['윤수민'] = 'open';
+        if (state.leaderCellStatus['주진'] === undefined) state.leaderCellStatus['주진'] = 'open';
+        if (state.leaderCellStatus['송예찬'] === undefined) state.leaderCellStatus['송예찬'] = 'open';
+        if (state.leaderCellStatus['김한빈'] === undefined) state.leaderCellStatus['김한빈'] = 'unopened';
+        if (state.leaderCellStatus['육현조'] === undefined) state.leaderCellStatus['육현조'] = 'unopened';
+        if (state.leaderCellStatus['최진성'] === undefined) state.leaderCellStatus['최진성'] = 'unopened';
         const savedHistory = localStorage.getItem('cell_report_history');
         if (savedHistory) {
           state.history = JSON.parse(savedHistory);
@@ -1386,14 +1418,12 @@
 
         const isOpen = isLeaderCellOpen(name);
 
-        let roleLabel = '';
-        let roleBadgeClass = '';
         if (role === '셀리더') {
-          roleLabel = name === state.leaderName ? '👑리더' : (isOpen ? '👑오픈' : '⏳미오픈');
-          roleBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+          roleLabel = name === state.leaderName ? '👑리더' : (isOpen ? '👑셀리더' : '👑리더(준비)');
+          roleBadgeClass = isOpen ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-amber-50 text-amber-800 border-amber-200';
         } else if (role === '디모데') {
-          roleLabel = isOpen ? '🌿오픈' : '🌿디모데';
-          roleBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+          roleLabel = isOpen ? '🌿디모데(오픈)' : '🌿디모데';
+          roleBadgeClass = isOpen ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
         }
 
         const sundayRoleBadge = roleLabel 
@@ -2461,12 +2491,12 @@
           roleBadge = '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-bold shrink-0">👑 리더 (본인)</span>';
         } else if (role === '셀리더') {
           roleBadge = isOpen 
-            ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold shrink-0">👑 셀오픈</span>' 
-            : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200/80 text-zinc-700 font-semibold shrink-0">⏳ 미오픈</span>';
+            ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 font-bold shrink-0">👑 셀리더</span>' 
+            : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-medium shrink-0">👑 셀리더 (준비중)</span>';
         } else if (role === '디모데') {
           roleBadge = isOpen 
-            ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-medium shrink-0">🌿 디모데(오픈)</span>' 
-            : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-medium shrink-0">🌿 디모데</span>';
+            ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium shrink-0">🌿 디모데(오픈)</span>' 
+            : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium shrink-0">🌿 디모데</span>';
         }
 
         const item = document.createElement('div');
@@ -2521,7 +2551,7 @@
                       👑 셀오픈
                     </button>
                     <button type="button" onclick="setLeaderCellStatus('${escapeHtml(name)}', 'unopened')" class="px-2 py-0.5 rounded transition ${!isOpen ? 'bg-white text-amber-950 font-bold shadow-xs border border-amber-300' : 'text-amber-800 hover:bg-amber-200/60'}">
-                      ⏳ 미오픈 (대기/재정비)
+                      👑 준비중 (배정대기)
                     </button>
                   </div>
                 </div>
@@ -2535,7 +2565,7 @@
                       🌿 셀오픈 (인큐베이팅)
                     </button>
                     <button type="button" onclick="setLeaderCellStatus('${escapeHtml(name)}', 'unopened')" class="px-2 py-0.5 rounded transition ${!isOpen ? 'bg-white text-emerald-950 font-bold shadow-xs border border-emerald-300' : 'text-emerald-800 hover:bg-emerald-200/60'}">
-                      🌱 미오픈 (부리더/훈련)
+                      🌱 준비중 (부리더/훈련)
                     </button>
                   </div>
                 </div>
@@ -3667,7 +3697,7 @@
             : "2026/9/13(일) 저녁 7시",
           members: ym.map(name => ({
             name,
-            role: (yd.memberRoles && yd.memberRoles[name]) ? yd.memberRoles[name] : (name === '송예찬' ? '셀리더' : (name === '주진' ? '디모데' : '셀원')),
+            role: (yd.memberRoles && yd.memberRoles[name]) ? yd.memberRoles[name] : getMemberRole(name),
             sunday: yd.sundayAttendance ? !!yd.sundayAttendance[name] : true,
             sundayReason: yd.sundayReasons ? (yd.sundayReasons[name] || '') : '',
             cell: yd.cellAttendance ? !!yd.cellAttendance[name] : true,
@@ -3709,7 +3739,7 @@
           meetingDateTime: "2026/9/13(일) 저녁 7시",
           members: DEFAULT_MEMBERS.map(name => ({
             name,
-            role: (name === '송예찬' ? '셀리더' : (name === '주진' ? '디모데' : '셀원')),
+            role: getMemberRole(name),
             sunday: true,
             sundayReason: '',
             cell: true,
@@ -3868,8 +3898,8 @@
         if (currentDemoRole === 'cell') {
           const unassignedMsg = unopenedLeaders.length > 0 
             ? `<div class="mt-1.5 pt-1.5 border-t border-emerald-200/80 text-[11px] text-emerald-950 font-normal space-y-0.5">
-                <div>👑 <b>송예찬 산하 리더십: ${totalLeadersCount}명</b> (셀오픈 <b>${openLeadersCount}개 셀</b> / ⏳ 미오픈 <b>${unopenedLeaders.length}명</b>)</div>
-                <div class="text-[10px] text-emerald-800">• <b>셀미오픈 리더:</b> ${unopenedLeaders.join(', ')} (송예찬 셀 소속으로 함께 출석 집계 중)</div>
+                <div>👑 <b>송예찬 산하 리더십: ${totalLeadersCount}명</b> (셀오픈 <b>${openLeadersCount}개 셀</b> / ⏳ 오픈준비 <b>${unopenedLeaders.length}명</b>)</div>
+                <div class="text-[10px] text-emerald-800">• <b>셀오픈 준비중인 리더:</b> ${unopenedLeaders.join(', ')} (송예찬 셀 소속으로 함께 출석 집계 중)</div>
                </div>`
             : '';
           notice.innerHTML = `
@@ -3884,8 +3914,8 @@
           // corps: 태홍이형 시점 군단 대시보드
           const unassignedMsg = unopenedLeaders.length > 0 
             ? `<div class="mt-1.5 pt-1.5 border-t border-amber-200/80 text-[11px] text-amber-950 font-normal space-y-0.5">
-                <div>👑 <b>김태홍 군단 총 리더십: ${totalLeadersCount}명</b> (실제 제출 <b>${openLeadersCount}개 셀</b> / ⏳ 미제출·미오픈 <b>${unopenedLeaders.length}명</b>)</div>
-                <div class="text-[10px] text-amber-800">• <b>보고서 미제출/미오픈 리더:</b> ${unopenedLeaders.join(', ')} (모체 셀에서 함께 출석 집계 중)</div>
+                <div>👑 <b>김태홍 군단 총 리더십: ${totalLeadersCount}명</b> (실제 제출 <b>${openLeadersCount}개 셀</b> / ⏳ 오픈준비 <b>${unopenedLeaders.length}명</b>)</div>
+                <div class="text-[10px] text-amber-800">• <b>셀오픈 준비중인 리더:</b> ${unopenedLeaders.join(', ')} (모체 셀에서 함께 출석 집계 중)</div>
                </div>`
             : `<div class="mt-1.5 pt-1.5 border-t border-amber-200/80 text-[11px] text-amber-950">👑 <b>김태홍 군단 총 리더십: ${totalLeadersCount}명 (전원 셀오픈)</b></div>`;
           notice.innerHTML = `
@@ -3990,7 +4020,7 @@
               ${unopenedInThisCell.length > 0 ? `
                 <div class="p-2.5 bg-amber-50/90 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-center justify-between flex-wrap gap-2">
                   <div class="flex items-center gap-1.5 flex-wrap">
-                    <span class="font-bold text-amber-950">⏳ 미오픈 / 보고서 미제출 셀리더 (${unopenedInThisCell.length}명):</span>
+                    <span class="font-bold text-amber-950">👑 셀오픈 준비중인 셀리더 (${unopenedInThisCell.length}명):</span>
                     <span class="font-semibold text-amber-800">${unopenedInThisCell.join(', ')}</span>
                   </div>
                   <span class="text-[10px] bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded font-medium shrink-0">
@@ -4010,7 +4040,7 @@
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                   ${cell.members.map(m => {
-                    const isOpen = (m.name === cell.leaderName) || activeCells.some(ac => ac.leaderName === m.name && ac.id !== cell.id);
+                    const isOpen = (m.name === cell.leaderName) || isLeaderCellOpen(m.name) || activeCells.some(ac => ac.leaderName === m.name && ac.id !== cell.id);
                     let badgeText = '';
                     let badgeClass = '';
 
@@ -4019,11 +4049,11 @@
                         badgeText = '리더';
                         badgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
                       } else if (isOpen) {
-                        badgeText = '셀오픈';
+                        badgeText = '셀리더';
                         badgeClass = 'bg-amber-100 text-amber-900 border-amber-300 font-bold';
                       } else {
-                        badgeText = '미오픈';
-                        badgeClass = 'bg-zinc-100 text-zinc-600 border-zinc-200 font-medium';
+                        badgeText = '리더(준비중)';
+                        badgeClass = 'bg-amber-50/80 text-amber-800 border-amber-200 font-medium';
                       }
                     } else if (m.role === '디모데') {
                       if (isOpen) {
