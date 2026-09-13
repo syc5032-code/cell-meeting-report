@@ -970,7 +970,8 @@
         '주진': 'open',
         '김한빈': 'unopened',
         '육현조': 'unopened',
-        '최진성': 'unopened'
+        '최진성': 'unopened',
+        '양광모': 'unopened'
       },
       history: []           // 지난 보고서 히스토리 보관함
     };
@@ -1010,7 +1011,7 @@
       const role = getMemberRole(name);
       const statusLabel = status === 'open' 
         ? (role === '디모데' ? '🌿 디모데 (셀오픈)' : '👑 셀리더 (셀오픈)') 
-        : (role === '디모데' ? '🌱 디모데 (준비/훈련)' : '👑 셀리더 (오픈 준비중)');
+        : (role === '디모데' ? '🌱 디모데 (미오픈)' : '👑 셀리더 (미오픈)');
       showToast(`${name} 님이 '${statusLabel}' 상태로 설정되었습니다.`);
     }
 
@@ -1223,6 +1224,7 @@
         if (state.leaderCellStatus['김한빈'] === undefined) state.leaderCellStatus['김한빈'] = 'unopened';
         if (state.leaderCellStatus['육현조'] === undefined) state.leaderCellStatus['육현조'] = 'unopened';
         if (state.leaderCellStatus['최진성'] === undefined) state.leaderCellStatus['최진성'] = 'unopened';
+        if (state.leaderCellStatus['양광모'] === undefined) state.leaderCellStatus['양광모'] = 'unopened';
         const savedHistory = localStorage.getItem('cell_report_history');
         if (savedHistory) {
           state.history = JSON.parse(savedHistory);
@@ -2551,7 +2553,7 @@
                       👑 셀오픈
                     </button>
                     <button type="button" onclick="setLeaderCellStatus('${escapeHtml(name)}', 'unopened')" class="px-2 py-0.5 rounded transition ${!isOpen ? 'bg-white text-amber-950 font-bold shadow-xs border border-amber-300' : 'text-amber-800 hover:bg-amber-200/60'}">
-                      👑 준비중 (배정대기)
+                      ⏳ 미오픈
                     </button>
                   </div>
                 </div>
@@ -2562,10 +2564,10 @@
                   </span>
                   <div class="inline-flex rounded-md border border-emerald-300/80 bg-emerald-100/60 p-0.5 text-[10px]">
                     <button type="button" onclick="setLeaderCellStatus('${escapeHtml(name)}', 'open')" class="px-2 py-0.5 rounded transition ${isOpen ? 'bg-emerald-600 text-white font-bold shadow-xs' : 'text-emerald-800 hover:bg-emerald-200/60'}">
-                      🌿 셀오픈 (인큐베이팅)
+                      🌿 셀오픈
                     </button>
                     <button type="button" onclick="setLeaderCellStatus('${escapeHtml(name)}', 'unopened')" class="px-2 py-0.5 rounded transition ${!isOpen ? 'bg-white text-emerald-950 font-bold shadow-xs border border-emerald-300' : 'text-emerald-800 hover:bg-emerald-200/60'}">
-                      🌱 준비중 (부리더/훈련)
+                      🌱 미오픈
                     </button>
                   </div>
                 </div>
@@ -3945,7 +3947,7 @@
               <span class="flex items-center gap-1.5">
                 ${cell.isCorpsLeader ? '<span class="text-amber-500">👑</span>' : (cell.parentLeader === '송예찬' ? '<span class="text-emerald-500">🌿</span>' : '<span class="text-blue-500">🏠</span>')}
                 <span>${cell.leaderName}셀</span>
-                ${cell.roleTitle && cell.roleTitle.includes('디모데') ? '<span class="text-[10px] px-1.5 py-0.2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded font-medium">인큐베이팅</span>' : ''}
+                ${cell.roleTitle && cell.roleTitle.includes('디모데') ? '<span class="text-[10px] px-1.5 py-0.2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded font-medium">디모데</span>' : ''}
                 <span class="text-[11px] font-normal text-zinc-400 font-mono">(${sAtt}/${cell.members.length}명)</span>
               </span>
               <span class="font-mono text-indigo-600">${rate}%</span>
@@ -3988,7 +3990,7 @@
                     <span class="font-bold text-sm text-zinc-900">${cell.leaderName} 셀</span>
                     <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 border border-zinc-200 font-medium">${cell.location}</span>
                     ${cell.isCorpsLeader ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">군단리더 직속</span>' : ''}
-                    ${isSubCell ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">↳ 송예찬 산하 ${cell.roleTitle && cell.roleTitle.includes('디모데') ? '디모데 인큐베이팅셀' : '하위셀'}</span>` : (cell.parentLeader === '김태홍' && !cell.isCorpsLeader ? '<span class="text-[10px] text-zinc-400">↳ 상위: 김태홍</span>' : '')}
+                    ${isSubCell ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">↳ 송예찬 산하 ${cell.roleTitle && cell.roleTitle.includes('디모데') ? '디모데 셀' : '하위셀'}</span>` : (cell.parentLeader === '김태홍' && !cell.isCorpsLeader ? '<span class="text-[10px] text-zinc-400">↳ 상위: 김태홍</span>' : '')}
                     ${cell.isPending ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-bold">⏳ 작성 대기</span>' : ''}
                   </div>
                   <div class="flex items-center gap-2 text-xs text-zinc-500 mt-1 font-mono flex-wrap">
@@ -4276,7 +4278,7 @@
       text += `1. 리더십 현황 (총 ${totalLeadersCount}명)\n`;
       text += `• 👑 셀오픈 (${openLeadersCount}개 셀): ${activeCells.map(c => c.leaderName + (c.roleTitle && c.roleTitle.includes('디모데') ? '(디모데)' : '')).join(', ')}\n`;
       if (unopenedLeaders.length > 0) {
-        text += `• ⏳ 미오픈 (${unopenedLeaders.length}명): ${unopenedLeaders.join(', ')} (모체 셀 함께 출석)\n`;
+        text += `• 👑 오픈준비 (${unopenedLeaders.length}명): ${unopenedLeaders.join(', ')} (모체 셀 함께 출석)\n`;
       }
       text += `\n`;
 
@@ -4288,7 +4290,7 @@
       activeCells.forEach(c => {
         const s = c.members.filter(m => m.sunday).length;
         const r = ((s / c.members.length) * 100).toFixed(0);
-        const tag = c.roleTitle && c.roleTitle.includes('디모데') ? ' (인큐베이팅)' : '';
+        const tag = c.roleTitle && c.roleTitle.includes('디모데') ? ' (디모데)' : '';
         text += `• ${c.leaderName}셀${tag}: ${s}/${c.members.length}명 (${r}%)\n`;
       });
 
