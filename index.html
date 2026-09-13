@@ -381,12 +381,9 @@
             타 셀의 출석 데이터는 비공개이며, <b>내 동기화 코드</b>를 연결하시면 본인 셀의 현황을 확인하실 수 있습니다.
           </p>
         </div>
-        <div class="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2 max-w-xs mx-auto">
+        <div class="pt-2 flex items-center justify-center max-w-xs mx-auto">
           <button onclick="openSyncModal()" class="w-full py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl text-xs font-semibold shadow-xs transition active:scale-95 flex items-center justify-center gap-1.5">
             <span>☁️</span> <span>내 동기화 코드 연결하기</span>
-          </button>
-          <button onclick="quickAdminLogin()" class="w-full py-2.5 px-4 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-semibold shadow-xs transition active:scale-95 flex items-center justify-center gap-1.5">
-            <span>👑</span> <span>송예찬 관리자 로그인</span>
           </button>
         </div>
       </div>
@@ -3372,84 +3369,307 @@
           </div>
         `;
       } else {
-        // 코드가 아직 없는 상태 (이름 + 번호 4자리 조합 + 비밀번호)
-        const defaultName = state.leaderName || '송예찬';
+        // 코드가 아직 없는 상태: 스마트 실시간 코드 감지 UI
+        const savedLeaderName = localStorage.getItem('cell_leader_name');
+        const defaultName = savedLeaderName || (state.leaderName && state.leaderName !== '송예찬' ? state.leaderName : '');
         container.innerHTML = `
           <div class="space-y-4">
             <div class="p-4 bg-zinc-50 border border-zinc-200 rounded-xl space-y-3">
               <div>
                 <label class="block text-xs font-semibold text-zinc-800 mb-1">
-                  내 동기화 코드 및 비밀번호
+                  내 셀 동기화 코드 연결
                 </label>
                 <p class="text-[11px] text-zinc-500 mb-2 leading-relaxed">
-                  동명이인 구분을 위해 <b>이름 + 번호 4자리</b>로 코드를 생성하며, <b>비밀번호</b>로 다른 사람의 열람을 완벽 차단합니다.
+                  <b>이름 + 번호 4자리</b>를 입력하시면 등록된 셀 데이터인지 자동으로 확인합니다.
                 </p>
 
                 <div class="grid grid-cols-2 gap-2">
                   <div>
                     <label class="block text-[11px] text-zinc-500 mb-1">이름</label>
                     <input type="text" id="syncNameInput" value="${escapeHtml(defaultName)}" 
-                      placeholder="예: 송예찬" oninput="updateSyncPreviewCode()"
+                      placeholder="내 이름 입력 (예: 송예찬)" oninput="onSyncInputChanged()"
                       class="w-full px-3 py-2 text-xs bg-white border border-zinc-300 rounded-lg focus:outline-none focus:border-zinc-900 font-medium">
                   </div>
                   <div>
                     <label class="block text-[11px] text-zinc-500 mb-1">식별 번호 4자리</label>
-                    <input type="tel" id="syncPinInput" maxlength="4" placeholder="예: 5032" 
-                      oninput="updateSyncPreviewCode()"
+                    <input type="tel" id="syncPinInput" maxlength="4" placeholder="예: 1206" 
+                      oninput="onSyncInputChanged()"
                       class="w-full px-3 py-2 text-xs bg-white border border-zinc-300 rounded-lg focus:outline-none focus:border-zinc-900 font-mono font-medium text-center">
                   </div>
                 </div>
 
-                <div class="mt-2 text-xs text-zinc-500 flex items-center gap-1.5">
-                  <span>생성될 코드:</span>
-                  <span id="syncPreviewCode" class="font-bold text-zinc-900 font-mono px-2 py-0.5 bg-zinc-200 rounded">${escapeHtml(defaultName)}----</span>
+                <div class="mt-2 text-xs text-zinc-500 flex items-center justify-between">
+                  <div class="flex items-center gap-1.5">
+                    <span>입력 코드:</span>
+                    <span id="syncPreviewCode" class="font-bold text-zinc-900 font-mono px-2 py-0.5 bg-zinc-200 rounded">${defaultName ? escapeHtml(defaultName) : '이름'}----</span>
+                  </div>
                 </div>
 
-                <div class="mt-3 pt-2.5 border-t border-zinc-200">
-                  <label class="block text-[11px] text-zinc-700 font-semibold mb-1 flex items-center justify-between">
-                    <span class="flex items-center gap-1"><span>🔒</span> 보고서 보호 비밀번호</span>
-                    <span class="text-[10px] text-zinc-400 font-normal">타인 열람 원천 차단</span>
-                  </label>
-                  <input type="password" id="syncPasswordInput" value="${escapeHtml(state.syncPassword || '')}"
-                    placeholder="비밀번호 입력 (예: 1234)"
-                    class="w-full px-3 py-2 text-xs bg-white border border-zinc-300 rounded-lg focus:outline-none focus:border-zinc-900 font-medium">
-                  <p class="text-[10px] text-zinc-500 mt-1 leading-relaxed">
-                    💡 한 번 동기화하면 <b>이 기기에는 자동 저장</b>되어 이후에는 비밀번호를 묻지 않습니다. 다른 사람이 내 코드를 알아도 비밀번호가 없으면 열람할 수 없습니다.
-                  </p>
+                <!-- 실시간 상태 알림 박스 -->
+                <div id="syncCodeStatusBox" class="mt-2.5">
+                  <div class="p-2 bg-zinc-100 rounded-lg text-[11px] text-zinc-500 leading-relaxed">
+                    💡 이름과 번호 4자리를 입력하시면 기존에 등록된 코드인지 자동으로 확인합니다.
+                  </div>
                 </div>
+
+                <!-- 동적 비밀번호 입력란 -->
+                <div id="syncPasswordSection" class="mt-3 pt-2.5 border-t border-zinc-200">
+                  <label class="block text-[11px] text-zinc-700 font-semibold mb-1 flex items-center justify-between">
+                    <span class="flex items-center gap-1"><span>🔒</span> 비밀번호</span>
+                    <span class="text-[10px] text-zinc-400 font-normal">코드 입력 시 활성화</span>
+                  </label>
+                  <input type="password" id="syncPasswordInput" disabled
+                    placeholder="이름과 번호 4자리를 먼저 입력해주세요"
+                    class="w-full px-3 py-2 text-xs bg-zinc-100 border border-zinc-200 rounded-lg text-zinc-400">
+                </div>
+
+                <!-- 에러 피드백 문구 -->
+                <div id="syncErrorMessage" class="hidden mt-1 text-[11px] text-rose-600 font-semibold flex items-center gap-1"></div>
               </div>
 
-              <div class="space-y-2 pt-1">
-                <button onclick="submitSyncCode('save')" id="syncSaveBtn"
-                  class="w-full py-2.5 px-3 bg-zinc-900 text-white text-xs font-medium rounded-lg hover:bg-zinc-800 transition active:scale-95 flex items-center justify-center gap-1.5">
-                  <span>☁️</span> 이 코드로 내 데이터 클라우드에 등록/저장
-                </button>
-                <button onclick="submitSyncCode('load')" id="syncLoadBtn"
-                  class="w-full py-2.5 px-3 bg-white border border-zinc-200 text-zinc-800 text-xs font-medium rounded-lg hover:bg-zinc-50 transition active:scale-95 flex items-center justify-center gap-1.5">
-                  <span>⬇️</span> 이미 등록된 코드로 데이터 불러오기
-                </button>
-                <button onclick="quickAdminLogin()" type="button"
-                  class="w-full py-2.5 px-3 bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-300 text-amber-950 text-xs font-bold rounded-lg hover:from-amber-100 hover:to-amber-200 transition active:scale-95 flex items-center justify-center gap-1.5 shadow-2xs">
-                  <span>👑</span> <span>송예찬 총괄 관리자 빠른 로그인</span>
+              <!-- 동적 액션 버튼 영역 -->
+              <div id="syncButtonSection" class="space-y-2 pt-1">
+                <button disabled class="w-full py-2.5 px-3 bg-zinc-200 text-zinc-400 text-xs font-semibold rounded-lg cursor-not-allowed flex items-center justify-center gap-1.5">
+                  <span>이름과 식별번호 4자리를 입력해주세요</span>
                 </button>
               </div>
             </div>
 
             <div class="p-3 bg-zinc-100/70 rounded-lg text-[11px] text-zinc-500 leading-relaxed">
-              💡 <b>컴퓨터</b>에서 이름, 4자리, 비밀번호를 넣고 <b>[등록/저장]</b>한 뒤, <b>스마트폰</b>에서도 똑같이 입력하고 <b>[불러오기]</b>를 누르면 기기 간 자동 동기화가 영구 유지됩니다!
+              💡 <b>한 번 동기화된 기기에는 자동 저장</b>되므로, 스마트폰이나 다른 컴퓨터에서 접속할 때 최초 1회만 입력하시면 됩니다!
             </div>
           </div>
         `;
+
+        // 기존에 이름이 채워져 있다면 초기 감지 트리거
+        if (defaultName) {
+          updateSyncPreviewCode();
+        }
       }
+    }
+
+    let syncCheckTimer = null;
+    let syncCodeCheckStatus = 'idle'; // 'idle' | 'checking' | 'exists' | 'new' | 'unknown'
+    let syncCodeHasPassword = false;
+    let lastCheckedCode = '';
+
+    function onSyncInputChanged() {
+      updateSyncPreviewCode();
+      const nameEl = document.getElementById('syncNameInput');
+      const pinEl = document.getElementById('syncPinInput');
+      const name = (nameEl ? nameEl.value : '').trim();
+      const pin = (pinEl ? pinEl.value : '').trim();
+
+      const errEl = document.getElementById('syncErrorMessage');
+      if (errEl) errEl.classList.add('hidden');
+
+      if (!name || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+        if (syncCheckTimer) clearTimeout(syncCheckTimer);
+        syncCodeCheckStatus = 'idle';
+        lastCheckedCode = '';
+        renderSyncStatusAndActions();
+        return;
+      }
+
+      const code = `${name}${pin}`;
+      if (code === lastCheckedCode && syncCodeCheckStatus !== 'idle') {
+        return;
+      }
+
+      syncCodeCheckStatus = 'checking';
+      renderSyncStatusAndActions(code);
+
+      if (syncCheckTimer) clearTimeout(syncCheckTimer);
+      syncCheckTimer = setTimeout(() => {
+        checkSyncCodeStatus(code);
+      }, 300);
+    }
+
+    async function checkSyncCodeStatus(code) {
+      lastCheckedCode = code;
+      try {
+        const res = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'check', code: code })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.exists) {
+            syncCodeCheckStatus = 'exists';
+            syncCodeHasPassword = !!data.hasPassword;
+          } else {
+            syncCodeCheckStatus = 'new';
+            syncCodeHasPassword = false;
+          }
+        } else {
+          syncCodeCheckStatus = 'unknown';
+        }
+      } catch (e) {
+        console.warn('Sync check failed (fallback to unknown)', e);
+        syncCodeCheckStatus = 'unknown';
+      }
+      renderSyncStatusAndActions(code);
+    }
+
+    function renderSyncStatusAndActions(codeOverride) {
+      const statusBox = document.getElementById('syncCodeStatusBox');
+      const pwSection = document.getElementById('syncPasswordSection');
+      const btnSection = document.getElementById('syncButtonSection');
+      if (!statusBox || !pwSection || !btnSection) return;
+
+      const code = codeOverride || lastCheckedCode;
+
+      if (syncCodeCheckStatus === 'idle') {
+        statusBox.innerHTML = `
+          <div class="p-2 bg-zinc-100 rounded-lg text-[11px] text-zinc-500 leading-relaxed">
+            💡 이름과 번호 4자리를 입력하시면 기존에 등록된 코드인지 자동으로 확인합니다.
+          </div>
+        `;
+        pwSection.innerHTML = `
+          <label class="block text-[11px] text-zinc-500 font-semibold mb-1 flex items-center justify-between">
+            <span class="flex items-center gap-1"><span>🔒</span> 비밀번호</span>
+            <span class="text-[10px] text-zinc-400 font-normal">코드 입력 시 활성화</span>
+          </label>
+          <input type="password" id="syncPasswordInput" disabled
+            placeholder="이름과 번호 4자리를 먼저 입력해주세요"
+            class="w-full px-3 py-2 text-xs bg-zinc-100 border border-zinc-200 rounded-lg text-zinc-400">
+        `;
+        btnSection.innerHTML = `
+          <button disabled class="w-full py-2.5 px-3 bg-zinc-200 text-zinc-400 text-xs font-semibold rounded-lg cursor-not-allowed flex items-center justify-center gap-1.5">
+            <span>이름과 식별번호 4자리를 입력해주세요</span>
+          </button>
+        `;
+        return;
+      }
+
+      if (syncCodeCheckStatus === 'checking') {
+        statusBox.innerHTML = `
+          <div class="p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-center gap-2">
+            <span class="inline-block animate-spin text-sm">⏳</span>
+            <span><b>'${escapeHtml(code)}'</b> 등록 여부 확인 중...</span>
+          </div>
+        `;
+        btnSection.innerHTML = `
+          <button disabled class="w-full py-2.5 px-3 bg-zinc-200 text-zinc-400 text-xs font-semibold rounded-lg cursor-not-allowed flex items-center justify-center gap-1.5">
+            <span>확인 중...</span>
+          </button>
+        `;
+        return;
+      }
+
+      if (syncCodeCheckStatus === 'exists') {
+        // 이미 등록된 코드인 경우
+        statusBox.innerHTML = `
+          <div class="p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl text-xs text-emerald-950 font-semibold flex items-center justify-between shadow-2xs">
+            <span class="flex items-center gap-1.5">
+              <span>✅</span> <span><b>이미 등록된 셀</b>입니다!</span>
+            </span>
+            <span class="text-[10px] bg-emerald-200/90 text-emerald-900 px-2 py-0.5 rounded-md font-bold">
+              ${syncCodeHasPassword ? '🔒 비밀번호 보호됨' : '🔓 비밀번호 없음'}
+            </span>
+          </div>
+        `;
+
+        if (syncCodeHasPassword) {
+          pwSection.innerHTML = `
+            <label class="block text-[11px] text-zinc-800 font-bold mb-1 flex items-center justify-between">
+              <span class="flex items-center gap-1"><span>🔒</span> <b>설정된 비밀번호 입력</b></span>
+              <span class="text-[10px] text-emerald-700 font-semibold">보호된 셀</span>
+            </label>
+            <input type="password" id="syncPasswordInput"
+              placeholder="기존에 설정하신 비밀번호를 입력해주세요"
+              onkeydown="if(event.key === 'Enter') submitSyncCode('load')"
+              class="w-full px-3 py-2.5 text-xs bg-white border-2 border-emerald-400 focus:border-emerald-600 rounded-lg focus:outline-none font-semibold text-zinc-900 shadow-2xs">
+            <p class="text-[10px] text-zinc-500 mt-1 leading-relaxed">
+              💡 기존에 설정하셨던 비밀번호를 입력하시면 <b>이 기기에 자동 저장</b>되어 다음부터는 묻지 않습니다.
+            </p>
+          `;
+          setTimeout(() => {
+            const pwIn = document.getElementById('syncPasswordInput');
+            if (pwIn) pwIn.focus();
+          }, 50);
+        } else {
+          pwSection.innerHTML = `
+            <div class="p-2.5 bg-zinc-100 rounded-lg text-xs text-zinc-600 flex items-center gap-1.5">
+              <span>🔓</span> 이 코드는 비밀번호 보호 없이 공개되어 있어 바로 불러올 수 있습니다.
+            </div>
+            <input type="hidden" id="syncPasswordInput" value="">
+          `;
+        }
+
+        btnSection.innerHTML = `
+          <button onclick="submitSyncCode('load')" id="syncActionBtn"
+            class="w-full py-3 px-4 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold rounded-xl transition active:scale-95 flex items-center justify-center gap-1.5 shadow-md">
+            <span>⬇️</span> <span>내 셀 데이터 불러와서 이 기기에 연결하기</span>
+          </button>
+        `;
+        return;
+      }
+
+      if (syncCodeCheckStatus === 'new') {
+        // 새로 등록하는 코드인 경우
+        statusBox.innerHTML = `
+          <div class="p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-950 font-semibold flex items-center gap-1.5 shadow-2xs">
+            <span>✨</span> <span><b>새로운 동기화 코드</b>입니다. (현재 데이터로 새로 등록)</span>
+          </div>
+        `;
+        pwSection.innerHTML = `
+          <label class="block text-[11px] text-zinc-800 font-semibold mb-1 flex items-center justify-between">
+            <span class="flex items-center gap-1"><span>🔒</span> <b>보호 비밀번호 설정 (선택/권장)</b></span>
+            <span class="text-[10px] text-zinc-400 font-normal">타인 열람 원천 차단</span>
+          </label>
+          <input type="password" id="syncPasswordInput"
+            placeholder="앞으로 사용할 비밀번호 (예: 1234 또는 빈칸)"
+            onkeydown="if(event.key === 'Enter') submitSyncCode('save')"
+            class="w-full px-3 py-2 text-xs bg-white border border-zinc-300 focus:border-zinc-900 rounded-lg focus:outline-none font-medium">
+          <p class="text-[10px] text-zinc-500 mt-1 leading-relaxed">
+            💡 비밀번호를 설정하시면 다른 사람이 내 코드를 알아도 열람하거나 수정할 수 없습니다.
+          </p>
+        `;
+        btnSection.innerHTML = `
+          <button onclick="submitSyncCode('save')" id="syncActionBtn"
+            class="w-full py-3 px-4 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold rounded-xl transition active:scale-95 flex items-center justify-center gap-1.5 shadow-md">
+            <span>☁️</span> <span>이 코드로 등록 및 클라우드 동기화 시작</span>
+          </button>
+        `;
+        return;
+      }
+
+      // unknown (로컬 서버 등 check 응답 실패 시 fallback)
+      statusBox.innerHTML = `
+        <div class="p-2 bg-zinc-100 rounded-lg text-[11px] text-zinc-500 leading-relaxed">
+          💡 코드로 데이터를 불러오거나 새로 등록할 수 있습니다.
+        </div>
+      `;
+      pwSection.innerHTML = `
+        <label class="block text-[11px] text-zinc-700 font-semibold mb-1 flex items-center justify-between">
+          <span class="flex items-center gap-1"><span>🔒</span> 보고서 비밀번호</span>
+          <span class="text-[10px] text-zinc-400 font-normal">타인 열람 차단</span>
+        </label>
+        <input type="password" id="syncPasswordInput"
+          placeholder="비밀번호 입력 (예: 1234)"
+          class="w-full px-3 py-2 text-xs bg-white border border-zinc-300 rounded-lg focus:outline-none focus:border-zinc-900 font-medium">
+      `;
+      btnSection.innerHTML = `
+        <button onclick="submitSyncCode('load')" id="syncLoadBtn"
+          class="w-full py-2.5 px-3 bg-zinc-900 text-white text-xs font-bold rounded-lg hover:bg-zinc-800 transition active:scale-95 flex items-center justify-center gap-1.5">
+          <span>⬇️</span> 이미 등록된 코드로 데이터 불러오기
+        </button>
+        <button onclick="submitSyncCode('save')" id="syncSaveBtn"
+          class="w-full py-2.5 px-3 bg-white border border-zinc-200 text-zinc-800 text-xs font-medium rounded-lg hover:bg-zinc-50 transition active:scale-95 flex items-center justify-center gap-1.5">
+          <span>☁️</span> 이 코드로 새로 등록/저장하기
+        </button>
+      `;
     }
 
     function updateSyncPreviewCode() {
       const nameEl = document.getElementById('syncNameInput');
       const pinEl = document.getElementById('syncPinInput');
       const previewEl = document.getElementById('syncPreviewCode');
-      if (!nameEl || !pinEl || !previewEl) return;
-      const name = nameEl.value.trim() || '이름';
-      const pin = pinEl.value.trim() || '----';
+      if (!previewEl) return;
+      const name = (nameEl ? nameEl.value : '').trim() || '이름';
+      const pin = (pinEl ? pinEl.value : '').trim() || '----';
       previewEl.innerText = `${name}${pin}`;
     }
 
@@ -3479,30 +3699,17 @@
       }
     }
 
-    async function quickAdminLogin() {
-      state.syncCode = '송예찬1206';
-      state.syncPassword = '1206';
-      localStorage.setItem('cell_sync_code', '송예찬1206');
-      localStorage.setItem('cell_sync_password', '1206');
-      localStorage.setItem('cell_is_admin', 'true');
-      showToast('👑 송예찬 총괄 관리자로 로그인되었습니다.');
-      updateSyncHeaderUI();
-      renderSyncModal();
-      await loadFromCloud(false);
-      if (typeof renderAdminEditingBanner === 'function') renderAdminEditingBanner();
-      if (typeof renderDemoDashboard === 'function' && currentMainTab === 'network') {
-        renderDemoDashboard();
-      }
-    }
-
     async function submitSyncCode(action) {
       const nameEl = document.getElementById('syncNameInput');
       const pinEl = document.getElementById('syncPinInput');
       const pwEl = document.getElementById('syncPasswordInput');
+      const errEl = document.getElementById('syncErrorMessage');
 
       const name = (nameEl ? nameEl.value : '').trim();
       const pin = (pinEl ? pinEl.value : '').trim();
       const password = (pwEl ? pwEl.value : (state.syncPassword || '')).trim();
+
+      if (errEl) errEl.classList.add('hidden');
 
       if (!name) {
         alert('이름을 입력해주세요.');
@@ -3510,14 +3717,15 @@
         return;
       }
       if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-        alert('번호 4자리를 정확히 입력해주세요. (예: 전화번호 뒷자리 4자리 등)');
+        alert('식별 번호 4자리를 정확히 입력해주세요. (예: 1206)');
         if (pinEl) pinEl.focus();
         return;
       }
 
       const code = `${name}${pin}`;
 
-      const btn = (action === 'save') ? document.getElementById('syncSaveBtn') : document.getElementById('syncLoadBtn');
+      const btn = document.getElementById('syncActionBtn') || document.getElementById('syncSaveBtn') || document.getElementById('syncLoadBtn');
+      const prevBtnHtml = btn ? btn.innerHTML : '';
       if (btn) {
         btn.disabled = true;
         btn.innerHTML = `<span>⏳</span> 처리 중...`;
@@ -3541,11 +3749,17 @@
 
         const json = await res.json();
         if (res.status === 401) {
-          alert('🔒 비밀번호가 일치하지 않거나 입력되지 않았습니다.\n올바른 비밀번호를 입력해주세요.');
+          if (errEl) {
+            errEl.innerHTML = `<span>⚠️</span> <span>비밀번호가 일치하지 않습니다. 올바른 비밀번호를 입력해주세요.</span>`;
+            errEl.classList.remove('hidden');
+          }
           if (pwEl) {
+            pwEl.classList.remove('border-emerald-400', 'border-zinc-300');
+            pwEl.classList.add('border-rose-500');
             pwEl.focus();
             pwEl.select();
           }
+          alert('🔒 비밀번호가 일치하지 않거나 입력되지 않았습니다.\n올바른 비밀번호를 입력해주세요.');
           return;
         }
 
@@ -3563,17 +3777,25 @@
         }
         localStorage.setItem('cell_last_sync_time', new Date().toISOString());
 
+        // 송예찬 관리자 코드인 경우 자동으로 총괄 관리자로 승격
         if (code === '송예찬1206') {
           localStorage.setItem('cell_is_admin', 'true');
+          state.leaderName = '송예찬';
+          localStorage.setItem('cell_leader_name', '송예찬');
+          showToast('👑 송예찬 총괄 관리자로 로그인되었습니다.');
         } else {
           localStorage.removeItem('cell_is_admin');
+          state.leaderName = name;
+          localStorage.setItem('cell_leader_name', name);
+          if (action === 'load' && json.data) {
+            showToast(`🔗 '${code}' 코드로 데이터를 성공적으로 불러왔습니다!`);
+          } else {
+            showToast(`🎉 '${code}' 코드로 클라우드에 안전하게 등록/저장되었습니다!`);
+          }
         }
 
         if (action === 'load' && json.data) {
           applyImportData(json.data);
-          showToast(`🔗 '${code}' 코드로 데이터를 성공적으로 불러왔습니다!`);
-        } else {
-          showToast(`🎉 '${code}' 코드로 클라우드에 안전하게 등록/저장되었습니다!`);
         }
 
         updateSyncHeaderUI();
@@ -3583,17 +3805,18 @@
           renderDemoDashboard();
         }
 
+        // 연결 완료 후 1초 뒤 모달 자동 닫기
+        setTimeout(() => {
+          closeSyncModal();
+        }, 800);
+
       } catch (e) {
         console.error(e);
         alert(e.message);
       } finally {
         if (btn) {
           btn.disabled = false;
-          if (action === 'save') {
-            btn.innerHTML = `<span>☁️</span> 이 코드로 내 데이터 클라우드에 등록/저장`;
-          } else {
-            btn.innerHTML = `<span>⬇️</span> 이미 등록된 코드로 데이터 불러오기`;
-          }
+          btn.innerHTML = prevBtnHtml;
         }
       }
     }
@@ -4176,24 +4399,13 @@
     }
 
     function quickAdminLogin() {
-      const pin = prompt('송예찬 총괄 관리자 비밀번호 4자리를 입력해주세요:', '1206');
-      if (pin === null) return;
-      if (pin.trim() === '1206') {
-        state.syncCode = '송예찬1206';
-        state.leaderName = '송예찬';
-        localStorage.setItem('cell_sync_code', '송예찬1206');
-        localStorage.setItem('cell_leader_name', '송예찬');
-        localStorage.setItem('cell_is_admin', 'true');
-        updateSyncHeaderUI();
-        renderAdminEditingBanner();
-        renderSyncModal();
-        if (currentMainTab === 'network') {
-          renderDemoDashboard();
-        }
-        showToast('👑 송예찬 총괄 관리자로 로그인되었습니다.');
-      } else {
-        alert('비밀번호가 일치하지 않습니다.');
-      }
+      // 비상/개발용: 정식 동기화 모달을 열고 송예찬1206으로 자동 채움
+      openSyncModal();
+      const nameEl = document.getElementById('syncNameInput');
+      const pinEl = document.getElementById('syncPinInput');
+      if (nameEl) nameEl.value = '송예찬';
+      if (pinEl) pinEl.value = '1206';
+      if (typeof onSyncInputChanged === 'function') onSyncInputChanged();
     }
 
     let currentDemoRole = 'corps'; // 기본값: 김태홍 군단 대시보드 (군단리더 시점)
