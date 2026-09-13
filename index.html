@@ -939,6 +939,7 @@
     // 상태 관리
     let state = {
       syncCode: '',         // 클라우드 기기 간 동기화 코드
+      syncPassword: '',     // 클라우드 동기화 비밀번호 (타인 열람 방지)
       leaderName: '송예찬',
       location: '3층 DCC',
       meetingDate: '',
@@ -1033,6 +1034,7 @@
         const codeParam = urlParams.get('code');
         const userParam = urlParams.get('user') || urlParams.get('leader');
         const adminParam = urlParams.get('admin');
+        const pwParam = urlParams.get('pw') || urlParams.get('password');
 
         if (codeParam) {
           state.syncCode = codeParam.trim();
@@ -1043,6 +1045,10 @@
             localStorage.removeItem('cell_is_admin');
           }
         }
+        if (pwParam) {
+          state.syncPassword = pwParam.trim();
+          localStorage.setItem('cell_sync_password', state.syncPassword);
+        }
         if (userParam) {
           state.leaderName = userParam.trim();
           localStorage.setItem('cell_leader_name', state.leaderName);
@@ -1052,6 +1058,10 @@
           if (!state.syncCode) {
             state.syncCode = '송예찬1206';
             localStorage.setItem('cell_sync_code', '송예찬1206');
+          }
+          if (!state.syncPassword) {
+            state.syncPassword = '1206';
+            localStorage.setItem('cell_sync_password', '1206');
           }
         }
       } catch (e) {
@@ -1106,6 +1116,10 @@
         const savedSyncCode = localStorage.getItem('cell_sync_code');
         if (savedSyncCode) {
           state.syncCode = savedSyncCode;
+        }
+        const savedSyncPassword = localStorage.getItem('cell_sync_password');
+        if (savedSyncPassword) {
+          state.syncPassword = savedSyncPassword;
         }
         const savedMembers = localStorage.getItem('cell_members');
         if (savedMembers) {
@@ -2873,6 +2887,16 @@
       if (typeof syncTaehongDemoCellFromState === 'function' && adminEditingTarget === 'taehong') {
         syncTaehongDemoCellFromState();
       }
+
+      let activePassword = state.syncPassword || localStorage.getItem('cell_sync_password') || '';
+      if (typeof isSongYechanAdmin === 'function' && isSongYechanAdmin()) {
+        if (adminEditingTarget === 'taehong') {
+          activePassword = '2920';
+        } else if (activeCode === '송예찬1206' && !activePassword) {
+          activePassword = '1206';
+        }
+      }
+
       try {
         const res = await fetch('/api/sync', {
           method: 'POST',
@@ -2880,9 +2904,21 @@
           body: JSON.stringify({
             action: 'save',
             code: activeCode,
+            password: activePassword,
             data: getExportData()
           })
         });
+
+        if (res.status === 401) {
+          const errJson = await res.json().catch(() => ({}));
+          console.warn('Sync save password error:', errJson);
+          if (!isSilent) {
+            showToast('🔒 비밀번호가 일치하지 않습니다. 동기화 창에서 비밀번호를 확인해주세요.');
+            openSyncModal();
+          }
+          return;
+        }
+
         if (!res.ok) throw new Error('Cloud save failed (' + res.status + ')');
         localStorage.setItem('cell_last_sync_time', new Date().toISOString());
         if (!isSilent) showToast(`☁️ [${activeCode}] 클라우드에 안전하게 동기화되었습니다!`);
@@ -2904,15 +2940,37 @@
         : state.syncCode;
 
       if (!activeCode) return;
+
+      let activePassword = state.syncPassword || localStorage.getItem('cell_sync_password') || '';
+      if (typeof isSongYechanAdmin === 'function' && isSongYechanAdmin()) {
+        if (adminEditingTarget === 'taehong') {
+          activePassword = '2920';
+        } else if (activeCode === '송예찬1206' && !activePassword) {
+          activePassword = '1206';
+        }
+      }
+
       try {
         const res = await fetch('/api/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'load',
-            code: activeCode
+            code: activeCode,
+            password: activePassword
           })
         });
+
+        if (res.status === 401) {
+          const errJson = await res.json().catch(() => ({}));
+          console.warn('Sync load password error:', errJson);
+          if (!isSilent) {
+            showToast('🔒 비밀번호가 일치하지 않거나 설정되어 있습니다.');
+            openSyncModal();
+          }
+          return;
+        }
+
         if (!res.ok) throw new Error('Cloud load failed');
         const json = await res.json();
         if (json.ok && json.data) {
@@ -2948,6 +3006,7 @@
 
       if (state.syncCode) {
         // 이미 코드가 연결된 상태
+        const hasPw = !!state.syncPassword;
         container.innerHTML = `
           <div class="p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-3">
             <div class="flex items-center justify-between">
@@ -2968,8 +3027,18 @@
               </div>
             </div>
 
+            <div class="p-2.5 bg-white/80 border border-emerald-200 rounded-lg flex items-center justify-between text-xs">
+              <span class="flex items-center gap-1.5 text-emerald-900 font-medium">
+                <span>${hasPw ? '🔒' : '🔓'}</span>
+                <span>보호 비밀번호: <b class="${hasPw ? 'text-emerald-700' : 'text-zinc-500'}">${hasPw ? '설정됨 (기기 자동 인증 완료)' : '미설정'}</b></span>
+              </span>
+              <button onclick="promptChangeSyncPassword()" class="text-[11px] text-emerald-700 hover:text-emerald-900 underline font-medium">
+                ${hasPw ? '비밀번호 변경' : '비밀번호 설정'}
+              </button>
+            </div>
+
             <p class="text-[11px] text-emerald-700 leading-relaxed">
-              💡 <b>스마트폰이나 다른 컴퓨터</b>에서도 위 코드(<b>${escapeHtml(state.syncCode)}</b>)를 입력하시면 데이터가 실시간으로 연결됩니다.
+              💡 <b>한 번 동기화된 기기에는 자동 저장</b>되어 매번 비밀번호를 입력할 필요가 없습니다. 다른 사람이 내 동기화 코드를 알더라도 비밀번호가 없으면 열람할 수 없습니다.
             </p>
 
             ${(typeof isSongYechanAdmin === 'function' && isSongYechanAdmin()) ? `
@@ -2998,17 +3067,17 @@
           </div>
         `;
       } else {
-        // 코드가 아직 없는 상태 (이름 + 번호 4자리 조합)
+        // 코드가 아직 없는 상태 (이름 + 번호 4자리 조합 + 비밀번호)
         const defaultName = state.leaderName || '송예찬';
         container.innerHTML = `
           <div class="space-y-4">
             <div class="p-4 bg-zinc-50 border border-zinc-200 rounded-xl space-y-3">
               <div>
                 <label class="block text-xs font-semibold text-zinc-800 mb-1">
-                  내 동기화 코드 만들기
+                  내 동기화 코드 및 비밀번호
                 </label>
                 <p class="text-[11px] text-zinc-500 mb-2 leading-relaxed">
-                  동명이인 충돌을 방지하기 위해 <b>이름 + 번호 4자리</b>(휴대폰 번호 뒷자리 등)로 고유 코드를 생성합니다.
+                  동명이인 구분을 위해 <b>이름 + 번호 4자리</b>로 코드를 생성하며, <b>비밀번호</b>로 다른 사람의 열람을 완벽 차단합니다.
                 </p>
 
                 <div class="grid grid-cols-2 gap-2">
@@ -3019,7 +3088,7 @@
                       class="w-full px-3 py-2 text-xs bg-white border border-zinc-300 rounded-lg focus:outline-none focus:border-zinc-900 font-medium">
                   </div>
                   <div>
-                    <label class="block text-[11px] text-zinc-500 mb-1">번호 4자리</label>
+                    <label class="block text-[11px] text-zinc-500 mb-1">식별 번호 4자리</label>
                     <input type="tel" id="syncPinInput" maxlength="4" placeholder="예: 5032" 
                       oninput="updateSyncPreviewCode()"
                       class="w-full px-3 py-2 text-xs bg-white border border-zinc-300 rounded-lg focus:outline-none focus:border-zinc-900 font-mono font-medium text-center">
@@ -3029,6 +3098,19 @@
                 <div class="mt-2 text-xs text-zinc-500 flex items-center gap-1.5">
                   <span>생성될 코드:</span>
                   <span id="syncPreviewCode" class="font-bold text-zinc-900 font-mono px-2 py-0.5 bg-zinc-200 rounded">${escapeHtml(defaultName)}----</span>
+                </div>
+
+                <div class="mt-3 pt-2.5 border-t border-zinc-200">
+                  <label class="block text-[11px] text-zinc-700 font-semibold mb-1 flex items-center justify-between">
+                    <span class="flex items-center gap-1"><span>🔒</span> 보고서 보호 비밀번호</span>
+                    <span class="text-[10px] text-zinc-400 font-normal">타인 열람 원천 차단</span>
+                  </label>
+                  <input type="password" id="syncPasswordInput" value="${escapeHtml(state.syncPassword || '')}"
+                    placeholder="비밀번호 입력 (예: 1234)"
+                    class="w-full px-3 py-2 text-xs bg-white border border-zinc-300 rounded-lg focus:outline-none focus:border-zinc-900 font-medium">
+                  <p class="text-[10px] text-zinc-500 mt-1 leading-relaxed">
+                    💡 한 번 동기화하면 <b>이 기기에는 자동 저장</b>되어 이후에는 비밀번호를 묻지 않습니다. 다른 사람이 내 코드를 알아도 비밀번호가 없으면 열람할 수 없습니다.
+                  </p>
                 </div>
               </div>
 
@@ -3049,7 +3131,7 @@
             </div>
 
             <div class="p-3 bg-zinc-100/70 rounded-lg text-[11px] text-zinc-500 leading-relaxed">
-              💡 <b>컴퓨터</b>에서 이름과 4자리를 넣고 <b>[등록/저장]</b>한 뒤, <b>스마트폰</b>에서도 똑같이 이름과 4자리만 입력하고 <b>[불러오기]</b>를 누르면 양쪽이 완벽하게 연결됩니다!
+              💡 <b>컴퓨터</b>에서 이름, 4자리, 비밀번호를 넣고 <b>[등록/저장]</b>한 뒤, <b>스마트폰</b>에서도 똑같이 입력하고 <b>[불러오기]</b>를 누르면 기기 간 자동 동기화가 영구 유지됩니다!
             </div>
           </div>
         `;
@@ -3066,11 +3148,56 @@
       previewEl.innerText = `${name}${pin}`;
     }
 
+    async function promptChangeSyncPassword() {
+      const currentPw = state.syncPassword || '';
+      const newPw = prompt('새로 설정할 동기화 비밀번호를 입력하세요.\n(비밀번호를 삭제하여 공개하려면 빈칸 입력):', currentPw);
+      if (newPw === null) return; // 취소
+
+      const trimmedPw = newPw.trim();
+      const prevPw = state.syncPassword;
+      state.syncPassword = trimmedPw;
+      if (trimmedPw) {
+        localStorage.setItem('cell_sync_password', trimmedPw);
+      } else {
+        localStorage.removeItem('cell_sync_password');
+      }
+
+      try {
+        await saveToCloud(false);
+        renderSyncModal();
+        showToast(trimmedPw ? '🔒 동기화 비밀번호가 안전하게 변경되었습니다!' : '🔓 비밀번호 보호가 해제되었습니다.');
+      } catch (e) {
+        state.syncPassword = prevPw;
+        if (prevPw) localStorage.setItem('cell_sync_password', prevPw);
+        else localStorage.removeItem('cell_sync_password');
+        alert('비밀번호 변경 저장 중 오류가 발생했습니다.');
+      }
+    }
+
+    async function quickAdminLogin() {
+      state.syncCode = '송예찬1206';
+      state.syncPassword = '1206';
+      localStorage.setItem('cell_sync_code', '송예찬1206');
+      localStorage.setItem('cell_sync_password', '1206');
+      localStorage.setItem('cell_is_admin', 'true');
+      showToast('👑 송예찬 총괄 관리자로 로그인되었습니다.');
+      updateSyncHeaderUI();
+      renderSyncModal();
+      await loadFromCloud(false);
+      if (typeof renderAdminEditingBanner === 'function') renderAdminEditingBanner();
+      if (typeof renderDemoDashboard === 'function' && currentMainTab === 'network') {
+        renderDemoDashboard();
+      }
+    }
+
     async function submitSyncCode(action) {
       const nameEl = document.getElementById('syncNameInput');
       const pinEl = document.getElementById('syncPinInput');
+      const pwEl = document.getElementById('syncPasswordInput');
+
       const name = (nameEl ? nameEl.value : '').trim();
       const pin = (pinEl ? pinEl.value : '').trim();
+      const password = (pwEl ? pwEl.value : (state.syncPassword || '')).trim();
 
       if (!name) {
         alert('이름을 입력해주세요.');
@@ -3094,7 +3221,8 @@
       try {
         const payload = {
           action: action,
-          code: code
+          code: code,
+          password: password
         };
         if (action === 'save') {
           payload.data = getExportData();
@@ -3107,12 +3235,27 @@
         });
 
         const json = await res.json();
+        if (res.status === 401) {
+          alert('🔒 비밀번호가 일치하지 않거나 입력되지 않았습니다.\n올바른 비밀번호를 입력해주세요.');
+          if (pwEl) {
+            pwEl.focus();
+            pwEl.select();
+          }
+          return;
+        }
+
         if (!res.ok) {
           throw new Error(json.error || '동기화 처리에 실패했습니다.');
         }
 
         state.syncCode = code;
+        state.syncPassword = password;
         localStorage.setItem('cell_sync_code', code);
+        if (password) {
+          localStorage.setItem('cell_sync_password', password);
+        } else {
+          localStorage.removeItem('cell_sync_password');
+        }
         localStorage.setItem('cell_last_sync_time', new Date().toISOString());
 
         if (code === '송예찬1206') {
@@ -3125,7 +3268,7 @@
           applyImportData(json.data);
           showToast(`🔗 '${code}' 코드로 데이터를 성공적으로 불러왔습니다!`);
         } else {
-          showToast(`🎉 '${code}' 코드로 클라우드에 성공적으로 등록/저장되었습니다!`);
+          showToast(`🎉 '${code}' 코드로 클라우드에 안전하게 등록/저장되었습니다!`);
         }
 
         updateSyncHeaderUI();
@@ -3163,7 +3306,9 @@
     function disconnectSyncCode() {
       if (!confirm(`'${state.syncCode}' 동기화 연결을 해제하시겠습니까?\n(기기에 이미 저장된 데이터는 그대로 유지됩니다.)`)) return;
       state.syncCode = '';
+      state.syncPassword = '';
       localStorage.removeItem('cell_sync_code');
+      localStorage.removeItem('cell_sync_password');
       localStorage.removeItem('cell_last_sync_time');
       localStorage.removeItem('cell_is_admin');
       if (typeof adminEditingTarget !== 'undefined') adminEditingTarget = 'yechan';

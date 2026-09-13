@@ -25,8 +25,9 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'POST') {
-      const { action, code, data } = req.body || {};
+      const { action, code, password, data } = req.body || {};
       const cleanCode = (code || '').trim();
+      const cleanPassword = (password !== undefined && password !== null) ? String(password).trim() : '';
 
       if (!cleanCode) {
         return res.status(400).json({ error: '동기화 코드를 입력해주세요.' });
@@ -36,10 +37,43 @@ export default async function handler(req, res) {
       const hash = crypto.createHash('sha256').update(cleanCode).digest('hex').slice(0, 24);
       const filePath = `sync_data/${hash}.json`;
 
-      // 1. 데이터 저장 (동시성 충돌 방지 지수 백오프 자동 재시도 탑재)
+      // 1. 데이터 저장 (동시성 충돌 방지 지수 백오프 자동 재시도 탑재 & 비밀번호 보호)
       if (action === 'save') {
+        // 기존 파일이 있는지 사전 확인하여 비밀번호 일치 여부 검증
+        let existingData = null;
+        let initialSha = undefined;
+        try {
+          const preCheckRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, { headers });
+          if (preCheckRes.ok) {
+            const preCheckJson = await preCheckRes.json();
+            initialSha = preCheckJson.sha;
+            const decodedStr = Buffer.from(preCheckJson.content, 'base64').toString('utf8');
+            existingData = JSON.parse(decodedStr);
+          }
+        } catch (e) {
+          // 신규 파일이거나 파싱 실패 시 패스
+        }
+
+        // 기존 파일에 비밀번호가 걸려있는 경우 비밀번호 검증
+        if (existingData && existingData.passwordHash) {
+          const inputPwHash = cleanPassword ? crypto.createHash('sha256').update(cleanPassword).digest('hex') : '';
+          if (inputPwHash !== existingData.passwordHash) {
+            return res.status(401).json({ 
+              error: '비밀번호가 일치하지 않습니다. 올바른 비밀번호를 입력해주세요.',
+              needPassword: true
+            });
+          }
+        }
+
+        // 저장할 비밀번호 해시 결정: 사용자가 입력한 새 비밀번호가 있으면 해시 생성, 없으면 기존 해시 유지
+        let targetPasswordHash = existingData?.passwordHash || null;
+        if (cleanPassword) {
+          targetPasswordHash = crypto.createHash('sha256').update(cleanPassword).digest('hex');
+        }
+
         const payloadContent = {
           code: cleanCode,
+          passwordHash: targetPasswordHash,
           updatedAt: new Date().toISOString(),
           data: data || {}
         };
@@ -51,11 +85,13 @@ export default async function handler(req, res) {
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
           try {
             // 1) 매 시도마다 최신 sha를 항상 새로 조회 (다른 셀리더의 동시 커밋으로 HEAD가 바뀌었을 때 대비)
-            let sha = undefined;
-            const checkRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, { headers });
-            if (checkRes.ok) {
-              const fileData = await checkRes.json();
-              sha = fileData.sha;
+            let sha = attempt === 1 ? initialSha : undefined;
+            if (attempt > 1 || sha === undefined) {
+              const checkRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, { headers });
+              if (checkRes.ok) {
+                const fileData = await checkRes.json();
+                sha = fileData.sha;
+              }
             }
 
             // 2) 커밋 저장 시도
@@ -70,7 +106,13 @@ export default async function handler(req, res) {
             });
 
             if (putRes.ok) {
-              return res.status(200).json({ ok: true, code: cleanCode, message: '저장 성공', attempts: attempt });
+              return res.status(200).json({ 
+                ok: true, 
+                code: cleanCode, 
+                hasPassword: !!targetPasswordHash,
+                message: '저장 성공', 
+                attempts: attempt 
+              });
             }
 
             // 실패 시(409 Conflict 동시 커밋 충돌 등) 에러 기록 및 백오프 대기
@@ -96,7 +138,7 @@ export default async function handler(req, res) {
         });
       }
 
-      // 2. 데이터 불러오기
+      // 2. 데이터 불러오기 (비밀번호 일치 확인)
       if (action === 'load') {
         const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, { headers });
         if (!getRes.ok) {
@@ -107,13 +149,39 @@ export default async function handler(req, res) {
         const decodedStr = Buffer.from(fileData.content, 'base64').toString('utf8');
         const parsed = JSON.parse(decodedStr);
 
-        return res.status(200).json({ ok: true, data: parsed.data, code: cleanCode, updatedAt: parsed.updatedAt });
+        // 비밀번호가 설정된 경우 검증
+        if (parsed.passwordHash) {
+          const inputPwHash = cleanPassword ? crypto.createHash('sha256').update(cleanPassword).digest('hex') : '';
+          if (inputPwHash !== parsed.passwordHash) {
+            return res.status(401).json({ 
+              error: '비밀번호가 일치하지 않습니다. 올바른 비밀번호를 입력해주세요.',
+              needPassword: true 
+            });
+          }
+        }
+
+        return res.status(200).json({ 
+          ok: true, 
+          data: parsed.data, 
+          code: cleanCode, 
+          hasPassword: !!parsed.passwordHash,
+          updatedAt: parsed.updatedAt 
+        });
       }
 
-      // 3. 코드 존재 여부 확인
+      // 3. 코드 존재 여부 및 비밀번호 설정 여부 확인
       if (action === 'check') {
         const checkRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, { headers });
-        return res.status(200).json({ ok: true, exists: checkRes.ok, code: cleanCode });
+        let hasPassword = false;
+        if (checkRes.ok) {
+          try {
+            const fileData = await checkRes.json();
+            const decodedStr = Buffer.from(fileData.content, 'base64').toString('utf8');
+            const parsed = JSON.parse(decodedStr);
+            hasPassword = !!parsed.passwordHash;
+          } catch (e) {}
+        }
+        return res.status(200).json({ ok: true, exists: checkRes.ok, hasPassword, code: cleanCode });
       }
 
       return res.status(400).json({ error: '유효하지 않은 요청입니다.' });
