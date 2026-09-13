@@ -545,10 +545,10 @@
       </div>
 
       <!-- 직책 설정 및 하위셀 연동 안내 -->
-      <div class="p-2.5 rounded-lg bg-blue-50/70 border border-blue-100 text-[11px] text-blue-900 leading-relaxed flex items-start gap-1.5">
-        <span class="text-xs">💡</span>
+      <div class="p-2.5 rounded-lg bg-amber-50/70 border border-amber-200 text-xs text-amber-900 leading-relaxed flex items-start gap-2">
+        <span class="text-base shrink-0">👑</span>
         <div>
-          셀원별 직책(<b>셀원 / 🌿디모데 / 👑셀리더</b>)을 지정할 수 있습니다. <b>👑셀리더</b>로 설정된 셀원은 본인 이름으로 보고서를 작성하면 상위 리더 대시보드에 <b>자동 계층 연동</b>됩니다.
+          셀원별 직책(<b>셀원 / 🌿디모데 / 👑셀리더</b>)을 지정할 수 있습니다. <b>👑셀리더</b>로 임명되었으나 아직 셀원이 미배정된 리더는 모체 셀에서 함께 출석 집계되며, 독립 출석률에는 노출되지 않습니다. (추후 실제 셀원 배정 시 독립 하위 셀로 자동 연동)
         </div>
       </div>
 
@@ -3106,14 +3106,28 @@
       }
     };
 
-    function getSubCellLeaders() {
+    // 실제로 셀원이 배정되어 독립 하위셀을 인도 중인 리더/디모데 (윤수민, 주진 등)
+    function getActiveSubCellLeaders() {
       if (!state.members) return [];
       return state.members.filter(name => {
         if (name === state.leaderName) return false;
         const role = getMemberRole(name);
-        // 셀리더이거나, 디모데이지만 셀원을 배정받아 하위셀을 인도하는 경우
-        return role === '셀리더' || (role === '디모데' && DEMO_SUB_CELLS[name]);
+        return (role === '셀리더' || role === '디모데') && DEMO_SUB_CELLS[name];
       });
+    }
+
+    // 직책은 셀리더로 임명받았으나 아직 셀원이 배정되지 않은 리더 (김한빈, 박승곤 등)
+    function getUnassignedLeaders() {
+      if (!state.members) return [];
+      return state.members.filter(name => {
+        if (name === state.leaderName) return false;
+        const role = getMemberRole(name);
+        return role === '셀리더' && !DEMO_SUB_CELLS[name];
+      });
+    }
+
+    function getSubCellLeaders() {
+      return getActiveSubCellLeaders();
     }
 
     let currentDemoRole = 'corps'; // 'corps' (김태홍) 또는 'cell' (송예찬)
@@ -3151,32 +3165,16 @@
         return cellCopy;
       });
 
-      // 2. 현재 셀(송예찬 셀)에서 '셀리더'로 체크된 하위 셀리더들 확인
-      const subLeaders = getSubCellLeaders();
+      // 2. 현재 셀(송예찬 셀)에서 실제로 하위 셀원이 배정되어 모임을 인도하는 하위 리더들 확인
+      const activeSubLeaders = getActiveSubCellLeaders();
 
-      // 하위 셀리더가 있을 때, 동적으로 하위 셀 데이터 연결
+      // 실질적 하위 셀(셀원 2명 이상)만 동적으로 연결
       const dynamicSubCells = [];
-      subLeaders.forEach(name => {
+      activeSubLeaders.forEach(name => {
         if (DEMO_SUB_CELLS[name]) {
           dynamicSubCells.push({
             ...DEMO_SUB_CELLS[name],
             members: DEMO_SUB_CELLS[name].members.map(m => ({ ...m }))
-          });
-        } else {
-          // 아직 보고서가 없는 신규 셀리더는 작성 대기 중인 가상 셀로 동적 생성
-          dynamicSubCells.push({
-            id: `cell_${name}`,
-            leaderName: name,
-            isCorpsLeader: false,
-            parentLeader: state.leaderName || '송예찬',
-            roleTitle: `하위 셀리더 (${state.leaderName || '송예찬'} 직속)`,
-            location: "장소 미정",
-            meetingDateTime: "보고서 작성 대기 중",
-            isPending: true,
-            members: [
-              { name: name, role: "셀리더", sunday: true, sundayReason: "", cell: true, cellReason: "" }
-            ],
-            notes: `⏳ ${name} 셀리더가 본인 이름으로 보고서를 작성하여 저장하면 이곳에 실시간 자동 연동됩니다.`
           });
         }
       });
@@ -3271,17 +3269,25 @@
 
       // 1-1. 안내 배너 동적 갱신
       const notice = document.getElementById('demoRoleNotice');
+      const unassignedLeaders = getUnassignedLeaders();
       if (notice) {
         if (currentDemoRole === 'corps') {
+          const unassignedMsg = unassignedLeaders.length > 0 
+            ? `<div class="mt-1 text-[11px] text-amber-800/90 font-normal">💡 <b>셀원 배정 대기 리더(${unassignedLeaders.join(', ')}):</b> 아직 셀원이 미배정된 임명 리더는 모체 셀(송예찬셀)에서 함께 출석 집계되며, 독립 출석률 비교에서는 제외됩니다.</div>`
+            : '';
           notice.innerHTML = `
             <span class="text-base">👑</span>
             <div>
               <b>김태홍 군단리더 시점</b>: 군단 산하의 <b>모든 셀(${activeCells.length}개 셀)</b>과 <b>말단 셀원들(실제 고유 ${totalMembers}명)</b>까지 전체 출석 통계와 셀별 보고서를 한눈에 조회합니다.
+              ${unassignedMsg}
             </div>
           `;
           notice.className = 'text-xs p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 flex items-start gap-2 leading-relaxed';
         } else {
           const subCells = activeCells.filter(c => c.parentLeader === '송예찬');
+          const unassignedMsg = unassignedLeaders.length > 0 
+            ? `<div class="mt-1 text-[11px] text-emerald-800/90 font-normal">👑 <b>셀원 배정 대기 리더(${unassignedLeaders.join(', ')}):</b> 아직 셀원이 배정되지 않아 송예찬 셀에서 함께 출석 집계되며, 독립 출석률 비교에는 표시되지 않습니다. (추후 셀원 배정 시 독립 하위셀로 자동 전환)</div>`
+            : '';
           const subText = subCells.length > 0
             ? `<b>송예찬 본인 셀 및 하위 ${subCells.map(c => c.leaderName + '셀').join(', ')}(총 ${activeCells.length}개 셀, ${totalMembers}명)</b>이 자동 계층 연동되어 표시됩니다.`
             : `오직 <b>송예찬 본인 셀(총 ${totalMembers}명)만</b> 독립적으로 표시됩니다. (셀원 관리에서 직책을 [👑 셀리더]로 지정하면 하위 셀이 자동 연동됩니다)`;
@@ -3289,17 +3295,19 @@
             <span class="text-base">🌱</span>
             <div>
               <b>송예찬 군단리더 시점</b>: 김태홍 군단리더의 타 셀(권회인셀, 박창현셀 등)은 <b>완전히 숨겨지며</b>, ${subText}
+              ${unassignedMsg}
             </div>
           `;
           notice.className = 'text-xs p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-emerald-900 flex items-start gap-2 leading-relaxed';
         }
       }
 
-      // 2. 셀별 비교 바
+      // 2. 셀별 비교 바 (셀원이 배정된 실질적 셀만 비교)
       const compContainer = document.getElementById('demoCellComparisonList');
       if (compContainer) {
         compContainer.innerHTML = '';
-        activeCells.forEach(cell => {
+        const validComparisonCells = activeCells.filter(cell => cell.members && cell.members.length > 1 && !cell.isPending);
+        validComparisonCells.forEach(cell => {
           const sAtt = cell.members.filter(m => m.sunday).length;
           const rate = ((sAtt / cell.members.length) * 100).toFixed(0);
 
@@ -3331,6 +3339,9 @@
           const cAtt = cell.members.filter(m => m.cell).length;
           const isSubCell = cell.parentLeader === '송예찬' && !cell.isCorpsLeader;
           const isOwner = (currentDemoRole === 'cell' && cell.leaderName === '송예찬') || (currentDemoRole === 'corps' && cell.isCorpsLeader);
+
+          const isSongYeChanCell = cell.leaderName === (state.leaderName || '송예찬');
+          const unassignedInThisCell = isSongYeChanCell ? getUnassignedLeaders() : [];
 
           const card = document.createElement('div');
           card.className = `rounded-xl border transition-all ${
@@ -3370,6 +3381,17 @@
 
             <!-- 셀원 목록 아코디언 본문 -->
             <div id="demoBody_${cell.id}" class="border-t border-zinc-100 p-3 bg-zinc-50/70 space-y-2 text-xs">
+              ${unassignedInThisCell.length > 0 ? `
+                <div class="p-2.5 bg-amber-50/90 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-center justify-between flex-wrap gap-2">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="font-bold text-amber-950">👑 셀원 배정 대기 리더 (${unassignedInThisCell.length}명):</span>
+                    <span class="font-semibold text-amber-800">${unassignedInThisCell.join(', ')}</span>
+                  </div>
+                  <span class="text-[10px] bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded font-medium shrink-0">
+                    송예찬 셀 소속 출석 집계 (독립 출석률 미표시)
+                  </span>
+                </div>
+              ` : ''}
               ${cell.isPending ? `
                 <div class="p-3 bg-amber-50/80 border border-amber-200 rounded-lg text-xs text-amber-900 leading-relaxed">
                   <div class="font-bold mb-1">⏳ 이번 주 보고서 작성 대기 중</div>
@@ -3381,11 +3403,18 @@
                   <span>녹색: 참석 | 적색: 결석</span>
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                  ${cell.members.map(m => `
+                  ${cell.members.map(m => {
+                    const isUnassignedLeader = unassignedInThisCell.includes(m.name);
+                    const badgeText = isUnassignedLeader ? '리더(대기)' : (m.role === '셀리더' ? '리더' : (m.role === '디모데' ? '디모데' : ''));
+                    const badgeClass = m.role === '셀리더' 
+                      ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                      : (m.role === '디모데' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : '');
+
+                    return `
                     <div class="p-2 rounded-lg bg-white border border-zinc-200 flex flex-col justify-between">
                       <div class="flex items-center justify-between">
                         <span class="font-semibold text-zinc-800 ${m.role === '셀리더' ? 'text-amber-600 font-bold' : (m.role === '디모데' ? 'text-emerald-600 font-semibold' : '')}">
-                          ${m.name} ${m.role === '셀리더' ? '<span class="text-[9px] bg-amber-50 text-amber-700 px-1 py-0.2 rounded border border-amber-200 font-semibold">리더</span>' : (m.role === '디모데' ? '<span class="text-[9px] bg-emerald-50 text-emerald-700 px-1 py-0.2 rounded border border-emerald-200 font-medium">디모데</span>' : '')}
+                          ${m.name} ${badgeText ? `<span class="text-[9px] px-1 py-0.2 rounded border font-semibold ${badgeClass}">${badgeText}</span>` : ''}
                         </span>
                         <div class="flex items-center gap-1 font-mono text-[10px]">
                           <span class="px-1 rounded ${m.sunday ? 'badge-att' : 'badge-abs'}" title="주일예배">${m.sunday ? '주일✓' : '주일✕'}</span>
@@ -3399,7 +3428,7 @@
                         </div>
                       ` : ''}
                     </div>
-                  `).join('')}
+                  `}).join('')}
                 </div>
 
                 <!-- 셀 특이사항 미리보기 -->
