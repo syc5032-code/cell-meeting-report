@@ -1185,7 +1185,26 @@
 
       const currentSunday = getSundayOfWeek(state.meetingDate || new Date());
       const isThisWeek = (currentSunday === getSundayOfWeek(new Date()));
-      const isSubmitted = !!(state.submittedWeeks && state.submittedWeeks[currentSunday]);
+      
+      // 1) submittedWeeks에 기록되어 있거나
+      // 2) 이번 주 보고서이고 state.isSubmitted가 true이거나
+      // 3) history 보관함에 해당 주차(currentSunday)의 보고서가 이미 저장되어 있는 경우 제출 완료로 판별
+      const hasHistoryForWeek = !!(state.history && state.history.some(h => {
+        const hSunday = h.sundayDate || getSundayOfWeek(h.meetingDate || h.dateTimeStr || '');
+        return hSunday === currentSunday;
+      }));
+      const isSubmitted = !!(
+        (state.submittedWeeks && state.submittedWeeks[currentSunday]) ||
+        (isThisWeek && state.isSubmitted) ||
+        hasHistoryForWeek
+      );
+
+      // 일관성을 위해 submittedWeeks에도 보정 저장
+      if (isSubmitted && (!state.submittedWeeks || !state.submittedWeeks[currentSunday])) {
+        if (!state.submittedWeeks) state.submittedWeeks = {};
+        state.submittedWeeks[currentSunday] = true;
+        localStorage.setItem('cell_submitted_weeks', JSON.stringify(state.submittedWeeks));
+      }
 
       let statusBadgeHtml = '';
       let borderClass = '';
@@ -1226,7 +1245,13 @@
             </div>
           </div>
         </div>
-        <div class="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+        <div class="flex items-center gap-1.5 shrink-0 self-end sm:self-center flex-wrap">
+          ${!isSubmitted ? `
+            <button type="button" onclick="manualSave()" 
+              class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition active:scale-95 shadow-xs flex items-center gap-1">
+              <span>💾</span> <span>보고서 저장 & 제출</span>
+            </button>
+          ` : ''}
           <button type="button" onclick="startNewSundayReport()" 
             class="px-3 py-1.5 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-800 rounded-lg text-xs font-semibold transition active:scale-95 shadow-2xs flex items-center gap-1">
             <span>🔄</span> <span>새 주차 보고서 작성</span>
@@ -1469,6 +1494,16 @@
           deduplicateHistory();
         }
         ensureDefaultHistorySeeds();
+        const savedSubmittedWeeks = localStorage.getItem('cell_submitted_weeks');
+        if (savedSubmittedWeeks) {
+          try {
+            state.submittedWeeks = JSON.parse(savedSubmittedWeeks);
+          } catch (e) {
+            state.submittedWeeks = {};
+          }
+        }
+        if (!state.submittedWeeks) state.submittedWeeks = {};
+
         const savedIsSubmitted = localStorage.getItem('cell_is_submitted');
         if (savedIsSubmitted !== null) {
           state.isSubmitted = (savedIsSubmitted === 'true');
@@ -2342,6 +2377,7 @@
         saveToCloud(true);
       }
       if (navigator.vibrate) navigator.vibrate([30, 50]);
+      showToast('💾 보고서가 안전하게 저장되었습니다! (이번 주차 제출 완료 ✅)');
 
       const saveBtnText = document.getElementById('saveBtnText');
       if (saveBtnText) saveBtnText.innerText = '저장됨 ✓';
@@ -3111,6 +3147,8 @@
         leaderCellStatus: state.leaderCellStatus || {},
         subCellReports: (typeof SUB_CELL_REPORTS !== 'undefined') ? SUB_CELL_REPORTS : {},
         history: state.history,
+        submittedWeeks: state.submittedWeeks || {},
+        isSubmitted: !!state.isSubmitted,
         updatedAt: new Date().toISOString()
       };
     }
@@ -3123,6 +3161,14 @@
       if (data.subCellReports && typeof data.subCellReports === 'object') {
         SUB_CELL_REPORTS = { ...SUB_CELL_REPORTS, ...data.subCellReports };
         if (typeof saveSubCellReports === 'function') saveSubCellReports();
+      }
+      if (data.submittedWeeks && typeof data.submittedWeeks === 'object') {
+        state.submittedWeeks = { ...(state.submittedWeeks || {}), ...data.submittedWeeks };
+        localStorage.setItem('cell_submitted_weeks', JSON.stringify(state.submittedWeeks));
+      }
+      if (data.isSubmitted !== undefined) {
+        state.isSubmitted = !!data.isSubmitted;
+        localStorage.setItem('cell_is_submitted', state.isSubmitted ? 'true' : 'false');
       }
       if (data.leaderName !== undefined) {
         state.leaderName = data.leaderName;
@@ -3162,6 +3208,7 @@
 
       saveStorage();
       renderAll();
+      if (typeof renderWeeklyReportBanner === 'function') renderWeeklyReportBanner();
     }
 
     function updateSyncHeaderUI() {
@@ -3198,6 +3245,15 @@
           activePassword = '1206';
         }
       }
+
+      // 클라우드 저장 시 현재 주차 보고서 제출 상태 확정 및 동기화 보장
+      const curSunday = getSundayOfWeek(state.meetingDate || new Date());
+      if (!state.submittedWeeks) state.submittedWeeks = {};
+      state.submittedWeeks[curSunday] = true;
+      localStorage.setItem('cell_submitted_weeks', JSON.stringify(state.submittedWeeks));
+      state.isSubmitted = true;
+      localStorage.setItem('cell_is_submitted', 'true');
+      if (typeof renderWeeklyReportBanner === 'function') renderWeeklyReportBanner();
 
       try {
         const res = await fetch('/api/sync', {
