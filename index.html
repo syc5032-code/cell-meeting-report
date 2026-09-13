@@ -414,7 +414,7 @@
             </button>
             <button id="btnRoleTaehong" onclick="setDemoRole('taehong')" 
               class="px-2.5 py-1.5 rounded-lg transition-all text-zinc-600 hover:text-zinc-900 font-medium flex items-center gap-1">
-              <span>👑</span> <span>태홍이형 화면 (김태홍)</span>
+              <span>👑</span> <span>김태홍 군단 대시보드</span>
             </button>
             <button id="btnRoleCorps" onclick="setDemoRole('corps')" 
               class="px-2.5 py-1.5 rounded-lg transition-all text-zinc-600 hover:text-zinc-900 font-medium flex items-center gap-1">
@@ -824,7 +824,7 @@
             <span>🛡️</span> 안심 가상 데이터 시뮬레이터
           </div>
           <p class="text-emerald-900 leading-relaxed">
-            실제 태홍이형의 데이터나 현재 작성 중인 내 셀의 실제 데이터와 완전히 분리된 안전한 가상 데이터 모드이므로 안심하고 둘러보실 수 있습니다.
+            실제 군단 데이터나 현재 작성 중인 내 셀의 실제 데이터와 완전히 분리된 안전한 가상 데이터 모드이므로 안심하고 둘러보실 수 있습니다.
           </p>
         </div>
       </div>
@@ -1222,7 +1222,7 @@
             </div>
             <div class="text-[11px] text-zinc-600 mt-1 leading-relaxed">
               ${isSubmitted 
-                ? '• 이번 주 보고서가 저장 및 복사되어 <b>군단 대시보드에 독립 보고서로 정상 반영</b>되었습니다.' 
+                ? '• 이번 주 보고서가 저장 및 복사되어 <b>군단 대시보드에 셀모임 보고서로 정상 반영</b>되었습니다.' 
                 : '• 매주 주일(일요일) 기점으로 새 주차가 시작됩니다. 보고서를 작성 후 <b>[카카오톡 복사]</b> 또는 <b>[저장]</b>을 누르면 제출 상태로 전환됩니다.'}
             </div>
           </div>
@@ -3607,7 +3607,7 @@
     };
 
     // ==========================================
-    // 👑 하위 셀리더 독립 보고서 레지스트리 (실제 제출 데이터 & 로컬스토리지 연동)
+    // 👑 하위 셀리더 셀모임 보고서 레지스트리 (실제 제출 데이터 & 로컬스토리지 연동)
     // ==========================================
     let SUB_CELL_REPORTS = {};
 
@@ -3887,16 +3887,16 @@
     // 하위 셀리더 보고서 미제출(취소) 상태로 되돌리기
     function cancelSubCellReport(leaderName) {
       if (leaderName === '송예찬') {
-        if (!confirm(`'송예찬 셀'의 독립 보고서 제출을 취소하고, 김태홍 군단리더 셀보고서 기반으로 취합되도록 하시겠습니까?`)) return;
+        if (!confirm(`'송예찬 셀'의 셀모임 보고서 제출을 취소하고, 김태홍 군단리더 셀보고서 기반으로 취합되도록 하시겠습니까?`)) return;
         state.isSubmitted = false;
         localStorage.setItem('cell_is_submitted', 'false');
-        showToast(`↩️ [송예찬 셀] 독립 보고서가 취소되어 김태홍 셀보고서 기반으로 자동 통합됩니다.`);
+        showToast(`↩️ [송예찬 셀] 셀모임 보고서가 취소되어 김태홍 셀보고서 기반으로 자동 통합됩니다.`);
         if (typeof renderDemoDashboard === 'function' && currentMainTab === 'network') {
           renderDemoDashboard();
         }
         return;
       }
-      if (!confirm(`'${leaderName} 셀'의 독립 보고서 제출을 취소하고, 다시 상위 셀보고서 기반으로 취합되도록 하시겠습니까?`)) return;
+      if (!confirm(`'${leaderName} 셀'의 셀모임 보고서 제출을 취소하고, 다시 상위 셀보고서 기반으로 취합되도록 하시겠습니까?`)) return;
       if (SUB_CELL_REPORTS[leaderName]) {
         delete SUB_CELL_REPORTS[leaderName];
         saveSubCellReports();
@@ -3907,7 +3907,7 @@
       if (adminEditingTarget === 'sub_' + leaderName) {
         switchAdminEditingCell('yechan');
       }
-      showToast(`↩️ [${leaderName} 셀] 독립 보고서가 취소되어 상위 셀보고서 기반으로 자동 통합됩니다.`);
+      showToast(`↩️ [${leaderName} 셀] 셀모임 보고서가 취소되어 상위 셀보고서 기반으로 자동 통합됩니다.`);
       if (typeof renderDemoDashboard === 'function' && currentMainTab === 'network') {
         renderDemoDashboard();
       }
@@ -4077,7 +4077,7 @@
               <span class="text-base">👑</span>
               <div>
                 <div class="text-xs font-bold text-emerald-950">${leaderName} 셀모임 보고서 작성/제출 모드</div>
-                <div class="text-[11px] text-emerald-800">이곳에서 출석을 작성하고 저장하면, 독립 셀로 분리되어 중복 없이 자동 취합됩니다.</div>
+                <div class="text-[11px] text-emerald-800">이곳에서 출석을 작성하고 저장하면, 셀모임 보고서가 제출되어 중복 없이 자동 취합됩니다.</div>
               </div>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
@@ -4134,7 +4134,7 @@
       }
     }
 
-    let currentDemoRole = 'corps'; // 기본값: 김태홍 군단 대시보드 (태홍이형 시점)
+    let currentDemoRole = 'corps'; // 기본값: 김태홍 군단 대시보드 (군단리더 시점)
     let allDemoExpanded = true;
 
     function updateDemoRoleSwitcherUI() {
@@ -4152,14 +4152,14 @@
           </div>
         `;
       } else {
-        // 송예찬 총괄 관리자: 군단 대시보드(태홍이형 시점) vs 내 군단 현황(송예찬 산하 전체) 2개 토글
+        // 송예찬 총괄 관리자: 군단 대시보드(군단리더 시점) vs 내 군단 현황(송예찬 산하 전체) 2개 토글
         const isCorps = currentDemoRole === 'corps' || currentDemoRole === 'taehong';
         const isCell = currentDemoRole === 'cell';
 
         container.innerHTML = `
           <button id="btnRoleCorps" onclick="setDemoRole('corps')" 
             class="px-3 py-1.5 rounded-lg transition-all ${isCorps ? 'bg-zinc-900 text-white shadow-xs font-semibold' : 'text-zinc-600 hover:text-zinc-900 font-medium'} flex items-center gap-1.5">
-            <span>👑</span> <span>김태홍 군단 대시보드 (태홍이형 시점)</span>
+            <span>👑</span> <span>김태홍 군단 대시보드 (군단리더 시점)</span>
           </button>
           <button id="btnRoleCell" onclick="setDemoRole('cell')" 
             class="px-3 py-1.5 rounded-lg transition-all ${isCell ? 'bg-zinc-900 text-white shadow-xs font-semibold' : 'text-zinc-600 hover:text-zinc-900 font-medium'} flex items-center gap-1.5">
@@ -4215,7 +4215,7 @@
       let yechanCell;
       const yechanSubmitted = hasLeaderSubmittedReport('송예찬');
       if (adminEditingTarget === 'taehong' && cachedYechanData) {
-        // 관리자가 태홍이형 셀 편집 중일 때 송예찬 셀 데이터는 cachedYechanData 사용
+        // 관리자가 김태홍 셀 편집 중일 때 송예찬 셀 데이터는 cachedYechanData 사용
         const yd = cachedYechanData;
         const ym = yd.members || DEFAULT_MEMBERS;
         yechanCell = {
@@ -4345,7 +4345,7 @@
         return [yechanCell, ...getAllDescendantSubCells('송예찬')];
       }
 
-      // "군단데이터만 태홍이형 입장에서 보이는 대시보드도 보이게 해줘" -> 김태홍 군단 전체(김태홍 + 송예찬 + 모든 하위셀) 반환!
+      // "김태홍 군단리더 입장에서 보이는 군단 전체 대시보드" -> 김태홍 군단 전체(김태홍 + 송예찬 + 모든 하위셀) 반환!
       return [taehongCell, yechanCell, ...getAllDescendantSubCells('송예찬')];
     }
 
@@ -4540,22 +4540,27 @@
 
       const allSubmittedInActiveCells = activeCells.filter(c => c.isSubmittedReport);
 
-      if (notice) {
+            if (notice) {
+        // 김태홍 직속 셀리더 vs 손자 셀리더 분리
+        const taehongDirectUnsubmitted = taehongCell ? getUnsubmittedOpenLeaders(taehongCell) : [];
+        const subDescendantUnsubmitted = allUnsubmittedInActiveCells.filter(u => u.parentLeader !== '김태홍');
+        const taehongDirectSubmitted = getSubmittedSubCellLeaders('김태홍');
+
         if (currentDemoRole === 'cell') {
           let extraInfo = '';
           if (allUnsubmittedInActiveCells.length > 0) {
             extraInfo += `
               <div class="mt-1.5 pt-1.5 border-t border-emerald-200/80 text-[11px] text-emerald-950 font-normal space-y-0.5">
-                <div>👑 <b>셀오픈 리더 (본인보고서 미제출 ${allUnsubmittedInActiveCells.length}명):</b> <span class="font-semibold text-emerald-900">${allUnsubmittedInActiveCells.map(u => `${u.name}(${u.parentLeader}셀)`).join(', ')}</span></div>
-                <div class="text-[10px] text-emerald-800">• 아직 본인 보고서를 제출하지 않아 <b>상위 셀보고서 기반으로 출석이 정상 취합</b>되고 있습니다. (보고서 제출 시 독립 셀로 자동 분리)</div>
+                <div>👑 <b>셀오픈 리더 (본인 보고서 미제출 ${allUnsubmittedInActiveCells.length}명):</b> <span class="font-semibold text-emerald-900">${allUnsubmittedInActiveCells.map(u => `${u.name}(${u.parentLeader}셀)`).join(', ')}</span></div>
+                <div class="text-[10px] text-emerald-800">• 아직 본인 보고서를 제출하지 않아 <b>상위 셀보고서 기반으로 출석이 정상 취합</b>되고 있습니다. (보고서 제출 시 셀별로 자동 분리)</div>
               </div>
             `;
           }
           if (allSubmittedInActiveCells.length > 0) {
             extraInfo += `
               <div class="mt-1.5 pt-1.5 border-t border-emerald-200/80 text-[11px] text-emerald-950 font-normal space-y-0.5">
-                <div>✨ <b>독립 보고서 제출 완료 (${allSubmittedInActiveCells.length}개 셀):</b> <span class="font-semibold text-emerald-900">${allSubmittedInActiveCells.map(c => c.leaderName + '셀').join(', ')}</span></div>
-                <div class="text-[10px] text-emerald-800">• 독립 셀로 분리되어 <b>중복 카운트 없이 고유 1명</b>으로 정상 취합되었습니다.</div>
+                <div>✨ <b>셀모임 보고서 제출 완료 (${allSubmittedInActiveCells.length}개 셀):</b> <span class="font-semibold text-emerald-900">${allSubmittedInActiveCells.map(c => c.leaderName + '셀').join(', ')}</span></div>
+                <div class="text-[10px] text-emerald-800">• 셀모임 보고서가 제출되어 <b>중복 카운트 없이 고유 1명</b>으로 정상 취합되었습니다.</div>
               </div>
             `;
           }
@@ -4570,32 +4575,57 @@
           notice.innerHTML = `
             <span class="text-base">🌱</span>
             <div class="w-full">
-              <b>내 군단 현황 (송예찬 산하 전체 대시보드)</b>: 송예찬 본인 셀과 산하 모든 계층의 독립 셀(<b>총 ${activeCells.length}개 셀, 고유 총원 ${totalMembers}명</b>)의 출석 통계가 재귀적으로 전체 취합됩니다.
+              <b>내 군단 현황 (송예찬 산하 전체 대시보드)</b>: 송예찬 본인 셀과 산하 모든 계층의 셀(<b>총 ${activeCells.length}개 셀, 고유 총원 ${totalMembers}명</b>)의 출석 통계가 재귀적으로 전체 취합됩니다.
               ${extraInfo}
             </div>
           `;
           notice.className = 'text-xs p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-emerald-900 flex items-start gap-2 leading-relaxed';
         } else {
-          // corps: 태홍이형 시점 군단 대시보드
+          // corps: 김태홍 군단 대시보드 (군단리더 시점)
           let extraInfo = '';
-          if (allUnsubmittedInActiveCells.length > 0) {
+          
+          // 1. 김태홍 직속(본인 셀에 속한) 셀리더 중 미제출/제출 확인 (최우선)
+          if (taehongDirectUnsubmitted.length > 0) {
             extraInfo += `
               <div class="mt-1.5 pt-1.5 border-t border-amber-200/80 text-[11px] text-amber-950 font-normal space-y-0.5">
-                <div>👑 <b>셀오픈 리더 (본인보고서 미제출 ${allUnsubmittedInActiveCells.length}명):</b> <span class="font-semibold text-amber-900">${allUnsubmittedInActiveCells.map(u => `${u.name}(${u.parentLeader}셀)`).join(', ')}</span></div>
-                <div class="text-[10px] text-amber-800">• 상위 셀보고서 기반으로 출석 정상 취합 중 (독립 보고서 제출 시 자동 분리)</div>
+                <div>👑 <b>본인 소속(김태홍 직속) 미제출 셀리더 (${taehongDirectUnsubmitted.length}명):</b> <span class="font-semibold text-rose-700">${taehongDirectUnsubmitted.join(', ')}</span></div>
+                <div class="text-[10px] text-amber-800">• 김태홍 셀보고서 기반으로 출석 정상 취합 중</div>
+              </div>
+            `;
+          } else {
+            extraInfo += `
+              <div class="mt-1.5 pt-1.5 border-t border-amber-200/80 text-[11px] text-amber-950 font-normal space-y-0.5">
+                <div class="flex items-center gap-1.5">
+                  <span>👑</span> <b>본인 소속(김태홍 직속) 셀리더:</b> 
+                  <span class="font-semibold text-emerald-800">전원 셀모임 보고서 제출 완료 ✅</span>
+                  ${taehongDirectSubmitted.length > 0 ? `<span class="text-[10px] text-zinc-500 font-mono">(${taehongDirectSubmitted.map(l => l + '셀').join(', ')})</span>` : ''}
+                </div>
               </div>
             `;
           }
+
+          // 2. 전체 셀 중 셀모임 보고서 제출 완료 셀
           if (allSubmittedInActiveCells.length > 0) {
             extraInfo += `
-              <div class="mt-1.5 pt-1.5 border-t border-amber-200/80 text-[11px] text-amber-950 font-normal space-y-0.5">
-                <div>✨ <b>독립 보고서 제출 완료 (${allSubmittedInActiveCells.length}개 셀):</b> <span class="font-semibold text-amber-900">${allSubmittedInActiveCells.map(c => c.leaderName + '셀').join(', ')}</span> (독립 분리 취합 완료)</div>
+              <div class="mt-1 text-[11px] text-amber-950 font-normal space-y-0.5">
+                <div>✨ <b>셀모임 보고서 제출 완료 (${allSubmittedInActiveCells.length}개 셀):</b> <span class="font-semibold text-amber-900">${allSubmittedInActiveCells.map(c => c.leaderName + '셀').join(', ')}</span> (보고서 분리 취합 완료)</div>
               </div>
             `;
           }
+
+          // 3. 하위(손자) 셀리더는 아래쪽 해당 셀 카드에서 확인하도록 구분 표기
+          if (subDescendantUnsubmitted.length > 0) {
+            extraInfo += `
+              <div class="mt-1 pt-1 border-t border-amber-200/50 text-[10.5px] text-amber-900/90 leading-relaxed">
+                • 🌿 <b>하위(손자) 셀리더 보고서 미제출 (${subDescendantUnsubmitted.length}명):</b> <span class="font-semibold text-amber-950">${subDescendantUnsubmitted.map(u => `${u.name}(${u.parentLeader}셀)`).join(', ')}</span> 
+                <span class="text-zinc-500 text-[10px] block sm:inline sm:ml-1">➔ 아래 해당 상위 셀 카드(${[...new Set(subDescendantUnsubmitted.map(u => u.parentLeader + '셀'))].join(', ')})에서 상세 확인 및 작성이 가능합니다.</span>
+              </div>
+            `;
+          }
+
           if (unopenedLeaders.length > 0) {
             extraInfo += `
-              <div class="mt-1 text-[10px] text-amber-800">
+              <div class="mt-0.5 text-[10px] text-amber-800">
                 • ⏳ <b>미오픈 셀리더 (${unopenedLeaders.length}명):</b> ${unopenedLeaders.join(', ')} (상위 셀에서 함께 출석 집계 중)
               </div>
             `;
@@ -4604,7 +4634,7 @@
           notice.innerHTML = `
             <span class="text-base">👑</span>
             <div class="w-full">
-              <b>김태홍 군단 대시보드 (태홍이형 시점)</b>: 군단리더(김태홍) 입장에서 군단 전체(<b>${activeCells.length}개 셀, 고유 총원 ${totalMembers}명</b>)의 출석 통계와 셀별 현황을 총괄 조회합니다.
+              <b>김태홍 군단 대시보드 (군단리더 시점)</b>: 군단리더(김태홍) 입장에서 군단 전체(<b>${activeCells.length}개 셀, 고유 총원 ${totalMembers}명</b>)의 출석 통계와 셀별 현황을 총괄 조회합니다.
               ${extraInfo}
             </div>
           `;
@@ -4702,7 +4732,7 @@
                     <span class="font-bold text-sm text-zinc-900">${cell.leaderName} 셀</span>
                     <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 border border-zinc-200 font-medium">${cell.location}</span>
                     ${cell.isCorpsLeader ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">군단리더 직속</span>' : ''}
-                    ${cell.isSubmittedReport ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">✨ 독립 제출 셀</span>' : ''}
+                    ${cell.isSubmittedReport ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">✨ 셀모임 보고서 제출 셀</span>' : ''}
                     ${hierarchyTag}
                     ${cell.isPending ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-bold">⏳ 작성 대기</span>' : ''}
                   </div>
@@ -4764,11 +4794,11 @@
               ${submittedInThisCell.length > 0 ? `
                 <div class="p-2 bg-emerald-50/80 border border-emerald-200 rounded-lg text-xs text-emerald-900 flex items-center justify-between flex-wrap gap-1.5">
                   <div class="flex items-center gap-1.5 flex-wrap">
-                    <span class="font-bold text-emerald-950">✨ 독립 보고서 제출 완료 (${submittedInThisCell.length}개 셀):</span>
+                    <span class="font-bold text-emerald-950">✨ 셀모임 보고서 제출 완료 (${submittedInThisCell.length}개 셀):</span>
                     <span class="font-semibold text-emerald-800">${submittedInThisCell.map(l => l + '셀').join(', ')}</span>
                   </div>
                   <span class="text-[10px] bg-emerald-200/70 text-emerald-900 px-1.5 py-0.5 rounded font-medium">
-                    독립 분리 취합 완료 (고유 1명 반영)
+                    보고서 분리 취합 완료 (고유 1명 반영)
                   </span>
                 </div>
               ` : ''}
@@ -4816,7 +4846,7 @@
                         <span class="font-semibold text-zinc-800 flex items-center gap-1 flex-wrap ${m.role === '셀리더' ? 'text-amber-600 font-bold' : (m.role === '디모데' ? 'text-emerald-600 font-semibold' : '')}">
                           <span>${m.name}</span>
                           ${badgeText ? `<span class="text-[9px] px-1 py-0.2 rounded border font-semibold shrink-0 whitespace-nowrap ${badgeClass}">${badgeText}</span>` : ''}
-                          ${isSubSubmitted ? `<span class="text-[9px] px-1 py-0.2 rounded font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0 whitespace-nowrap">독립 분리</span>` : ''}
+                          ${isSubSubmitted ? `<span class="text-[9px] px-1 py-0.2 rounded font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0 whitespace-nowrap">보고서 제출</span>` : ''}
                         </span>
                         <div class="flex items-center gap-1 font-mono text-[10px]">
                           <span class="px-1 rounded ${m.sunday ? 'badge-att' : 'badge-abs'}" title="주일예배">${m.sunday ? '주일✓' : '주일✕'}</span>
@@ -5073,7 +5103,7 @@
 
       let text = `${headerTitle}\n\n`;
       text += `1. 리더십 현황 (${activeCells.length}개 셀 독립 집계)\n`;
-      text += `• ✨ 독립 보고서 제출 (${activeCells.length}개 셀): ${activeCells.map(c => c.leaderName + (c.roleTitle && c.roleTitle.includes('디모데') ? '(디모데)' : '')).join(', ')}\n`;
+      text += `• ✨ 셀모임 보고서 제출 (${activeCells.length}개 셀): ${activeCells.map(c => c.leaderName + (c.roleTitle && c.roleTitle.includes('디모데') ? '(디모데)' : '')).join(', ')}\n`;
       if (allUnsubmittedInActiveCells.length > 0) {
         text += `• 👑 보고서 미제출 리더 (${allUnsubmittedInActiveCells.length}명): ${allUnsubmittedInActiveCells.map(u => `${u.name}(${u.parentLeader}셀)`).join(', ')} (상위셀 취합 중)\n`;
       }
