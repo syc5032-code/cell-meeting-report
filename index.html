@@ -395,36 +395,36 @@
         <div id="demoSundayNavigator" class="flex items-center justify-between bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs"></div>
         <!-- 상단 시점 전환 (Role Switcher) 바 -->
         <div class="bg-white p-3.5 sm:p-4 rounded-xl border border-zinc-200 shadow-xs space-y-3">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-zinc-100 pb-3">
-          <div>
-            <div class="flex items-center gap-1.5">
-              <span class="text-[10px] font-bold tracking-wider text-emerald-800 uppercase bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-zinc-100 pb-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="whitespace-nowrap text-[10px] font-bold tracking-wider text-emerald-800 uppercase bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                 👑 실시간 저장 데이터 연동
               </span>
-              <span class="text-[10px] text-zinc-500">실제 보고서 제출 셀 기준</span>
+              <span class="whitespace-nowrap text-[10px] text-zinc-500">실제 보고서 제출 셀 기준</span>
             </div>
-            <h2 class="text-sm sm:text-base font-bold text-zinc-900 mt-1 flex items-center gap-1.5">
+            <h2 class="whitespace-nowrap text-sm sm:text-base font-bold text-zinc-900 mt-1 flex items-center gap-1.5">
               <span>🌳</span> 군단 & 셀 계층형 출석 현황
             </h2>
           </div>
-          <div id="demoRoleSwitcherContainer" class="flex items-center gap-1 p-1 bg-zinc-100 rounded-xl border border-zinc-200 text-xs font-semibold shrink-0">
+          <div id="demoRoleSwitcherContainer" class="flex flex-wrap sm:flex-nowrap items-center gap-1 p-1 bg-zinc-100 rounded-xl border border-zinc-200 text-xs font-semibold shrink-0">
             <button id="btnRoleCell" onclick="setDemoRole('cell')" 
-              class="px-2.5 py-1.5 rounded-lg transition-all bg-zinc-900 text-white shadow-xs font-semibold flex items-center gap-1">
+              class="whitespace-nowrap px-2.5 py-1.5 rounded-lg transition-all bg-zinc-900 text-white shadow-xs font-semibold flex items-center gap-1">
               <span>🌱</span> <span>내 화면 (송예찬)</span>
             </button>
             <button id="btnRoleTaehong" onclick="setDemoRole('taehong')" 
-              class="px-2.5 py-1.5 rounded-lg transition-all text-zinc-600 hover:text-zinc-900 font-medium flex items-center gap-1">
+              class="whitespace-nowrap px-2.5 py-1.5 rounded-lg transition-all text-zinc-600 hover:text-zinc-900 font-medium flex items-center gap-1">
               <span>👑</span> <span>김태홍 군단 대시보드</span>
             </button>
             <button id="btnRoleCorps" onclick="setDemoRole('corps')" 
-              class="px-2.5 py-1.5 rounded-lg transition-all text-zinc-600 hover:text-zinc-900 font-medium flex items-center gap-1">
+              class="whitespace-nowrap px-2.5 py-1.5 rounded-lg transition-all text-zinc-600 hover:text-zinc-900 font-medium flex items-center gap-1">
               <span>🌳</span> <span>전체 합산 (군단)</span>
             </button>
           </div>
         </div>
 
         <!-- 현재 시점 설명 알림 -->
-        <div id="demoRoleNotice" class="text-xs p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 flex items-start gap-2 leading-relaxed">
+        <div id="demoRoleNotice" class="text-xs p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 flex items-start gap-2 leading-relaxed break-keep">
           <span class="text-base">👑</span>
           <div>
             <b>김태홍 군단리더 시점</b>: 군단 산하의 <b>모든 셀(김태홍 직속, 송예찬셀, 권회인셀, 박창현셀, 조국현셀 등 5개 셀)</b>과 <b>말단 셀원들(실제 고유 42명)</b>까지 전체 출석 통계와 셀별 보고서를 한눈에 조회합니다.
@@ -4218,11 +4218,11 @@
 
         container.innerHTML = `
           <button id="btnRoleCorps" onclick="setDemoRole('corps')" 
-            class="px-3 py-1.5 rounded-lg transition-all ${isCorps ? 'bg-zinc-900 text-white shadow-xs font-semibold' : 'text-zinc-600 hover:text-zinc-900 font-medium'} flex items-center gap-1.5">
+            class="whitespace-nowrap px-3 py-1.5 rounded-lg transition-all ${isCorps ? 'bg-zinc-900 text-white shadow-xs font-semibold' : 'text-zinc-600 hover:text-zinc-900 font-medium'} flex items-center gap-1.5">
             <span>👑</span> <span>김태홍 군단 대시보드 (군단리더 시점)</span>
           </button>
           <button id="btnRoleCell" onclick="setDemoRole('cell')" 
-            class="px-3 py-1.5 rounded-lg transition-all ${isCell ? 'bg-zinc-900 text-white shadow-xs font-semibold' : 'text-zinc-600 hover:text-zinc-900 font-medium'} flex items-center gap-1.5">
+            class="whitespace-nowrap px-3 py-1.5 rounded-lg transition-all ${isCell ? 'bg-zinc-900 text-white shadow-xs font-semibold' : 'text-zinc-600 hover:text-zinc-900 font-medium'} flex items-center gap-1.5">
             <span>🌱</span> <span>내 군단 현황 (송예찬 산하 전체)</span>
           </button>
         `;
@@ -4685,23 +4685,23 @@
           let extraInfo = '';
           if (allUnsubmittedInActiveCells.length > 0) {
             extraInfo += `
-              <div class="mt-1.5 pt-1.5 border-t border-emerald-200/80 text-[11px] text-emerald-950 font-normal space-y-0.5">
-                <div>👑 <b>셀오픈 리더 (본인 보고서 미제출 ${allUnsubmittedInActiveCells.length}명):</b> <span class="font-semibold text-emerald-900">${allUnsubmittedInActiveCells.map(u => `${u.name}(${u.parentLeader}셀)`).join(', ')}</span></div>
-                <div class="text-[10px] text-emerald-800">• 아직 본인 보고서를 제출하지 않아 <b>상위 셀보고서 기반으로 출석이 정상 취합</b>되고 있습니다. (보고서 제출 시 셀별로 자동 분리)</div>
+              <div class="mt-1.5 pt-1.5 border-t border-emerald-200/80 text-[11px] text-emerald-950 font-normal space-y-0.5 break-keep">
+                <div>👑 <b>셀오픈 리더 (본인 보고서 미제출 ${allUnsubmittedInActiveCells.length}명):</b> <span class="font-semibold text-emerald-900">${allUnsubmittedInActiveCells.map(u => (u.parentLeader === '송예찬' ? u.name : `${u.name}(${u.parentLeader}셀)`)).join(', ')}</span></div>
+                <div class="text-[10px] text-emerald-800 break-keep">• 아직 본인 보고서를 제출하지 않아 <b>상위 셀보고서 기반으로 출석이 정상 취합</b>되고 있습니다. (보고서 제출 시 셀별로 자동 분리)</div>
               </div>
             `;
           }
           if (allSubmittedInActiveCells.length > 0) {
             extraInfo += `
-              <div class="mt-1.5 pt-1.5 border-t border-emerald-200/80 text-[11px] text-emerald-950 font-normal space-y-0.5">
+              <div class="mt-1.5 pt-1.5 border-t border-emerald-200/80 text-[11px] text-emerald-950 font-normal space-y-0.5 break-keep">
                 <div>✨ <b>셀모임 보고서 제출 완료 (${allSubmittedInActiveCells.length}개 셀):</b> <span class="font-semibold text-emerald-900">${allSubmittedInActiveCells.map(c => c.leaderName + '셀').join(', ')}</span></div>
-                <div class="text-[10px] text-emerald-800">• 셀모임 보고서가 제출되어 <b>중복 카운트 없이 고유 1명</b>으로 정상 취합되었습니다.</div>
+                <div class="text-[10px] text-emerald-800 break-keep">• 셀모임 보고서가 제출되어 <b>중복 카운트 없이 고유 1명</b>으로 정상 취합되었습니다.</div>
               </div>
             `;
           }
           if (songUnopened.length > 0) {
             extraInfo += `
-              <div class="mt-1 text-[10px] text-emerald-800">
+              <div class="mt-1 text-[10px] text-emerald-800 break-keep">
                 • ⏳ <b>미오픈 셀리더 (${songUnopened.length}명):</b> ${songUnopened.join(', ')} (상위 셀 소속으로 함께 출석 집계 중)
               </div>
             `;
@@ -4709,12 +4709,12 @@
 
           notice.innerHTML = `
             <span class="text-base">🌱</span>
-            <div class="w-full">
+            <div class="w-full break-keep">
               <b>내 군단 현황 (송예찬 산하 전체 대시보드)</b>: 송예찬 본인 셀과 산하 모든 계층의 셀(<b>총 ${activeCells.length}개 셀, 고유 총원 ${totalMembers}명</b>)의 출석 통계가 재귀적으로 전체 취합됩니다.
               ${extraInfo}
             </div>
           `;
-          notice.className = 'text-xs p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-emerald-900 flex items-start gap-2 leading-relaxed';
+          notice.className = 'text-xs p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-emerald-900 flex items-start gap-2 leading-relaxed break-keep';
         } else {
           // corps: 김태홍 군단 대시보드 (군단리더 시점)
           let extraInfo = '';
@@ -4768,12 +4768,12 @@
 
           notice.innerHTML = `
             <span class="text-base">👑</span>
-            <div class="w-full">
+            <div class="w-full break-keep">
               <b>김태홍 군단 대시보드 (군단리더 시점)</b>: 군단리더(김태홍) 입장에서 군단 전체(<b>${activeCells.length}개 셀, 고유 총원 ${totalMembers}명</b>)의 출석 통계와 셀별 현황을 총괄 조회합니다.
               ${extraInfo}
             </div>
           `;
-          notice.className = 'text-xs p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 flex items-start gap-2 leading-relaxed';
+          notice.className = 'text-xs p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 flex items-start gap-2 leading-relaxed break-keep';
         }
       }
 
@@ -5240,7 +5240,7 @@
       text += `1. 리더십 현황 (${activeCells.length}개 셀 독립 집계)\n`;
       text += `• ✨ 셀모임 보고서 제출 (${activeCells.length}개 셀): ${activeCells.map(c => c.leaderName + (c.roleTitle && c.roleTitle.includes('디모데') ? '(디모데)' : '')).join(', ')}\n`;
       if (allUnsubmittedInActiveCells.length > 0) {
-        text += `• 👑 보고서 미제출 리더 (${allUnsubmittedInActiveCells.length}명): ${allUnsubmittedInActiveCells.map(u => `${u.name}(${u.parentLeader}셀)`).join(', ')} (상위셀 취합 중)\n`;
+        text += `• 👑 보고서 미제출 리더 (${allUnsubmittedInActiveCells.length}명): ${allUnsubmittedInActiveCells.map(u => (u.parentLeader === '송예찬' ? u.name : `${u.name}(${u.parentLeader}셀)`)).join(', ')} (상위셀 취합 중)\n`;
       }
       if (unopenedLeaders.length > 0) {
         text += `• ⏳ 오픈준비 리더 (${unopenedLeaders.length}명): ${unopenedLeaders.join(', ')} (상위셀 함께 출석)\n`;
