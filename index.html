@@ -548,7 +548,7 @@
       <div class="p-2.5 rounded-lg bg-amber-50/70 border border-amber-200 text-xs text-amber-900 leading-relaxed flex items-start gap-2">
         <span class="text-base shrink-0">👑</span>
         <div>
-          셀원별 직책(<b>셀원 / 🌿디모데 / 👑셀리더</b>)을 지정할 수 있습니다. <b>👑셀리더</b>로 임명되었으나 아직 셀원이 미배정된 리더는 모체 셀에서 함께 출석 집계되며, 독립 출석률에는 노출되지 않습니다. (추후 실제 셀원 배정 시 독립 하위 셀로 자동 연동)
+          셀원별 직책(<b>👑셀리더 / 🌿디모데 / 셀원</b>)을 지정할 수 있습니다. <b>👑셀리더</b>로 임명되었으나 아직 셀원이 미배정된 리더는 모체 셀에서 함께 출석 집계되며, 독립 출석률에는 노출되지 않습니다. (추후 실제 셀원 배정 시 독립 하위 셀로 자동 연동)
         </div>
       </div>
 
@@ -2341,14 +2341,14 @@
           <div class="flex items-center justify-between pt-1.5 border-t border-zinc-200/70 text-[11px]">
             <span class="text-zinc-400 font-medium">직책 설정</span>
             <div class="inline-flex rounded-lg border border-zinc-200 bg-zinc-200/60 p-0.5 text-[11px]">
-              <button type="button" onclick="setMemberRole('${escapeHtml(name)}', '셀원')" class="px-2 py-0.5 rounded transition ${role === '셀원' ? 'bg-white text-zinc-900 font-semibold shadow-xs' : 'text-zinc-500 hover:text-zinc-800'}">
-                셀원
+              <button type="button" onclick="setMemberRole('${escapeHtml(name)}', '셀리더')" class="px-2 py-0.5 rounded transition ${role === '셀리더' ? 'bg-amber-500 text-white font-semibold shadow-xs' : 'text-zinc-500 hover:text-zinc-800'}">
+                👑 셀리더
               </button>
               <button type="button" onclick="setMemberRole('${escapeHtml(name)}', '디모데')" class="px-2 py-0.5 rounded transition ${role === '디모데' ? 'bg-emerald-600 text-white font-semibold shadow-xs' : 'text-zinc-500 hover:text-zinc-800'}">
                 🌿 디모데
               </button>
-              <button type="button" onclick="setMemberRole('${escapeHtml(name)}', '셀리더')" class="px-2 py-0.5 rounded transition ${role === '셀리더' ? 'bg-amber-500 text-white font-semibold shadow-xs' : 'text-zinc-500 hover:text-zinc-800'}">
-                👑 셀리더
+              <button type="button" onclick="setMemberRole('${escapeHtml(name)}', '셀원')" class="px-2 py-0.5 rounded transition ${role === '셀원' ? 'bg-white text-zinc-900 font-semibold shadow-xs' : 'text-zinc-500 hover:text-zinc-800'}">
+                셀원
               </button>
             </div>
           </div>
