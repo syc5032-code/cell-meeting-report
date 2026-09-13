@@ -149,6 +149,9 @@
 
     <!-- 탭 1: 셀모임 보고서 컨텐츠 (교회 제출용) -->
     <div id="tabContentReport" class="space-y-4">
+      <!-- 관리자 전용 편집 대상 셀 전환 배너 -->
+      <div id="adminEditingBanner"></div>
+
       <!-- 1. 기본 정보 카드 -->
       <section class="bg-white rounded-xl border border-zinc-200 p-4 sm:p-5 space-y-3.5">
         <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
@@ -362,9 +365,33 @@
 
     <!-- 탭 3: 계층형 군단 & 셀 네트워크 현황 (체험 시뮬레이터) -->
     <div id="tabContentNetwork" class="space-y-4 hidden">
-      <!-- 상단 시점 전환 (Role Switcher) 바 -->
-      <div class="bg-white p-3.5 sm:p-4 rounded-xl border border-zinc-200 shadow-xs space-y-3">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-zinc-100 pb-3">
+      <!-- 동기화되지 않은 일반 사용자용 안내 화면 -->
+      <div id="networkNotSyncedNotice" class="hidden bg-white rounded-2xl border border-zinc-200 p-6 sm:p-8 text-center space-y-4 shadow-xs">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-2xl shadow-xs">
+          🔐
+        </div>
+        <div class="space-y-1.5 max-w-md mx-auto">
+          <h3 class="text-base font-bold text-zinc-900">내 셀 데이터 동기화가 필요합니다</h3>
+          <p class="text-xs text-zinc-500 leading-relaxed">
+            현재 기기에 연결된 동기화 코드가 없습니다.<br>
+            타 셀의 출석 데이터는 비공개이며, <b>내 동기화 코드</b>를 연결하시면 본인 셀의 현황을 확인하실 수 있습니다.
+          </p>
+        </div>
+        <div class="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2 max-w-xs mx-auto">
+          <button onclick="openSyncModal()" class="w-full py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl text-xs font-semibold shadow-xs transition active:scale-95 flex items-center justify-center gap-1.5">
+            <span>☁️</span> <span>내 동기화 코드 연결하기</span>
+          </button>
+          <button onclick="quickAdminLogin()" class="w-full py-2.5 px-4 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-semibold shadow-xs transition active:scale-95 flex items-center justify-center gap-1.5">
+            <span>👑</span> <span>송예찬 관리자 로그인</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 메인 군단/셀 대시보드 본문 -->
+      <div id="networkMainDashboard" class="space-y-4">
+        <!-- 상단 시점 전환 (Role Switcher) 바 -->
+        <div class="bg-white p-3.5 sm:p-4 rounded-xl border border-zinc-200 shadow-xs space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-zinc-100 pb-3">
           <div>
             <div class="flex items-center gap-1.5">
               <span class="text-[10px] font-bold tracking-wider text-emerald-800 uppercase bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
@@ -506,6 +533,8 @@
             </div>
           </div>
         </div>
+      </div>
+      <!-- networkMainDashboard 닫기 -->
       </div>
     </div>
 
@@ -998,24 +1027,41 @@
     window.addEventListener('DOMContentLoaded', async () => {
       initWelcomeBanner();
 
-      // URL 파라미터 확인 (?code=김태홍2920 또는 ?user=김태홍, ?leader=김태홍)
+      // URL 파라미터 확인 (?code=김태홍2920 또는 ?code=송예찬1206, ?user=김태홍, ?admin=song)
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const codeParam = urlParams.get('code');
         const userParam = urlParams.get('user') || urlParams.get('leader');
+        const adminParam = urlParams.get('admin');
+
         if (codeParam) {
           state.syncCode = codeParam.trim();
           localStorage.setItem('cell_sync_code', state.syncCode);
+          if (state.syncCode === '송예찬1206') {
+            localStorage.setItem('cell_is_admin', 'true');
+          } else {
+            localStorage.removeItem('cell_is_admin');
+          }
         }
         if (userParam) {
           state.leaderName = userParam.trim();
           localStorage.setItem('cell_leader_name', state.leaderName);
+        }
+        if (adminParam === 'song' || adminParam === 'yechan' || adminParam === 'true') {
+          localStorage.setItem('cell_is_admin', 'true');
+          if (!state.syncCode) {
+            state.syncCode = '송예찬1206';
+            localStorage.setItem('cell_sync_code', '송예찬1206');
+          }
         }
       } catch (e) {
         console.warn('URL param parse error', e);
       }
 
       loadStorage();
+      if (state.syncCode === '송예찬1206') {
+        localStorage.setItem('cell_is_admin', 'true');
+      }
       initDefaultDate();
       renderAll();
       updateSyncHeaderUI();
@@ -1170,6 +1216,9 @@
         localStorage.setItem('cell_notes', state.notes);
         localStorage.setItem('cell_prayers', JSON.stringify(state.prayers || {}));
         localStorage.setItem('cell_report_history', JSON.stringify(state.history));
+        if (typeof adminEditingTarget !== 'undefined' && adminEditingTarget === 'taehong' && typeof syncTaehongDemoCellFromState === 'function') {
+          syncTaehongDemoCellFromState();
+        }
         updateSaveBadge();
       } catch (e) {
         console.error('Failed to save storage', e);
@@ -1682,6 +1731,7 @@
         if (tabBtnReport) tabBtnReport.className = activeBtnClass;
         if (contentReport) contentReport.classList.remove('hidden');
         if (copyBtnText) copyBtnText.innerText = '카카오톡 내용 복사하기';
+        if (typeof renderAdminEditingBanner === 'function') renderAdminEditingBanner();
       } else if (tabName === 'prayers') {
         if (tabBtnPrayers) tabBtnPrayers.className = activeBtnClass;
         if (contentPrayers) contentPrayers.classList.remove('hidden');
@@ -1719,6 +1769,7 @@
       updateOutput();
       updatePrayerPreview();
       updateTabBadges();
+      if (typeof renderAdminEditingBanner === 'function') renderAdminEditingBanner();
     }
 
     // ==========================================
@@ -2814,20 +2865,27 @@
     }
 
     async function saveToCloud(isSilent = true, retryCount = 1) {
-      if (!state.syncCode) return;
+      const activeCode = (typeof isSongYechanAdmin === 'function' && isSongYechanAdmin() && adminEditingTarget === 'taehong')
+        ? '김태홍2920'
+        : (state.syncCode || (typeof isSongYechanAdmin === 'function' && isSongYechanAdmin() ? '송예찬1206' : ''));
+
+      if (!activeCode) return;
+      if (typeof syncTaehongDemoCellFromState === 'function' && adminEditingTarget === 'taehong') {
+        syncTaehongDemoCellFromState();
+      }
       try {
         const res = await fetch('/api/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'save',
-            code: state.syncCode,
+            code: activeCode,
             data: getExportData()
           })
         });
         if (!res.ok) throw new Error('Cloud save failed (' + res.status + ')');
         localStorage.setItem('cell_last_sync_time', new Date().toISOString());
-        if (!isSilent) showToast('☁️ 클라우드에 안전하게 동기화되었습니다!');
+        if (!isSilent) showToast(`☁️ [${activeCode}] 클라우드에 안전하게 동기화되었습니다!`);
         updateSyncHeaderUI();
       } catch (e) {
         if (retryCount > 0) {
@@ -2841,22 +2899,29 @@
     }
 
     async function loadFromCloud(isSilent = false) {
-      if (!state.syncCode) return;
+      const activeCode = (typeof isSongYechanAdmin === 'function' && isSongYechanAdmin() && adminEditingTarget === 'taehong')
+        ? '김태홍2920'
+        : state.syncCode;
+
+      if (!activeCode) return;
       try {
         const res = await fetch('/api/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'load',
-            code: state.syncCode
+            code: activeCode
           })
         });
         if (!res.ok) throw new Error('Cloud load failed');
         const json = await res.json();
         if (json.ok && json.data) {
           applyImportData(json.data);
+          if (typeof syncTaehongDemoCellFromState === 'function' && adminEditingTarget === 'taehong') {
+            syncTaehongDemoCellFromState();
+          }
           localStorage.setItem('cell_last_sync_time', new Date().toISOString());
-          if (!isSilent) showToast(`☁️ '${state.syncCode}' 데이터를 최신으로 동기화했습니다!`);
+          if (!isSilent) showToast(`☁️ '${activeCode}' 데이터를 최신으로 동기화했습니다!`);
           updateSyncHeaderUI();
         }
       } catch (e) {
@@ -2906,6 +2971,15 @@
             <p class="text-[11px] text-emerald-700 leading-relaxed">
               💡 <b>스마트폰이나 다른 컴퓨터</b>에서도 위 코드(<b>${escapeHtml(state.syncCode)}</b>)를 입력하시면 데이터가 실시간으로 연결됩니다.
             </p>
+
+            ${(typeof isSongYechanAdmin === 'function' && isSongYechanAdmin()) ? `
+              <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900 font-bold flex items-center justify-between">
+                <span class="flex items-center gap-1.5">
+                  <span>👑</span> <span>송예찬 총괄 관리자 모드 활성화됨</span>
+                </span>
+                <span class="text-[10px] bg-amber-200/80 px-1.5 py-0.5 rounded font-medium">전체 셀 조회 & 수정 가능</span>
+              </div>
+            ` : ''}
           </div>
 
           <div class="grid grid-cols-2 gap-2 pt-1">
@@ -2966,6 +3040,10 @@
                 <button onclick="submitSyncCode('load')" id="syncLoadBtn"
                   class="w-full py-2.5 px-3 bg-white border border-zinc-200 text-zinc-800 text-xs font-medium rounded-lg hover:bg-zinc-50 transition active:scale-95 flex items-center justify-center gap-1.5">
                   <span>⬇️</span> 이미 등록된 코드로 데이터 불러오기
+                </button>
+                <button onclick="quickAdminLogin()" type="button"
+                  class="w-full py-2.5 px-3 bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-300 text-amber-950 text-xs font-bold rounded-lg hover:from-amber-100 hover:to-amber-200 transition active:scale-95 flex items-center justify-center gap-1.5 shadow-2xs">
+                  <span>👑</span> <span>송예찬 총괄 관리자 빠른 로그인</span>
                 </button>
               </div>
             </div>
@@ -3037,6 +3115,12 @@
         localStorage.setItem('cell_sync_code', code);
         localStorage.setItem('cell_last_sync_time', new Date().toISOString());
 
+        if (code === '송예찬1206') {
+          localStorage.setItem('cell_is_admin', 'true');
+        } else {
+          localStorage.removeItem('cell_is_admin');
+        }
+
         if (action === 'load' && json.data) {
           applyImportData(json.data);
           showToast(`🔗 '${code}' 코드로 데이터를 성공적으로 불러왔습니다!`);
@@ -3046,6 +3130,10 @@
 
         updateSyncHeaderUI();
         renderSyncModal();
+        if (typeof renderAdminEditingBanner === 'function') renderAdminEditingBanner();
+        if (typeof renderDemoDashboard === 'function' && currentMainTab === 'network') {
+          renderDemoDashboard();
+        }
 
       } catch (e) {
         console.error(e);
@@ -3077,8 +3165,14 @@
       state.syncCode = '';
       localStorage.removeItem('cell_sync_code');
       localStorage.removeItem('cell_last_sync_time');
+      localStorage.removeItem('cell_is_admin');
+      if (typeof adminEditingTarget !== 'undefined') adminEditingTarget = 'yechan';
       updateSyncHeaderUI();
       renderSyncModal();
+      if (typeof renderAdminEditingBanner === 'function') renderAdminEditingBanner();
+      if (typeof renderDemoDashboard === 'function' && currentMainTab === 'network') {
+        renderDemoDashboard();
+      }
       showToast('동기화 연결이 해제되었습니다.');
     }
 
@@ -3157,43 +3251,222 @@
       return getActiveSubCellLeaders();
     }
 
+    // ==========================================
+    // 👑 송예찬 총괄 관리자 & 권한 제어
+    // ==========================================
+    let adminEditingTarget = 'yechan'; // 'yechan' (송예찬 셀) | 'taehong' (김태홍 셀)
+    let cachedTaehongData = null;
+    let cachedYechanData = null;
+
+    function isSongYechanAdmin() {
+      const code = (state.syncCode || '').trim();
+      const isAdminStored = localStorage.getItem('cell_is_admin') === 'true';
+      return code === '송예찬1206' || isAdminStored;
+    }
+
     function isCurrentUserTaehong() {
+      // 송예찬 관리자가 편집 중일 때는 관리자 모드이므로 김태홍 비관리자로 판별하지 않음
+      if (isSongYechanAdmin()) return false;
       const leader = (state.leaderName || '').trim();
       const code = (state.syncCode || '').trim();
       return leader === '김태홍' || code.startsWith('김태홍');
     }
 
-    let currentDemoRole = 'cell'; // 'cell' (송예찬 본인), 'taehong' (김태홍 본인), 'corps' (군단 전체 합산)
+    function getTaehongInitialData() {
+      const cell = DEMO_CORPS_DATA.cells[0];
+      const members = cell.members.map(m => m.name);
+      const memberRoles = {};
+      const sundayAttendance = {};
+      const cellAttendance = {};
+      const sundayReasons = {};
+      const cellReasons = {};
+      cell.members.forEach(m => {
+        memberRoles[m.name] = m.role;
+        sundayAttendance[m.name] = m.sunday;
+        cellAttendance[m.name] = m.cell;
+        if (m.sundayReason) sundayReasons[m.name] = m.sundayReason;
+        if (m.cellReason) cellReasons[m.name] = m.cellReason;
+      });
+      return {
+        leaderName: '김태홍',
+        location: cell.location || '워십홀',
+        meetingDate: '2026-09-10',
+        meetingTime: '19:30',
+        members,
+        memberRoles,
+        leaderCellStatus: {
+          '김태홍': 'open',
+          '송예찬': 'open',
+          '권회인': 'open',
+          '박창현': 'unopened',
+          '조국현': 'unopened'
+        },
+        sundayAttendance,
+        cellAttendance,
+        sundayReasons,
+        cellReasons,
+        notes: cell.notes || '',
+        prayers: {},
+        sundayAbsenceOrder: [],
+        cellAbsenceOrder: [],
+        history: []
+      };
+    }
+
+    function syncTaehongDemoCellFromState() {
+      const cell = DEMO_CORPS_DATA.cells[0];
+      if (!cell) return;
+      cell.leaderName = state.leaderName || '김태홍';
+      cell.location = state.location || '워십홀';
+      cell.meetingDateTime = (state.meetingDate && state.meetingDate.trim())
+        ? `${state.meetingDate}${state.meetingTime ? ' ' + state.meetingTime : ''}`
+        : '2026/9/10(목) 저녁 7시 30분';
+      cell.notes = state.notes || '';
+      cell.members = state.members.map(name => ({
+        name,
+        role: getMemberRole(name),
+        sunday: !!state.sundayAttendance[name],
+        sundayReason: state.sundayReasons[name] || '',
+        cell: !!state.cellAttendance[name],
+        cellReason: state.cellReasons[name] || ''
+      }));
+    }
+
+    function switchAdminEditingCell(target) {
+      if (!isSongYechanAdmin()) return;
+      if (adminEditingTarget === target) return;
+
+      // 1. 현재 작성 중인 셀 데이터 백업
+      if (adminEditingTarget === 'yechan') {
+        cachedYechanData = getExportData();
+      } else if (adminEditingTarget === 'taehong') {
+        cachedTaehongData = getExportData();
+        syncTaehongDemoCellFromState();
+      }
+
+      adminEditingTarget = target;
+
+      // 2. 타겟 셀 데이터 복원
+      if (target === 'taehong') {
+        if (!cachedTaehongData) {
+          cachedTaehongData = getTaehongInitialData();
+        }
+        applyImportData(cachedTaehongData);
+        showToast('👑 [김태홍 셀 (20명)] 편집 모드로 전환되었습니다.');
+      } else {
+        if (!cachedYechanData) {
+          cachedYechanData = getExportData();
+        }
+        applyImportData(cachedYechanData);
+        showToast('🌱 [송예찬 셀 (9명)] 편집 모드로 전환되었습니다.');
+      }
+
+      renderAdminEditingBanner();
+      if (typeof renderDemoDashboard === 'function' && currentMainTab === 'network') {
+        renderDemoDashboard();
+      }
+    }
+
+    function editCellAsAdmin(cellId) {
+      if (!isSongYechanAdmin()) return;
+      switchMainTab('report');
+      if (cellId === 'cell_taehong') {
+        switchAdminEditingCell('taehong');
+      } else {
+        switchAdminEditingCell('yechan');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderAdminEditingBanner() {
+      const banner = document.getElementById('adminEditingBanner');
+      if (!banner) return;
+
+      if (!isSongYechanAdmin()) {
+        banner.innerHTML = '';
+        return;
+      }
+
+      banner.innerHTML = `
+        <div class="p-3 bg-gradient-to-r from-amber-500/10 via-amber-50 to-emerald-50 border border-amber-300 rounded-xl shadow-xs space-y-2 mb-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+              <span class="text-base">👑</span> <span>송예찬 총괄 관리자 편집 모드</span>
+            </span>
+            <span class="text-[11px] text-zinc-500 hidden sm:inline">수정할 셀을 선택하면 출석/사유/특이사항을 직접 편집할 수 있습니다.</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="switchAdminEditingCell('yechan')"
+              class="py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${adminEditingTarget === 'yechan' ? 'bg-emerald-700 text-white shadow-xs ring-2 ring-emerald-600' : 'bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50'}">
+              <span>🌱</span> <span>송예찬 셀 편집 (9명)</span>
+              ${adminEditingTarget === 'yechan' ? '<span class="text-[10px] bg-emerald-800 text-emerald-100 px-1.5 py-0.2 rounded-full font-medium">편집중</span>' : ''}
+            </button>
+            <button type="button" onclick="switchAdminEditingCell('taehong')"
+              class="py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${adminEditingTarget === 'taehong' ? 'bg-amber-600 text-white shadow-xs ring-2 ring-amber-500' : 'bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50'}">
+              <span>👑</span> <span>김태홍 셀 편집 (20명)</span>
+              ${adminEditingTarget === 'taehong' ? '<span class="text-[10px] bg-amber-700 text-amber-100 px-1.5 py-0.2 rounded-full font-medium">편집중</span>' : ''}
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function quickAdminLogin() {
+      const pin = prompt('송예찬 총괄 관리자 비밀번호 4자리를 입력해주세요:', '1206');
+      if (pin === null) return;
+      if (pin.trim() === '1206') {
+        state.syncCode = '송예찬1206';
+        state.leaderName = '송예찬';
+        localStorage.setItem('cell_sync_code', '송예찬1206');
+        localStorage.setItem('cell_leader_name', '송예찬');
+        localStorage.setItem('cell_is_admin', 'true');
+        updateSyncHeaderUI();
+        renderAdminEditingBanner();
+        renderSyncModal();
+        if (currentMainTab === 'network') {
+          renderDemoDashboard();
+        }
+        showToast('👑 송예찬 총괄 관리자로 로그인되었습니다.');
+      } else {
+        alert('비밀번호가 일치하지 않습니다.');
+      }
+    }
+
+    let currentDemoRole = 'corps'; // 송예찬 관리자는 'corps' 또는 'cell', 'taehong' 자유 전환
     let allDemoExpanded = true;
 
     function updateDemoRoleSwitcherUI() {
       const container = document.getElementById('demoRoleSwitcherContainer');
       if (!container) return;
 
-      if (isCurrentUserTaehong()) {
-        currentDemoRole = 'taehong';
+      if (!isSongYechanAdmin()) {
+        // 일반 접속자(비관리자)는 타 셀 전환 버튼 숨기고 본인 셀만 단독 표시
+        const isTaehong = isCurrentUserTaehong();
+        currentDemoRole = isTaehong ? 'taehong' : 'cell';
+        const displayLeader = isTaehong ? '김태홍' : (state.leaderName || '내');
         container.innerHTML = `
-          <div class="px-3 py-1.5 bg-amber-100/90 text-amber-950 border border-amber-300 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs">
-            <span>👑</span> <span>김태홍 셀 현황 (본인)</span>
+          <div class="px-3 py-1.5 bg-zinc-100 text-zinc-800 border border-zinc-200 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs">
+            <span>${isTaehong ? '👑' : '🌱'}</span> <span>${escapeHtml(displayLeader)} 셀 현황 (본인)</span>
           </div>
         `;
       } else {
+        // 송예찬 총괄 관리자: 3개 뷰 전환 버튼 제공
         const isYechan = currentDemoRole === 'cell' || currentDemoRole === 'yechan';
         const isTaehong = currentDemoRole === 'taehong';
         const isCorps = currentDemoRole === 'corps';
 
         container.innerHTML = `
-          <button id="btnRoleCell" onclick="setDemoRole('cell')" 
-            class="px-2.5 py-1.5 rounded-lg transition-all ${isYechan ? 'bg-zinc-900 text-white shadow-xs font-semibold' : 'text-zinc-600 hover:text-zinc-900 font-medium'} flex items-center gap-1">
-            <span>🌱</span> <span>내 화면 (송예찬)</span>
-          </button>
-          <button id="btnRoleTaehong" onclick="setDemoRole('taehong')" 
-            class="px-2.5 py-1.5 rounded-lg transition-all ${isTaehong ? 'bg-zinc-900 text-white shadow-xs font-semibold' : 'text-zinc-600 hover:text-zinc-900 font-medium'} flex items-center gap-1">
-            <span>👑</span> <span>태홍이형 화면 (김태홍)</span>
-          </button>
           <button id="btnRoleCorps" onclick="setDemoRole('corps')" 
             class="px-2.5 py-1.5 rounded-lg transition-all ${isCorps ? 'bg-zinc-900 text-white shadow-xs font-semibold' : 'text-zinc-600 hover:text-zinc-900 font-medium'} flex items-center gap-1">
             <span>🌳</span> <span>전체 합산 (군단)</span>
+          </button>
+          <button id="btnRoleTaehong" onclick="setDemoRole('taehong')" 
+            class="px-2.5 py-1.5 rounded-lg transition-all ${isTaehong ? 'bg-zinc-900 text-white shadow-xs font-semibold' : 'text-zinc-600 hover:text-zinc-900 font-medium'} flex items-center gap-1">
+            <span>👑</span> <span>태홍군단 (김태홍)</span>
+          </button>
+          <button id="btnRoleCell" onclick="setDemoRole('cell')" 
+            class="px-2.5 py-1.5 rounded-lg transition-all ${isYechan ? 'bg-zinc-900 text-white shadow-xs font-semibold' : 'text-zinc-600 hover:text-zinc-900 font-medium'} flex items-center gap-1">
+            <span>🌱</span> <span>내 군단 (송예찬)</span>
           </button>
         `;
       }
@@ -3211,8 +3484,9 @@
       let taehongCell;
       const defaultTaehong = DEMO_CORPS_DATA.cells.find(c => c.id === 'cell_taehong') || DEMO_CORPS_DATA.cells[0];
       const isSyncedTaehong = isCurrentUserTaehong() && state.members && state.members.length >= 15;
-      if (isSyncedTaehong) {
-        // 김태홍으로 로그인/동기화 완료한 경우: state가 김태홍의 실시간 데이터
+
+      if (isSyncedTaehong || adminEditingTarget === 'taehong') {
+        // 김태홍으로 로그인했거나, 송예찬 관리자가 김태홍 셀을 편집 중일 때
         taehongCell = {
           id: "cell_taehong",
           leaderName: "김태홍",
@@ -3234,7 +3508,6 @@
           notes: state.notes || ''
         };
       } else {
-        // 송예찬 등이 조회하거나 아직 동기화 전인 김태홍의 경우 저장된 실제 데이터 20명 복제
         taehongCell = {
           ...defaultTaehong,
           members: defaultTaehong.members.map(m => ({ ...m }))
@@ -3243,8 +3516,31 @@
 
       // 2. 송예찬 셀 구성
       let yechanCell;
-      if (!isCurrentUserTaehong()) {
-        // 송예찬으로 로그인/작성 중인 경우: state가 송예찬의 실시간 데이터
+      if (adminEditingTarget === 'taehong' && cachedYechanData) {
+        // 관리자가 태홍이형 셀 편집 중일 때 송예찬 셀 데이터는 cachedYechanData 사용
+        const yd = cachedYechanData;
+        const ym = yd.members || DEFAULT_MEMBERS;
+        yechanCell = {
+          id: "cell_yechan",
+          leaderName: yd.leaderName || "송예찬",
+          isCorpsLeader: false,
+          parentLeader: "김태홍",
+          roleTitle: "셀리더 (김태홍 직속)",
+          location: yd.location || "3층 DCC",
+          meetingDateTime: (yd.meetingDate && yd.meetingDate.trim())
+            ? `${yd.meetingDate}${yd.meetingTime ? ' ' + yd.meetingTime : ''}`
+            : "2026/9/13(일) 저녁 7시",
+          members: ym.map(name => ({
+            name,
+            role: (yd.memberRoles && yd.memberRoles[name]) ? yd.memberRoles[name] : (name === '송예찬' ? '셀리더' : (name === '주진' ? '디모데' : '셀원')),
+            sunday: yd.sundayAttendance ? !!yd.sundayAttendance[name] : true,
+            sundayReason: yd.sundayReasons ? (yd.sundayReasons[name] || '') : '',
+            cell: yd.cellAttendance ? !!yd.cellAttendance[name] : true,
+            cellReason: yd.cellReasons ? (yd.cellReasons[name] || '') : ''
+          })),
+          notes: yd.notes || ''
+        };
+      } else if (!isCurrentUserTaehong()) {
         const yechanMeetingDate = (state.meetingDate && state.meetingDate.trim())
           ? `${state.meetingDate}${state.meetingTime ? ' ' + state.meetingTime : ''}`
           : "2026/9/7(월) 저녁 7시 30분";
@@ -3267,7 +3563,7 @@
           notes: state.notes || ''
         };
       } else {
-        // 김태홍으로 로그인한 상태일 때 송예찬 셀이 필요하면 기본 9명 데이터
+        // 김태홍 로그인 상태일 때
         yechanCell = {
           id: "cell_yechan",
           leaderName: "송예찬",
@@ -3300,8 +3596,17 @@
         }
       });
 
-      // 시점별 반환: 태홍이형 본인이거나 태홍이형 화면 선택 시 오직 김태홍 셀만 반환!
-      if (isCurrentUserTaehong() || currentDemoRole === 'taehong') {
+      // 비관리자: 오직 본인 셀만 반환!
+      if (!isSongYechanAdmin()) {
+        if (isCurrentUserTaehong()) {
+          return [taehongCell];
+        } else {
+          return [yechanCell];
+        }
+      }
+
+      // 관리자(송예찬): 시점에 따라 반환
+      if (currentDemoRole === 'taehong') {
         return [taehongCell];
       } else if (currentDemoRole === 'cell' || currentDemoRole === 'yechan') {
         return [yechanCell, ...dynamicSubCells];
@@ -3314,6 +3619,19 @@
     function renderDemoDashboard() {
       const container = document.getElementById('tabContentNetwork');
       if (!container || container.classList.contains('hidden')) return;
+
+      const notSyncedEl = document.getElementById('networkNotSyncedNotice');
+      const mainDashboardEl = document.getElementById('networkMainDashboard');
+
+      // 비관리자이면서 동기화 코드가 없는 상태: 타 셀 데이터 비공개 처리
+      if (!isSongYechanAdmin() && !state.syncCode) {
+        if (notSyncedEl) notSyncedEl.classList.remove('hidden');
+        if (mainDashboardEl) mainDashboardEl.classList.add('hidden');
+        return;
+      }
+
+      if (notSyncedEl) notSyncedEl.classList.add('hidden');
+      if (mainDashboardEl) mainDashboardEl.classList.remove('hidden');
 
       updateDemoRoleSwitcherUI();
 
@@ -3539,6 +3857,12 @@
                 </div>
               </div>
               <div class="flex items-center gap-1.5 shrink-0">
+                ${isSongYechanAdmin() ? `
+                  <button type="button" onclick="event.stopPropagation(); editCellAsAdmin('${cell.id}')" 
+                    class="px-2.5 py-1 text-[11px] font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition active:scale-95 shadow-2xs flex items-center gap-1">
+                    <span>✏️</span> <span>데이터 수정</span>
+                  </button>
+                ` : ''}
                 <button type="button" onclick="event.stopPropagation(); openDemoDetailModal('${cell.id}')" 
                   class="px-2.5 py-1 text-[11px] font-semibold bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 rounded-lg transition active:scale-95 shadow-2xs">
                   보고서 보기 ↗
