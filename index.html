@@ -3038,21 +3038,47 @@
 
       const activeCells = getDemoActiveCells();
 
-      let totalMembers = 0;
+      // 중복 인원(하위 셀리더 등) 고유 집계 (Unique Deduplication)
+      const uniqueMembersMap = new Map();
+      activeCells.forEach(cell => {
+        cell.members.forEach(m => {
+          if (!uniqueMembersMap.has(m.name)) {
+            uniqueMembersMap.set(m.name, {
+              name: m.name,
+              cellName: cell.leaderName + '셀',
+              sunday: m.sunday,
+              sundayReason: m.sundayReason,
+              cell: m.cell,
+              cellReason: m.cellReason
+            });
+          } else {
+            // 송예찬, 권회인 등 군단장 셀과 본인 셀 양쪽에 등록된 리더의 경우:
+            // 둘 중 한 곳이라도 출석했으면 출석(true)으로 자동 통합
+            const existing = uniqueMembersMap.get(m.name);
+            if (m.sunday) existing.sunday = true;
+            if (m.cell) existing.cell = true;
+          }
+        });
+      });
+
+      let totalMembers = uniqueMembersMap.size;
       let sundayAttCount = 0;
       let cellAttCount = 0;
       const sundayAbsList = [];
       const cellAbsList = [];
 
-      activeCells.forEach(cell => {
-        cell.members.forEach(m => {
-          totalMembers++;
-          if (m.sunday) sundayAttCount++;
-          else sundayAbsList.push({ cellName: cell.leaderName + '셀', name: m.name, reason: m.sundayReason || '사유미입력' });
+      uniqueMembersMap.forEach(m => {
+        if (m.sunday) {
+          sundayAttCount++;
+        } else {
+          sundayAbsList.push({ cellName: m.cellName, name: m.name, reason: m.sundayReason || '사유미입력' });
+        }
 
-          if (m.cell) cellAttCount++;
-          else cellAbsList.push({ cellName: cell.leaderName + '셀', name: m.name, reason: m.cellReason || '사유미입력' });
-        });
+        if (m.cell) {
+          cellAttCount++;
+        } else {
+          cellAbsList.push({ cellName: m.cellName, name: m.name, reason: m.cellReason || '사유미입력' });
+        }
       });
 
       const sundayRate = totalMembers > 0 ? ((sundayAttCount / totalMembers) * 100).toFixed(1) : 0;
@@ -3302,20 +3328,43 @@
 
     function copyDemoNetworkSummary() {
       const activeCells = getDemoActiveCells();
-      let totalMembers = 0;
+      const uniqueMap = new Map();
+      activeCells.forEach(cell => {
+        cell.members.forEach(m => {
+          if (!uniqueMap.has(m.name)) {
+            uniqueMap.set(m.name, {
+              name: m.name,
+              cellName: cell.leaderName + '셀',
+              sunday: m.sunday,
+              sundayReason: m.sundayReason,
+              cell: m.cell,
+              cellReason: m.cellReason
+            });
+          } else {
+            const ex = uniqueMap.get(m.name);
+            if (m.sunday) ex.sunday = true;
+            if (m.cell) ex.cell = true;
+          }
+        });
+      });
+
+      let totalMembers = uniqueMap.size;
       let sundayAtt = 0;
       let cellAtt = 0;
       const sundayAbs = [];
       const cellAbs = [];
 
-      activeCells.forEach(cell => {
-        cell.members.forEach(m => {
-          totalMembers++;
-          if (m.sunday) sundayAtt++;
-          else sundayAbs.push(`${m.name}(${cell.leaderName}셀${m.sundayReason ? ', ' + m.sundayReason : ''})`);
-          if (m.cell) cellAtt++;
-          else cellAbs.push(`${m.name}(${cell.leaderName}셀${m.cellReason ? ', ' + m.cellReason : ''})`);
-        });
+      uniqueMap.forEach(m => {
+        if (m.sunday) {
+          sundayAtt++;
+        } else {
+          sundayAbs.push(`${m.name}(${m.cellName}${m.sundayReason ? ', ' + m.sundayReason : ''})`);
+        }
+        if (m.cell) {
+          cellAtt++;
+        } else {
+          cellAbs.push(`${m.name}(${m.cellName}${m.cellReason ? ', ' + m.cellReason : ''})`);
+        }
       });
 
       const sundayRate = totalMembers > 0 ? ((sundayAtt / totalMembers) * 100).toFixed(1) : 0;
