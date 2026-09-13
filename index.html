@@ -996,8 +996,8 @@
         }
       }
       if (name === state.leaderName) return '셀리더';
-      if (name === '박승곤' || name === '윤수민' || name === '김한빈' || name === '육현조' || name === '최진성' || name === '김태평') return '셀리더';
-      if (name === '주진' || name === '양광모') return '디모데';
+      if (name === '박승곤' || name === '윤수민' || name === '김한빈' || name === '육현조' || name === '최진성' || name === '김태평' || name === '권회인' || name === '박창현') return '셀리더';
+      if (name === '주진' || name === '양광모' || name === '조국현') return '디모데';
       return '셀원';
     }
 
@@ -1016,8 +1016,8 @@
         }
       }
       if (name === state.leaderName) return true;
-      // 기본값 fallback: 박승곤, 윤수민, 주진, 김태평은 셀오픈 리더/디모데
-      if (name === '박승곤' || name === '윤수민' || name === '주진' || name === '김태평') {
+      // 기본값 fallback: 박승곤, 윤수민, 주진, 김태평, 권회인, 박창현은 셀오픈 리더/디모데
+      if (name === '박승곤' || name === '윤수민' || name === '주진' || name === '김태평' || name === '권회인' || name === '박창현') {
         return true;
       }
       return false;
@@ -3869,7 +3869,7 @@
             { name: "송예찬", role: "셀리더", sunday: true, sundayReason: "", cell: true, cellReason: "" },
             { name: "권회인", role: "셀리더", sunday: true, sundayReason: "", cell: true, cellReason: "" },
             { name: "박창현", role: "셀리더", sunday: true, sundayReason: "", cell: false, cellReason: "직장/야근" },
-            { name: "조국현", role: "셀리더", sunday: true, sundayReason: "", cell: true, cellReason: "" },
+            { name: "조국현", role: "디모데", sunday: true, sundayReason: "", cell: true, cellReason: "" },
             { name: "권성수", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "개인사유(셀조율중)" },
             { name: "강은석", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
             { name: "김기현", role: "셀원", sunday: false, sundayReason: "장기결석", cell: false, cellReason: "장기결석" },
@@ -4245,7 +4245,7 @@
           '김태홍': 'open',
           '송예찬': 'open',
           '권회인': 'open',
-          '박창현': 'unopened',
+          '박창현': 'open',
           '조국현': 'unopened'
         },
         sundayAttendance,
@@ -4864,9 +4864,7 @@
       const songUnopened = getUnopenedLeaders();
 
       const taehongCell = activeCells.find(c => c.id === 'cell_taehong');
-      const taehongUnopened = taehongCell 
-        ? taehongCell.members.filter(m => (m.role === '셀리더' || m.role === '군단리더') && m.name !== taehongCell.leaderName && !activeCells.some(ac => ac.leaderName === m.name && ac.id !== taehongCell.id)).map(m => m.name)
-        : [];
+      const taehongUnopened = taehongCell ? getUnopenedLeaders(taehongCell) : [];
       
       const unopenedLeaders = (currentDemoRole === 'cell') 
         ? songUnopened 
@@ -5423,9 +5421,7 @@
 
       const songUnopened = getUnopenedLeaders();
       const taehongCell = activeCells.find(c => c.id === 'cell_taehong');
-      const taehongUnopened = taehongCell 
-        ? taehongCell.members.filter(m => (m.role === '셀리더' || m.role === '군단리더') && m.name !== taehongCell.leaderName && !activeCells.some(ac => ac.leaderName === m.name && ac.id !== taehongCell.id)).map(m => m.name)
-        : [];
+      const taehongUnopened = taehongCell ? getUnopenedLeaders(taehongCell) : [];
       
       const unopenedLeaders = (currentDemoRole === 'corps') 
         ? [...new Set([...taehongUnopened, ...songUnopened])]
