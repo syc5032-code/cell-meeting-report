@@ -376,14 +376,18 @@
               <span>🌳</span> 군단 & 셀 계층형 출석 현황
             </h2>
           </div>
-          <div class="flex items-center gap-1 p-1 bg-zinc-100 rounded-xl border border-zinc-200 text-xs font-semibold shrink-0">
-            <button id="btnRoleCorps" onclick="setDemoRole('corps')" 
-              class="px-2.5 py-1.5 rounded-lg transition-all bg-zinc-900 text-white shadow-xs font-semibold flex items-center gap-1">
-              <span>👑</span> <span>김태홍 군단리더 (총괄)</span>
-            </button>
+          <div id="demoRoleSwitcherContainer" class="flex items-center gap-1 p-1 bg-zinc-100 rounded-xl border border-zinc-200 text-xs font-semibold shrink-0">
             <button id="btnRoleCell" onclick="setDemoRole('cell')" 
+              class="px-2.5 py-1.5 rounded-lg transition-all bg-zinc-900 text-white shadow-xs font-semibold flex items-center gap-1">
+              <span>🌱</span> <span>내 화면 (송예찬)</span>
+            </button>
+            <button id="btnRoleTaehong" onclick="setDemoRole('taehong')" 
               class="px-2.5 py-1.5 rounded-lg transition-all text-zinc-600 hover:text-zinc-900 font-medium flex items-center gap-1">
-              <span>🌱</span> <span>송예찬 군단리더 (내 산하)</span>
+              <span>👑</span> <span>태홍이형 화면 (김태홍)</span>
+            </button>
+            <button id="btnRoleCorps" onclick="setDemoRole('corps')" 
+              class="px-2.5 py-1.5 rounded-lg transition-all text-zinc-600 hover:text-zinc-900 font-medium flex items-center gap-1">
+              <span>🌳</span> <span>전체 합산 (군단)</span>
             </button>
           </div>
         </div>
@@ -993,6 +997,24 @@
     // 초기화
     window.addEventListener('DOMContentLoaded', async () => {
       initWelcomeBanner();
+
+      // URL 파라미터 확인 (?code=김태홍2920 또는 ?user=김태홍, ?leader=김태홍)
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const codeParam = urlParams.get('code');
+        const userParam = urlParams.get('user') || urlParams.get('leader');
+        if (codeParam) {
+          state.syncCode = codeParam.trim();
+          localStorage.setItem('cell_sync_code', state.syncCode);
+        }
+        if (userParam) {
+          state.leaderName = userParam.trim();
+          localStorage.setItem('cell_leader_name', state.leaderName);
+        }
+      } catch (e) {
+        console.warn('URL param parse error', e);
+      }
+
       loadStorage();
       initDefaultDate();
       renderAll();
@@ -1168,6 +1190,8 @@
     function saveLeaderName() {
       state.leaderName = document.getElementById('leaderNameInput').value.trim();
       saveStorage();
+      if (typeof updateDemoRoleSwitcherUI === 'function') updateDemoRoleSwitcherUI();
+      if (typeof renderDemoDashboard === 'function' && currentMainTab === 'network') renderDemoDashboard();
     }
 
     function setLocation(loc) {
@@ -3133,56 +3157,138 @@
       return getActiveSubCellLeaders();
     }
 
-    let currentDemoRole = 'corps'; // 'corps' (김태홍) 또는 'cell' (송예찬)
+    function isCurrentUserTaehong() {
+      const leader = (state.leaderName || '').trim();
+      const code = (state.syncCode || '').trim();
+      return leader === '김태홍' || code.startsWith('김태홍');
+    }
+
+    let currentDemoRole = 'cell'; // 'cell' (송예찬 본인), 'taehong' (김태홍 본인), 'corps' (군단 전체 합산)
     let allDemoExpanded = true;
+
+    function updateDemoRoleSwitcherUI() {
+      const container = document.getElementById('demoRoleSwitcherContainer');
+      if (!container) return;
+
+      if (isCurrentUserTaehong()) {
+        currentDemoRole = 'taehong';
+        container.innerHTML = `
+          <div class="px-3 py-1.5 bg-amber-100/90 text-amber-950 border border-amber-300 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs">
+            <span>👑</span> <span>김태홍 셀 현황 (본인)</span>
+          </div>
+        `;
+      } else {
+        const isYechan = currentDemoRole === 'cell' || currentDemoRole === 'yechan';
+        const isTaehong = currentDemoRole === 'taehong';
+        const isCorps = currentDemoRole === 'corps';
+
+        container.innerHTML = `
+          <button id="btnRoleCell" onclick="setDemoRole('cell')" 
+            class="px-2.5 py-1.5 rounded-lg transition-all ${isYechan ? 'bg-zinc-900 text-white shadow-xs font-semibold' : 'text-zinc-600 hover:text-zinc-900 font-medium'} flex items-center gap-1">
+            <span>🌱</span> <span>내 화면 (송예찬)</span>
+          </button>
+          <button id="btnRoleTaehong" onclick="setDemoRole('taehong')" 
+            class="px-2.5 py-1.5 rounded-lg transition-all ${isTaehong ? 'bg-zinc-900 text-white shadow-xs font-semibold' : 'text-zinc-600 hover:text-zinc-900 font-medium'} flex items-center gap-1">
+            <span>👑</span> <span>태홍이형 화면 (김태홍)</span>
+          </button>
+          <button id="btnRoleCorps" onclick="setDemoRole('corps')" 
+            class="px-2.5 py-1.5 rounded-lg transition-all ${isCorps ? 'bg-zinc-900 text-white shadow-xs font-semibold' : 'text-zinc-600 hover:text-zinc-900 font-medium'} flex items-center gap-1">
+            <span>🌳</span> <span>전체 합산 (군단)</span>
+          </button>
+        `;
+      }
+    }
 
     function setDemoRole(role) {
       currentDemoRole = role;
-      const btnCorps = document.getElementById('btnRoleCorps');
-      const btnCell = document.getElementById('btnRoleCell');
-
-      if (role === 'corps') {
-        if (btnCorps) btnCorps.className = 'px-2.5 py-1.5 rounded-lg transition-all bg-zinc-900 text-white shadow-xs font-semibold flex items-center gap-1';
-        if (btnCell) btnCell.className = 'px-2.5 py-1.5 rounded-lg transition-all text-zinc-600 hover:text-zinc-900 font-medium flex items-center gap-1';
-      } else {
-        if (btnCell) btnCell.className = 'px-2.5 py-1.5 rounded-lg transition-all bg-zinc-900 text-white shadow-xs font-semibold flex items-center gap-1';
-        if (btnCorps) btnCorps.className = 'px-2.5 py-1.5 rounded-lg transition-all text-zinc-600 hover:text-zinc-900 font-medium flex items-center gap-1';
-      }
-
+      updateDemoRoleSwitcherUI();
       renderDemoDashboard();
     }
 
     function getDemoActiveCells() {
-      // 1. 김태홍 셀 등 실제 저장된 외부 셀 복제
-      const baseCells = DEMO_CORPS_DATA.cells.map(c => ({
-        ...c,
-        members: c.members.map(m => ({ ...m }))
-      }));
+      // 1. 김태홍 셀 구성 (실제 20명 데이터)
+      const taehongMeetingDate = "2026/9/10(목) 저녁 7시 30분";
+      let taehongCell;
+      const defaultTaehong = DEMO_CORPS_DATA.cells.find(c => c.id === 'cell_taehong') || DEMO_CORPS_DATA.cells[0];
+      const isSyncedTaehong = isCurrentUserTaehong() && state.members && state.members.length >= 15;
+      if (isSyncedTaehong) {
+        // 김태홍으로 로그인/동기화 완료한 경우: state가 김태홍의 실시간 데이터
+        taehongCell = {
+          id: "cell_taehong",
+          leaderName: "김태홍",
+          isCorpsLeader: true,
+          parentLeader: null,
+          roleTitle: "군단리더 / 셀리더",
+          location: state.location || "워십홀",
+          meetingDateTime: (state.meetingDate && state.meetingDate.trim())
+            ? `${state.meetingDate}${state.meetingTime ? ' ' + state.meetingTime : ''}`
+            : taehongMeetingDate,
+          members: state.members.map(name => ({
+            name,
+            role: getMemberRole(name),
+            sunday: !!state.sundayAttendance[name],
+            sundayReason: state.sundayReasons[name] || '',
+            cell: !!state.cellAttendance[name],
+            cellReason: state.cellReasons[name] || ''
+          })),
+          notes: state.notes || ''
+        };
+      } else {
+        // 송예찬 등이 조회하거나 아직 동기화 전인 김태홍의 경우 저장된 실제 데이터 20명 복제
+        taehongCell = {
+          ...defaultTaehong,
+          members: defaultTaehong.members.map(m => ({ ...m }))
+        };
+      }
 
-      // 2. 송예찬 셀: 현재 작성자의 실제 실시간 보고서 state 데이터로 동적 구성
-      const yechanMeetingDate = (state.meetingDate && state.meetingDate.trim())
-        ? `${state.meetingDate}${state.meetingTime ? ' ' + state.meetingTime : ''}`
-        : "2026/9/7(월) 저녁 7시 30분";
-      const yechanCell = {
-        id: "cell_yechan",
-        leaderName: state.leaderName || "송예찬",
-        isCorpsLeader: false,
-        parentLeader: "김태홍",
-        roleTitle: "셀리더 (김태홍 직속)",
-        location: state.location || "본당",
-        meetingDateTime: yechanMeetingDate,
-        members: state.members.map(name => ({
-          name,
-          role: getMemberRole(name),
-          sunday: !!state.sundayAttendance[name],
-          sundayReason: state.sundayReasons[name] || '',
-          cell: !!state.cellAttendance[name],
-          cellReason: state.cellReasons[name] || ''
-        })),
-        notes: state.notes || ''
-      };
+      // 2. 송예찬 셀 구성
+      let yechanCell;
+      if (!isCurrentUserTaehong()) {
+        // 송예찬으로 로그인/작성 중인 경우: state가 송예찬의 실시간 데이터
+        const yechanMeetingDate = (state.meetingDate && state.meetingDate.trim())
+          ? `${state.meetingDate}${state.meetingTime ? ' ' + state.meetingTime : ''}`
+          : "2026/9/7(월) 저녁 7시 30분";
+        yechanCell = {
+          id: "cell_yechan",
+          leaderName: state.leaderName || "송예찬",
+          isCorpsLeader: false,
+          parentLeader: "김태홍",
+          roleTitle: "셀리더 (김태홍 직속)",
+          location: state.location || "본당",
+          meetingDateTime: yechanMeetingDate,
+          members: state.members.map(name => ({
+            name,
+            role: getMemberRole(name),
+            sunday: !!state.sundayAttendance[name],
+            sundayReason: state.sundayReasons[name] || '',
+            cell: !!state.cellAttendance[name],
+            cellReason: state.cellReasons[name] || ''
+          })),
+          notes: state.notes || ''
+        };
+      } else {
+        // 김태홍으로 로그인한 상태일 때 송예찬 셀이 필요하면 기본 9명 데이터
+        yechanCell = {
+          id: "cell_yechan",
+          leaderName: "송예찬",
+          isCorpsLeader: false,
+          parentLeader: "김태홍",
+          roleTitle: "셀리더 (김태홍 직속)",
+          location: "3층 DCC",
+          meetingDateTime: "2026/9/13(일) 저녁 7시",
+          members: DEFAULT_MEMBERS.map(name => ({
+            name,
+            role: (name === '송예찬' ? '셀리더' : (name === '주진' ? '디모데' : '셀원')),
+            sunday: true,
+            sundayReason: '',
+            cell: true,
+            cellReason: ''
+          })),
+          notes: ''
+        };
+      }
 
-      // 3. 실제 등록된 하위 셀 (실제 저장된 데이터가 있을 경우만 연동)
+      // 3. 실제 등록된 하위 셀
       const dynamicSubCells = [];
       const activeSubLeaders = getActiveSubCellLeaders();
       activeSubLeaders.forEach(name => {
@@ -3194,19 +3300,22 @@
         }
       });
 
-      const allCombinedCells = [...baseCells, yechanCell, ...dynamicSubCells];
-
-      if (currentDemoRole === 'corps') {
-        return allCombinedCells;
+      // 시점별 반환: 태홍이형 본인이거나 태홍이형 화면 선택 시 오직 김태홍 셀만 반환!
+      if (isCurrentUserTaehong() || currentDemoRole === 'taehong') {
+        return [taehongCell];
+      } else if (currentDemoRole === 'cell' || currentDemoRole === 'yechan') {
+        return [yechanCell, ...dynamicSubCells];
       } else {
-        const curLeader = state.leaderName || '송예찬';
-        return allCombinedCells.filter(c => c.leaderName === curLeader || c.parentLeader === curLeader);
+        // corps (전체 합산 비교)
+        return [taehongCell, yechanCell, ...dynamicSubCells];
       }
     }
 
     function renderDemoDashboard() {
       const container = document.getElementById('tabContentNetwork');
       if (!container || container.classList.contains('hidden')) return;
+
+      updateDemoRoleSwitcherUI();
 
       const activeCells = getDemoActiveCells();
 
@@ -3269,7 +3378,15 @@
       const metricReportDetailEl = document.getElementById('demoMetricReportDetail');
 
       if (metricTotalEl) metricTotalEl.innerText = totalMembers + '명';
-      if (metricCellCountEl) metricCellCountEl.innerText = currentDemoRole === 'corps' ? `군단 전체 (${activeCells.length}개 셀)` : `송예찬 산하 (${activeCells.length}개 셀)`;
+      if (metricCellCountEl) {
+        if (currentDemoRole === 'taehong') {
+          metricCellCountEl.innerText = `김태홍 셀 (1개 셀)`;
+        } else if (currentDemoRole === 'corps') {
+          metricCellCountEl.innerText = `군단 전체 (${activeCells.length}개 셀)`;
+        } else {
+          metricCellCountEl.innerText = `송예찬 산하 (${activeCells.length}개 셀)`;
+        }
+      }
       
       if (metricSundayEl) metricSundayEl.innerText = sundayAttCount + '명';
       if (metricSundayRateEl) metricSundayRateEl.innerText = sundayRate + '%';
@@ -3290,29 +3407,44 @@
         ? taehongCell.members.filter(m => (m.role === '셀리더' || m.role === '군단리더') && m.name !== taehongCell.leaderName && !activeCells.some(ac => ac.leaderName === m.name && ac.id !== taehongCell.id)).map(m => m.name)
         : [];
       
-      const unopenedLeaders = currentDemoRole === 'corps' 
+      const unopenedLeaders = (currentDemoRole === 'corps') 
         ? [...new Set([...taehongUnopened, ...songUnopened])]
-        : songUnopened;
+        : (currentDemoRole === 'taehong' ? taehongUnopened : songUnopened);
 
       const openLeadersCount = activeCells.length;
       const totalLeadersCount = openLeadersCount + unopenedLeaders.length;
 
       if (notice) {
-        if (currentDemoRole === 'corps') {
+        if (currentDemoRole === 'taehong') {
           const unassignedMsg = unopenedLeaders.length > 0 
             ? `<div class="mt-1.5 pt-1.5 border-t border-amber-200/80 text-[11px] text-amber-950 font-normal space-y-0.5">
-                <div>👑 <b>군단 총 리더십: ${totalLeadersCount}명</b> (실제 제출 <b>${openLeadersCount}개 셀</b> / ⏳ 미제출·미오픈 <b>${unopenedLeaders.length}명</b>)</div>
-                <div class="text-[10px] text-amber-800">• <b>보고서 미제출/미오픈 리더:</b> ${unopenedLeaders.join(', ')} (모체 셀에서 함께 출석 집계되며 독립 출석률 비교에서는 제외)</div>
+                <div>👑 <b>김태홍 셀 리더십: ${totalLeadersCount}명</b> (셀오픈 <b>${openLeadersCount}개 셀</b> / ⏳ 미제출·미오픈 <b>${unopenedLeaders.length}명</b>)</div>
+                <div class="text-[10px] text-amber-800">• <b>보고서 미제출/미오픈 리더:</b> ${unopenedLeaders.join(', ')} (모체 셀에서 함께 출석 집계)</div>
                </div>`
-            : `<div class="mt-1.5 pt-1.5 border-t border-amber-200/80 text-[11px] text-amber-950">👑 <b>군단 총 리더십: ${totalLeadersCount}명 (전원 셀오픈)</b></div>`;
+            : `<div class="mt-1.5 pt-1.5 border-t border-amber-200/80 text-[11px] text-amber-950">👑 <b>김태홍 셀 총 리더십: ${totalLeadersCount}명 (전원 셀오픈)</b></div>`;
           notice.innerHTML = `
             <span class="text-base">👑</span>
             <div class="w-full">
-              <b>김태홍 군단리더 시점</b>: 군단 산하의 <b>실제 저장된 셀(${activeCells.length}개 셀)</b>과 <b>셀원들(실제 고유 ${totalMembers}명)</b>의 출석 통계와 셀별 보고서를 조회합니다.
+              <b>김태홍 셀리더 시점</b>: 김태홍 본인 셀(<b>총원 ${totalMembers}명</b>)의 출석 통계와 셀모임 보고서만 단독으로 표시됩니다.
               ${unassignedMsg}
             </div>
           `;
           notice.className = 'text-xs p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 flex items-start gap-2 leading-relaxed';
+        } else if (currentDemoRole === 'corps') {
+          const unassignedMsg = unopenedLeaders.length > 0 
+            ? `<div class="mt-1.5 pt-1.5 border-t border-indigo-200/80 text-[11px] text-indigo-950 font-normal space-y-0.5">
+                <div>👑 <b>군단 총 리더십: ${totalLeadersCount}명</b> (실제 제출 <b>${openLeadersCount}개 셀</b> / ⏳ 미제출·미오픈 <b>${unopenedLeaders.length}명</b>)</div>
+                <div class="text-[10px] text-indigo-800">• <b>보고서 미제출/미오픈 리더:</b> ${unopenedLeaders.join(', ')} (모체 셀에서 함께 출석 집계되며 독립 출석률 비교에서는 제외)</div>
+               </div>`
+            : `<div class="mt-1.5 pt-1.5 border-t border-indigo-200/80 text-[11px] text-indigo-950">👑 <b>군단 총 리더십: ${totalLeadersCount}명 (전원 셀오픈)</b></div>`;
+          notice.innerHTML = `
+            <span class="text-base">🌳</span>
+            <div class="w-full">
+              <b>군단 전체 합산 시점</b>: 군단 산하의 <b>실제 저장된 셀(${activeCells.length}개 셀)</b>과 <b>셀원들(실제 고유 ${totalMembers}명)</b>의 출석 통계와 셀별 비교를 한눈에 조회합니다.
+              ${unassignedMsg}
+            </div>
+          `;
+          notice.className = 'text-xs p-2.5 rounded-xl bg-indigo-50/80 border border-indigo-200 text-indigo-900 flex items-start gap-2 leading-relaxed';
         } else {
           const subCells = activeCells.filter(c => c.parentLeader === '송예찬');
           const unassignedMsg = unopenedLeaders.length > 0 
@@ -3323,11 +3455,11 @@
             : `<div class="mt-1.5 pt-1.5 border-t border-emerald-200/80 text-[11px] text-emerald-950">👑 <b>송예찬 산하 총 리더십: ${totalLeadersCount}명 (전원 셀오픈)</b></div>`;
           const subText = subCells.length > 0
             ? `<b>송예찬 본인 셀 및 하위 ${subCells.map(c => c.leaderName + '셀').join(', ')}(총 ${activeCells.length}개 셀, ${totalMembers}명)</b>이 자동 계층 연동되어 표시됩니다.`
-            : `오직 <b>송예찬 본인 셀(총 ${totalMembers}명)만</b> 독립적으로 표시됩니다. (셀원 관리에서 직책을 [👑 셀리더] 또는 [🌿 디모데]로 지정 후 [셀오픈] 시 자동 연동)`;
+            : `오직 <b>송예찬 본인 셀(총 ${totalMembers}명)만</b> 독립적으로 표시됩니다. (김태홍 셀 등 타 셀은 완전히 숨겨짐)`;
           notice.innerHTML = `
             <span class="text-base">🌱</span>
             <div class="w-full">
-              <b>송예찬 군단리더 시점</b>: 김태홍 군단리더 본인 셀은 <b>숨겨지며</b>, ${subText}
+              <b>송예찬 셀리더 시점</b>: ${subText}
               ${unassignedMsg}
             </div>
           `;
@@ -3662,13 +3794,15 @@
         ? taehongCell.members.filter(m => (m.role === '셀리더' || m.role === '군단리더') && m.name !== taehongCell.leaderName && !activeCells.some(ac => ac.leaderName === m.name && ac.id !== taehongCell.id)).map(m => m.name)
         : [];
       
-      const unopenedLeaders = currentDemoRole === 'corps' 
+      const unopenedLeaders = (currentDemoRole === 'corps') 
         ? [...new Set([...taehongUnopened, ...songUnopened])]
-        : songUnopened;
+        : (currentDemoRole === 'taehong' ? taehongUnopened : songUnopened);
       const openLeadersCount = activeCells.length;
       const totalLeadersCount = openLeadersCount + unopenedLeaders.length;
 
-      const headerTitle = currentDemoRole === 'corps' ? '👑 [김태홍 군단 출석 현황 요약]' : '🌱 [송예찬 셀 네트워크 출석 현황]';
+      const headerTitle = (currentDemoRole === 'taehong') 
+        ? '👑 [김태홍 셀모임 출석 현황 요약]' 
+        : ((currentDemoRole === 'corps') ? '🌳 [김태홍 군단 전체 출석 현황 요약]' : '🌱 [송예찬 셀모임 출석 현황 요약]');
 
       let text = `${headerTitle}\n\n`;
       text += `1. 리더십 현황 (총 ${totalLeadersCount}명)\n`;
