@@ -367,10 +367,10 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-zinc-100 pb-3">
           <div>
             <div class="flex items-center gap-1.5">
-              <span class="text-[10px] font-bold tracking-wider text-amber-800 uppercase bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                시점 전환 시뮬레이터 (가상 데이터)
+              <span class="text-[10px] font-bold tracking-wider text-emerald-800 uppercase bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                👑 실시간 저장 데이터 연동
               </span>
-              <span class="text-[10px] text-zinc-400">실제 데이터 무영향</span>
+              <span class="text-[10px] text-zinc-500">실제 보고서 제출 셀 기준</span>
             </div>
             <h2 class="text-sm sm:text-base font-bold text-zinc-900 mt-1 flex items-center gap-1.5">
               <span>🌳</span> 군단 & 셀 계층형 출석 현황
@@ -3059,7 +3059,7 @@
     }
 
     // ==========================================
-    // 🌳 군단 & 계층형 셀 네트워크 현황 (가상 시뮬레이터)
+    // 🌳 군단 & 계층형 셀 네트워크 현황 (실제 저장 데이터 기반)
     // ==========================================
     const DEMO_CORPS_DATA = {
       corpsName: "김태홍 군단",
@@ -3096,121 +3096,14 @@
             { name: "홍조은", role: "셀원", sunday: false, sundayReason: "건강문제", cell: false, cellReason: "몸살/컨디션" }
           ],
           notes: "- 천대훈 당분간 ZOOM으로 셀모임 참석\n- 권성수 셀조율중으로 권회인과 개인적 이야기 나눔 확인\n- 조국현 셀리더 전도 목표 동기부여 잘되어감.\n- 리더MT 추가 신청자: 한은택, 이진석(+차재아)"
-        },
-        {
-          id: "cell_yechan",
-          leaderName: "송예찬",
-          isCorpsLeader: false,
-          parentLeader: "김태홍",
-          roleTitle: "셀리더 (김태홍 직속)",
-          location: "본당",
-          meetingDateTime: "2026/9/7(월) 저녁 7시 30분",
-          members: [
-            { name: "송예찬", role: "셀리더", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-            { name: "주진", role: "디모데", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-            { name: "박승곤", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-            { name: "김한빈", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "직장/야근" },
-            { name: "양광모", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "개인 사정" },
-            { name: "육현조", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "직장/야근" },
-            { name: "윤수민", role: "셀원", sunday: false, sundayReason: "몽골 컨퍼런스", cell: false, cellReason: "몽골 컨퍼런스" },
-            { name: "최상진", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "최근 시술 받은 곳 염증" },
-            { name: "최진성", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "춤 레슨 진행" }
-          ],
-          notes: "- 셀모임에 적은 수가 모였지만, 뜨겁게 기도하고 나눔도 깊게 함.\n- 진이는 오늘 1박2일 제주도 여행가는 친구한테 복음 전하려고 함.\n- 승곤이는 대학교 동창, 모레는 형님 만나서 복음 전한다고 함."
-        },
-        {
-          id: "cell_hoin",
-          leaderName: "권회인",
-          isCorpsLeader: false,
-          parentLeader: "김태홍",
-          roleTitle: "셀리더 (김태홍 직속)",
-          location: "2층 세미나실",
-          meetingDateTime: "2026/9/9(수) 저녁 8시",
-          members: [
-            { name: "권회인", role: "셀리더", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-            { name: "이진우", role: "디모데", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-            { name: "박소영", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-            { name: "조은서", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-            { name: "최동현", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-            { name: "정민기", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "직장/야근" }
-          ],
-          notes: "- 새가족 심방 완료 및 순조로운 정착 중.\n- 다음 주 수요일 셀 회식 일정 조율 완료."
-        },
-        {
-          id: "cell_changhyun",
-          leaderName: "박창현",
-          isCorpsLeader: false,
-          parentLeader: "김태홍",
-          roleTitle: "셀리더 (김태홍 직속)",
-          location: "카페 로뎀",
-          meetingDateTime: "2026/9/8(화) 저녁 7시",
-          members: [
-            { name: "박창현", role: "셀리더", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-            { name: "오세훈", role: "디모데", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-            { name: "임재원", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-            { name: "한상민", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-            { name: "김대호", role: "셀원", sunday: false, sundayReason: "지방 출장", cell: false, cellReason: "지방 출장" }
-          ],
-          notes: "- 셀원들 모두 큐티 나눔 성실히 동참 중.\n- 9월 셋째 주 야외 셀모임 추진 중."
-        },
-        {
-          id: "cell_gookhyun",
-          leaderName: "조국현",
-          isCorpsLeader: false,
-          parentLeader: "김태홍",
-          roleTitle: "셀리더 (김태홍 직속)",
-          location: "소예배실",
-          meetingDateTime: "2026/9/8(화) 저녁 7시 30분",
-          members: [
-            { name: "조국현", role: "셀리더", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-            { name: "서동하", role: "디모데", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-            { name: "장우진", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-            { name: "유태민", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-            { name: "남궁혁", role: "셀원", sunday: false, sundayReason: "자격증 시험", cell: false, cellReason: "자격증 시험" },
-            { name: "배성재", role: "셀원", sunday: true, sundayReason: "", cell: false, cellReason: "몸살/컨디션" }
-          ],
-          notes: "- 셀원 전도 대상자 작정 기도 및 카드 작성 완료.\n- 동하 직장 적응 기도제목 나눔."
         }
       ]
     };
 
-    // 하위 셀 모의 데이터 레지스트리 (셀리더 또는 셀원 배정 디모데의 하위 셀)
-    const DEMO_SUB_CELLS = {
-      "윤수민": {
-        id: "cell_soomin",
-        leaderName: "윤수민",
-        isCorpsLeader: false,
-        parentLeader: "송예찬",
-        roleTitle: "하위 셀리더 (송예찬 직속)",
-        location: "카페 그레이스",
-        meetingDateTime: "2026/9/9(수) 저녁 7시",
-        members: [
-          { name: "윤수민", role: "셀리더", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-          { name: "배우람", role: "디모데", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-          { name: "서지민", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-          { name: "안상현", role: "셀원", sunday: false, sundayReason: "직장/야근", cell: true, cellReason: "" }
-        ],
-        notes: "- 수민셀 첫 모임 은혜롭게 나눔 완료\n- 우람 디모데와 함께 다음 주 셀원 심방 및 전도 대상자 작정 기도"
-      },
-      "주진": {
-        id: "cell_jujin",
-        leaderName: "주진",
-        isCorpsLeader: false,
-        parentLeader: "송예찬",
-        roleTitle: "디모데 인큐베이팅 셀 (송예찬 직속)",
-        location: "드림홀 카페",
-        meetingDateTime: "2026/9/8(화) 저녁 7시",
-        members: [
-          { name: "주진", role: "디모데", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-          { name: "임하늘", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-          { name: "정태우", role: "셀원", sunday: true, sundayReason: "", cell: true, cellReason: "" },
-          { name: "오하은", role: "셀원", sunday: false, sundayReason: "직장/야근", cell: true, cellReason: "" }
-        ],
-        notes: "- 주진 디모데 배정 셀원 첫 모임 은혜롭게 나눔\n- 셀원 신앙 점검 및 심방 일정 조율"
-      }
-    };
+    // 하위 셀 데이터 레지스트리: 실제 저장된 데이터가 없는 가상 데이터는 모두 제거
+    const DEMO_SUB_CELLS = {};
 
-    // 실제로 셀원이 배정되어 셀을 오픈하여 모임을 인도 중인 하위 리더/디모데 (윤수민, 주진 등)
+    // 실제로 셀원이 배정되어 셀을 오픈하여 모임을 인도 중인 하위 리더/디모데 (실제 저장 데이터 연동)
     function getActiveSubCellLeaders() {
       if (!state.members) return [];
       return state.members.filter(name => {
@@ -3260,26 +3153,38 @@
     }
 
     function getDemoActiveCells() {
-      // 1. 기본 베이스 셀 복제
-      const baseCells = DEMO_CORPS_DATA.cells.map(c => {
-        const cellCopy = {
-          ...c,
-          members: c.members.map(m => ({ ...m }))
-        };
-        // 송예찬 셀인 경우 멤버들의 직책을 현재 state.memberRoles와 실시간 동기화
-        if (cellCopy.leaderName === (state.leaderName || '송예찬')) {
-          cellCopy.members.forEach(m => {
-            m.role = getMemberRole(m.name);
-          });
-        }
-        return cellCopy;
-      });
+      // 1. 김태홍 셀 등 실제 저장된 외부 셀 복제
+      const baseCells = DEMO_CORPS_DATA.cells.map(c => ({
+        ...c,
+        members: c.members.map(m => ({ ...m }))
+      }));
 
-      // 2. 현재 셀(송예찬 셀)에서 실제로 하위 셀원이 배정되어 모임을 인도하는 하위 리더들 확인
-      const activeSubLeaders = getActiveSubCellLeaders();
+      // 2. 송예찬 셀: 현재 작성자의 실제 실시간 보고서 state 데이터로 동적 구성
+      const yechanMeetingDate = (state.meetingDate && state.meetingDate.trim())
+        ? `${state.meetingDate}${state.meetingTime ? ' ' + state.meetingTime : ''}`
+        : "2026/9/7(월) 저녁 7시 30분";
+      const yechanCell = {
+        id: "cell_yechan",
+        leaderName: state.leaderName || "송예찬",
+        isCorpsLeader: false,
+        parentLeader: "김태홍",
+        roleTitle: "셀리더 (김태홍 직속)",
+        location: state.location || "본당",
+        meetingDateTime: yechanMeetingDate,
+        members: state.members.map(name => ({
+          name,
+          role: getMemberRole(name),
+          sunday: !!state.sundayAttendance[name],
+          sundayReason: state.sundayReasons[name] || '',
+          cell: !!state.cellAttendance[name],
+          cellReason: state.cellReasons[name] || ''
+        })),
+        notes: state.notes || ''
+      };
 
-      // 실질적 하위 셀(셀원 2명 이상)만 동적으로 연결
+      // 3. 실제 등록된 하위 셀 (실제 저장된 데이터가 있을 경우만 연동)
       const dynamicSubCells = [];
+      const activeSubLeaders = getActiveSubCellLeaders();
       activeSubLeaders.forEach(name => {
         if (DEMO_SUB_CELLS[name]) {
           dynamicSubCells.push({
@@ -3289,7 +3194,7 @@
         }
       });
 
-      const allCombinedCells = [...baseCells, ...dynamicSubCells];
+      const allCombinedCells = [...baseCells, yechanCell, ...dynamicSubCells];
 
       if (currentDemoRole === 'corps') {
         return allCombinedCells;
@@ -3379,7 +3284,16 @@
 
       // 1-1. 안내 배너 동적 갱신
       const notice = document.getElementById('demoRoleNotice');
-      const unopenedLeaders = getUnopenedLeaders();
+      const songUnopened = getUnopenedLeaders();
+      const taehongCell = activeCells.find(c => c.id === 'cell_taehong');
+      const taehongUnopened = taehongCell 
+        ? taehongCell.members.filter(m => (m.role === '셀리더' || m.role === '군단리더') && m.name !== taehongCell.leaderName && !activeCells.some(ac => ac.leaderName === m.name && ac.id !== taehongCell.id)).map(m => m.name)
+        : [];
+      
+      const unopenedLeaders = currentDemoRole === 'corps' 
+        ? [...new Set([...taehongUnopened, ...songUnopened])]
+        : songUnopened;
+
       const openLeadersCount = activeCells.length;
       const totalLeadersCount = openLeadersCount + unopenedLeaders.length;
 
@@ -3387,14 +3301,14 @@
         if (currentDemoRole === 'corps') {
           const unassignedMsg = unopenedLeaders.length > 0 
             ? `<div class="mt-1.5 pt-1.5 border-t border-amber-200/80 text-[11px] text-amber-950 font-normal space-y-0.5">
-                <div>👑 <b>군단 총 리더십: ${totalLeadersCount}명</b> (셀오픈 <b>${openLeadersCount}개 셀</b> / ⏳ 미오픈 <b>${unopenedLeaders.length}명</b>)</div>
-                <div class="text-[10px] text-amber-800">• <b>셀미오픈 리더:</b> ${unopenedLeaders.join(', ')} (모체 셀에서 함께 출석 집계되며 독립 출석률 비교에서는 제외)</div>
+                <div>👑 <b>군단 총 리더십: ${totalLeadersCount}명</b> (실제 제출 <b>${openLeadersCount}개 셀</b> / ⏳ 미제출·미오픈 <b>${unopenedLeaders.length}명</b>)</div>
+                <div class="text-[10px] text-amber-800">• <b>보고서 미제출/미오픈 리더:</b> ${unopenedLeaders.join(', ')} (모체 셀에서 함께 출석 집계되며 독립 출석률 비교에서는 제외)</div>
                </div>`
             : `<div class="mt-1.5 pt-1.5 border-t border-amber-200/80 text-[11px] text-amber-950">👑 <b>군단 총 리더십: ${totalLeadersCount}명 (전원 셀오픈)</b></div>`;
           notice.innerHTML = `
             <span class="text-base">👑</span>
             <div class="w-full">
-              <b>김태홍 군단리더 시점</b>: 군단 산하의 <b>모든 셀(${activeCells.length}개 셀)</b>과 <b>말단 셀원들(실제 고유 ${totalMembers}명)</b>까지 전체 출석 통계와 셀별 보고서를 한눈에 조회합니다.
+              <b>김태홍 군단리더 시점</b>: 군단 산하의 <b>실제 저장된 셀(${activeCells.length}개 셀)</b>과 <b>셀원들(실제 고유 ${totalMembers}명)</b>의 출석 통계와 셀별 보고서를 조회합니다.
               ${unassignedMsg}
             </div>
           `;
@@ -3413,7 +3327,7 @@
           notice.innerHTML = `
             <span class="text-base">🌱</span>
             <div class="w-full">
-              <b>송예찬 군단리더 시점</b>: 김태홍 군단리더의 타 셀(권회인셀, 박창현셀 등)은 <b>완전히 숨겨지며</b>, ${subText}
+              <b>송예찬 군단리더 시점</b>: 김태홍 군단리더 본인 셀은 <b>숨겨지며</b>, ${subText}
               ${unassignedMsg}
             </div>
           `;
@@ -3461,7 +3375,9 @@
           const isOwner = (currentDemoRole === 'cell' && cell.leaderName === '송예찬') || (currentDemoRole === 'corps' && cell.isCorpsLeader);
 
           const isSongYeChanCell = cell.leaderName === (state.leaderName || '송예찬');
-          const unopenedInThisCell = isSongYeChanCell ? getUnopenedLeaders() : [];
+          const unopenedInThisCell = isSongYeChanCell 
+            ? getUnopenedLeaders() 
+            : (cell.id === 'cell_taehong' ? taehongUnopened : []);
 
           const card = document.createElement('div');
           card.className = `rounded-xl border transition-all ${
@@ -3504,11 +3420,11 @@
               ${unopenedInThisCell.length > 0 ? `
                 <div class="p-2.5 bg-amber-50/90 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-center justify-between flex-wrap gap-2">
                   <div class="flex items-center gap-1.5 flex-wrap">
-                    <span class="font-bold text-amber-950">⏳ 미오픈 셀리더 (${unopenedInThisCell.length}명):</span>
+                    <span class="font-bold text-amber-950">⏳ 미오픈 / 보고서 미제출 셀리더 (${unopenedInThisCell.length}명):</span>
                     <span class="font-semibold text-amber-800">${unopenedInThisCell.join(', ')}</span>
                   </div>
                   <span class="text-[10px] bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded font-medium shrink-0">
-                    송예찬 셀 소속 출석 집계 (모임 재개/셀원 배정 시 셀오픈 전환)
+                    ${cell.leaderName} 셀 소속 함께 출석 집계
                   </span>
                 </div>
               ` : ''}
@@ -3524,11 +3440,11 @@
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                   ${cell.members.map(m => {
-                    const isOpen = isLeaderCellOpen(m.name);
+                    const isOpen = (m.name === cell.leaderName) || activeCells.some(ac => ac.leaderName === m.name && ac.id !== cell.id);
                     let badgeText = '';
                     let badgeClass = '';
 
-                    if (m.role === '셀리더') {
+                    if (m.role === '셀리더' || m.role === '군단리더') {
                       if (m.name === cell.leaderName) {
                         badgeText = '리더';
                         badgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
@@ -3740,7 +3656,15 @@
       const sundayRate = totalMembers > 0 ? ((sundayAtt / totalMembers) * 100).toFixed(1) : 0;
       const cellRate = totalMembers > 0 ? ((cellAtt / totalMembers) * 100).toFixed(1) : 0;
 
-      const unopenedLeaders = getUnopenedLeaders();
+      const songUnopened = getUnopenedLeaders();
+      const taehongCell = activeCells.find(c => c.id === 'cell_taehong');
+      const taehongUnopened = taehongCell 
+        ? taehongCell.members.filter(m => (m.role === '셀리더' || m.role === '군단리더') && m.name !== taehongCell.leaderName && !activeCells.some(ac => ac.leaderName === m.name && ac.id !== taehongCell.id)).map(m => m.name)
+        : [];
+      
+      const unopenedLeaders = currentDemoRole === 'corps' 
+        ? [...new Set([...taehongUnopened, ...songUnopened])]
+        : songUnopened;
       const openLeadersCount = activeCells.length;
       const totalLeadersCount = openLeadersCount + unopenedLeaders.length;
 
