@@ -225,17 +225,63 @@
       </section>
 
       <!-- 3. 셀모임 출석 체크 -->
-      <section class="bg-white rounded-xl border border-zinc-200 p-4 sm:p-5 space-y-3">
-        <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+      <section class="bg-white rounded-xl border border-zinc-200 p-4 sm:p-5 space-y-3" id="cellAttendanceSection">
+        <div class="flex flex-wrap items-center justify-between border-b border-zinc-100 pb-2.5 gap-2">
           <div class="flex items-center gap-2">
             <h2 class="font-semibold text-xs text-zinc-500 uppercase tracking-wider">3. 셀모임 출석</h2>
             <span id="cellMeetingBadge" class="text-xs font-mono text-zinc-600 font-medium bg-zinc-100 px-2 py-0.5 rounded">
               0 / 0명
             </span>
           </div>
-          <div class="flex gap-1">
-            <button onclick="selectAll('cell', true)" class="text-xs px-2 py-1 bg-zinc-100 hover:bg-zinc-200 rounded text-zinc-700 font-medium transition active:scale-95">전원</button>
-            <button onclick="selectAll('cell', false)" class="text-xs px-2 py-1 bg-zinc-100 hover:bg-zinc-200 rounded text-zinc-500 font-medium transition active:scale-95">해제</button>
+          <div class="flex items-center gap-2">
+            <!-- 이번 주 셀모임 휴회(미진행) 토글 -->
+            <label class="flex items-center gap-1.5 cursor-pointer select-none bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg transition active:scale-95 text-xs font-semibold text-amber-900">
+              <input type="checkbox" id="cellCanceledCheckbox" onchange="toggleCellCanceled(this.checked)" class="w-3.5 h-3.5 accent-amber-600 rounded cursor-pointer">
+              <span>🏖️ 이번 주 미진행 (휴회)</span>
+            </label>
+            <div id="cellAttendanceButtons" class="flex gap-1">
+              <button onclick="selectAll('cell', true)" class="text-xs px-2 py-1 bg-zinc-100 hover:bg-zinc-200 rounded text-zinc-700 font-medium transition active:scale-95">전원</button>
+              <button onclick="selectAll('cell', false)" class="text-xs px-2 py-1 bg-zinc-100 hover:bg-zinc-200 rounded text-zinc-500 font-medium transition active:scale-95">해제</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 휴회 시 활성화되는 사유 선택/입력 박스 -->
+        <div id="cellCanceledBox" class="hidden p-3.5 bg-amber-50/90 border border-amber-300 rounded-xl space-y-2.5">
+          <div class="flex items-center justify-between text-xs font-bold text-amber-950">
+            <span class="flex items-center gap-1.5">
+              <span>🏖️</span> <span>이번 주 셀모임 미진행 (휴회) 사유</span>
+            </span>
+            <span class="text-[11px] font-normal text-amber-700 hidden sm:inline">개별 결석 사유를 입력할 필요 없이 한 번에 반영됩니다.</span>
+          </div>
+
+          <!-- 자주 쓰는 프리셋 버튼 -->
+          <div class="flex flex-wrap gap-1.5">
+            <button type="button" onclick="setCellCancelReason('공휴일')" class="px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-xs font-medium transition active:scale-95">
+              공휴일
+            </button>
+            <button type="button" onclick="setCellCancelReason('추석 연휴')" class="px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-xs font-medium transition active:scale-95">
+              추석 연휴
+            </button>
+            <button type="button" onclick="setCellCancelReason('설 연휴')" class="px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-xs font-medium transition active:scale-95">
+              설 연휴
+            </button>
+            <button type="button" onclick="setCellCancelReason('수련회/행사')" class="px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-xs font-medium transition active:scale-95">
+              수련회/행사
+            </button>
+            <button type="button" onclick="setCellCancelReason('시험기간')" class="px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-xs font-medium transition active:scale-95">
+              시험기간
+            </button>
+            <button type="button" onclick="setCellCancelReason('교회 전체 휴회')" class="px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-xs font-medium transition active:scale-95">
+              교회 전체 휴회
+            </button>
+          </div>
+
+          <!-- 사유 직접 입력 -->
+          <div class="flex items-center gap-2">
+            <input type="text" id="cellCancelReasonInput" placeholder="휴회 사유를 입력하세요 (예: 공휴일 / 추석 연휴 등)"
+              oninput="handleCellCancelReasonChange(this.value)"
+              class="w-full px-3 py-2 text-xs bg-white border border-amber-300 rounded-lg focus:outline-none focus:border-amber-600 font-medium text-zinc-900">
           </div>
         </div>
 
@@ -981,6 +1027,8 @@
         '최진성': 'unopened',
         '양광모': 'unopened'
       },
+      isCellCanceled: false,  // 이번 주 셀모임 휴회(미진행) 여부
+      cellCancelReason: '',   // 셀모임 휴회 사유 (공휴일, 수련회, 시험기간 등)
       history: []           // 지난 보고서 히스토리 보관함
     };
 
@@ -1105,9 +1153,9 @@
             state.syncCode = '송예찬1206';
             localStorage.setItem('cell_sync_code', '송예찬1206');
           }
-          if (!state.syncPassword) {
-            state.syncPassword = '1206';
-            localStorage.setItem('cell_sync_password', '1206');
+          if (pwParam) {
+            state.syncPassword = pwParam.trim();
+            localStorage.setItem('cell_sync_password', state.syncPassword);
           }
         }
       } catch (e) {
@@ -1340,6 +1388,12 @@
     
     // 과거 3주차 (8/30 주간-8/31 모임, 9/6 주간-9/7 모임) 기본 히스토리 보장
     function ensureDefaultHistorySeeds() {
+      // 송예찬 셀이 아닌 다른 셀리더(윤수민 등)의 히스토리에 송예찬 시드 데이터가 강제 주입되지 않도록 원천 차단
+      const currentLeader = (state.leaderName || '').trim();
+      const currentCode = (state.syncCode || '').trim();
+      const isYechan = currentLeader === '송예찬' || currentCode.startsWith('송예찬') || (typeof isSongYechanAdmin === 'function' && isSongYechanAdmin() && typeof adminEditingTarget !== 'undefined' && adminEditingTarget === 'yechan');
+      if (!isYechan) return;
+
       if (!state.history) state.history = [];
 
       const hasAug31 = state.history.some(h => {
@@ -1518,6 +1572,9 @@
         if (savedIsSubmitted !== null) {
           state.isSubmitted = (savedIsSubmitted === 'true');
         }
+
+        state.isCellCanceled = (localStorage.getItem('cell_is_canceled') === 'true');
+        state.cellCancelReason = localStorage.getItem('cell_cancel_reason') || '';
       } catch (e) {
         console.error('Failed to load storage', e);
       }
@@ -1552,6 +1609,8 @@
         localStorage.setItem('cell_notes', state.notes);
         localStorage.setItem('cell_prayers', JSON.stringify(state.prayers || {}));
         localStorage.setItem('cell_report_history', JSON.stringify(state.history));
+        localStorage.setItem('cell_is_canceled', state.isCellCanceled ? 'true' : 'false');
+        localStorage.setItem('cell_cancel_reason', state.cellCancelReason || '');
         if (typeof adminEditingTarget !== 'undefined' && adminEditingTarget === 'taehong' && typeof syncTaehongDemoCellFromState === 'function') {
           syncTaehongDemoCellFromState();
         } else if (typeof adminEditingTarget !== 'undefined' && adminEditingTarget.startsWith('sub_') && typeof submitSubCellReport === 'function') {
@@ -1768,7 +1827,59 @@
 
       // 인원수 배지 갱신
       document.getElementById('sundayWorshipBadge').innerText = `${sundayAttCount} / ${state.members.length}명`;
-      document.getElementById('cellMeetingBadge').innerText = `${cellAttCount} / ${state.members.length}명`;
+      if (state.isCellCanceled) {
+        document.getElementById('cellMeetingBadge').innerHTML = `<span class="text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded border border-amber-300">휴회 (미진행)</span>`;
+      } else {
+        document.getElementById('cellMeetingBadge').innerText = `${cellAttCount} / ${state.members.length}명`;
+      }
+
+      // 휴회 UI 상태 동기화
+      const cellBox = document.getElementById('cellCanceledBox');
+      const cellChips = document.getElementById('cellAttendanceChips');
+      const cellBtns = document.getElementById('cellAttendanceButtons');
+      const chk = document.getElementById('cellCanceledCheckbox');
+      const input = document.getElementById('cellCancelReasonInput');
+
+      if (chk) chk.checked = !!state.isCellCanceled;
+      if (input && state.cellCancelReason) input.value = state.cellCancelReason;
+
+      if (state.isCellCanceled) {
+        if (cellBox) cellBox.classList.remove('hidden');
+        if (cellChips) cellChips.classList.add('opacity-40', 'pointer-events-none');
+        if (cellBtns) cellBtns.classList.add('opacity-40', 'pointer-events-none');
+      } else {
+        if (cellBox) cellBox.classList.add('hidden');
+        if (cellChips) cellChips.classList.remove('opacity-40', 'pointer-events-none');
+        if (cellBtns) cellBtns.classList.remove('opacity-40', 'pointer-events-none');
+      }
+    }
+
+    // 셀모임 휴회(미진행) 토글
+    function toggleCellCanceled(checked) {
+      state.isCellCanceled = !!checked;
+      if (state.isCellCanceled && !state.cellCancelReason) {
+        state.cellCancelReason = '공휴일';
+      }
+      saveStorage();
+      renderAll();
+      showToast(state.isCellCanceled ? '🏖️ 이번 주 셀모임 미진행(휴회)으로 설정되었습니다.' : '🌱 셀모임 정상 진행으로 복원되었습니다.');
+    }
+
+    // 셀모임 휴회 사유 프리셋 지정
+    function setCellCancelReason(reason) {
+      state.cellCancelReason = reason;
+      const input = document.getElementById('cellCancelReasonInput');
+      if (input) input.value = reason;
+      saveStorage();
+      renderAll();
+      showToast(`사유가 '${reason}'(으)로 설정되었습니다.`);
+    }
+
+    // 셀모임 휴회 사유 직접 입력
+    function handleCellCancelReasonChange(val) {
+      state.cellCancelReason = val;
+      saveStorage();
+      updateOutput();
     }
 
     // 출석 토글
@@ -1921,7 +2032,18 @@
       }
 
       // 셀모임 결석자
-      if (cellAbsentees.length === 0) {
+      if (state.isCellCanceled) {
+        document.getElementById('cellAbsenceCount').innerText = '-';
+        const reasonText = (state.cellCancelReason || '').trim() || '공휴일';
+        cellList.innerHTML = `
+          <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-950 flex items-center justify-between">
+            <span class="flex items-center gap-1.5 font-medium">
+              <span>🏖️</span> <span>이번 주는 <b>셀모임 미진행 (사유: ${escapeHtml(reasonText)})</b> 주간입니다.</span>
+            </span>
+            <span class="text-[10px] bg-amber-200/90 text-amber-900 px-2 py-0.5 rounded font-bold">휴회</span>
+          </div>
+        `;
+      } else if (cellAbsentees.length === 0) {
         cellList.innerHTML = `<div class="text-xs text-zinc-400 py-2 px-3 bg-zinc-50 rounded-lg border border-zinc-200">전원 참석</div>`;
       } else {
         cellList.innerHTML = '';
@@ -2010,7 +2132,10 @@
       }
 
       let cellAbsenceText = '';
-      if (cellAbsentees.length > 0) {
+      if (state.isCellCanceled) {
+        const reason = (state.cellCancelReason || '').trim() || '공휴일';
+        cellAbsenceText = `셀모임: 미진행 (${reason})`;
+      } else if (cellAbsentees.length > 0) {
         const details = cellAbsentees.map(name => {
           const reason = (state.cellReasons[name] || '').trim();
           return reason ? `${name} - ${reason}` : name;
@@ -2020,12 +2145,28 @@
         cellAbsenceText = `셀모임: 없음`;
       }
 
+      // 셀모임 출석인원 라인
+      let cellAttendanceLine = '';
+      if (state.isCellCanceled) {
+        const reason = (state.cellCancelReason || '').trim() || '공휴일';
+        cellAttendanceLine = `- 셀모임: 미진행 (${reason})`;
+      } else {
+        cellAttendanceLine = `- 셀모임 (${cellAttendees.length}명)\n${cellAttStr}`;
+      }
+
       // 5. 특이사항
       const notes = (document.getElementById('notesInput').value || '').trim();
-      const notesSection = notes ? `5.  셀모임 참석자 및 특이사항\n${notes}` : `5.  셀모임 참석자 및 특이사항\n- 특이사항 없음`;
+      let defaultNotes = '- 특이사항 없음';
+      if (state.isCellCanceled) {
+        const reason = (state.cellCancelReason || '').trim() || '공휴일';
+        defaultNotes = `- ${reason}로 인하여 이번 주 셀모임은 쉬어갑니다.`;
+      }
+      const notesSection = notes ? `5.  셀모임 참석자 및 특이사항\n${notes}` : `5.  셀모임 참석자 및 특이사항\n${defaultNotes}`;
+
+      const finalLocation = state.isCellCanceled ? '미진행 (휴회)' : locationStr;
 
       // 최종 결합 (사용자 제공 포맷과 100% 일치)
-      const report = `[${leader}셀모임 보고서] \n\n1. ${dateTimeStr} \n\n2. 장소: ${locationStr}\n\n3. 출석인원 (총원 ${totalCount}명)\n${allMembersStr}\n\n- 주일예배 (${sundayAttendees.length}명)\n${sundayAttStr}\n\n- 셀모임 (${cellAttendees.length}명)\n${cellAttStr}\n\n4. 결석자\n${sundayAbsenceText}\n\n${cellAbsenceText}\n\n${notesSection}`;
+      const report = `[${leader}셀모임 보고서] \n\n1. ${dateTimeStr} \n\n2. 장소: ${finalLocation}\n\n3. 출석인원 (총원 ${totalCount}명)\n${allMembersStr}\n\n- 주일예배 (${sundayAttendees.length}명)\n${sundayAttStr}\n\n${cellAttendanceLine}\n\n4. 결석자\n${sundayAbsenceText}\n\n${cellAbsenceText}\n\n${notesSection}`;
 
       return report;
     }
@@ -2444,7 +2585,7 @@
       state.meetingDate = `${year}-${month}-${day}`;
       document.getElementById('meetingDateInput').value = state.meetingDate;
 
-      // 3. 출석 및 사유 초기화 (전원 출석 기본값)
+      // 3. 출석 및 사유 초기화 (전원 출석 기본값 및 휴회 해제)
       state.members.forEach(name => {
         state.sundayAttendance[name] = true;
         state.cellAttendance[name] = true;
@@ -2454,6 +2595,8 @@
       state.notes = '';
       document.getElementById('notesInput').value = '';
       state.prayers = {};
+      state.isCellCanceled = false;
+      state.cellCancelReason = '';
 
       saveStorage();
       renderAll();
@@ -2530,6 +2673,8 @@
         cellReasons: { ...state.cellReasons },
         notes: document.getElementById('notesInput').value,
         prayers: { ...state.prayers },
+        isCellCanceled: !!state.isCellCanceled,
+        cellCancelReason: state.cellCancelReason || '',
         fullText: generateReportText()
       };
 
@@ -2615,12 +2760,21 @@
                 ${sundayAbs.length > 0 ? '결석: ' + sundayAbs.map(n => `${n}(${item.sundayReasons[n] || '사유미입력'})`).join(', ') : '전원 참석'}
               </p>
             </div>
-            <div class="p-2 bg-emerald-50/60 rounded-lg border border-emerald-100">
-              <span class="font-bold text-emerald-700 block mb-0.5">셀모임 (${cellAttCount}/${item.members.length}명)</span>
-              <p class="text-[11px] text-slate-600 truncate">
-                ${cellAbs.length > 0 ? '결석: ' + cellAbs.map(n => `${n}(${item.cellReasons[n] || '사유미입력'})`).join(', ') : '전원 참석'}
-              </p>
-            </div>
+            ${item.isCellCanceled ? `
+              <div class="p-2 bg-amber-50 rounded-lg border border-amber-200">
+                <span class="font-bold text-amber-800 block mb-0.5">셀모임 (휴회/미진행)</span>
+                <p class="text-[11px] text-amber-900 truncate">
+                  사유: ${escapeHtml(item.cellCancelReason || '공휴일')}
+                </p>
+              </div>
+            ` : `
+              <div class="p-2 bg-emerald-50/60 rounded-lg border border-emerald-100">
+                <span class="font-bold text-emerald-700 block mb-0.5">셀모임 (${cellAttCount}/${item.members.length}명)</span>
+                <p class="text-[11px] text-slate-600 truncate">
+                  ${cellAbs.length > 0 ? '결석: ' + cellAbs.map(n => `${n}(${item.cellReasons[n] || '사유미입력'})`).join(', ') : '전원 참석'}
+                </p>
+              </div>
+            `}
           </div>
 
           ${item.notes ? `
@@ -2665,6 +2819,8 @@
       state.cellReasons = { ...target.cellReasons };
       state.notes = target.notes;
       state.prayers = { ...(target.prayers || {}) };
+      state.isCellCanceled = !!target.isCellCanceled;
+      state.cellCancelReason = target.cellCancelReason || '';
 
       // 폼 인풋 동기화
       document.getElementById('leaderNameInput').value = state.leaderName;
@@ -3159,62 +3315,176 @@
         history: state.history,
         submittedWeeks: state.submittedWeeks || {},
         isSubmitted: !!state.isSubmitted,
+        isCellCanceled: !!state.isCellCanceled,
+        cellCancelReason: state.cellCancelReason || '',
         updatedAt: new Date().toISOString()
       };
     }
 
-    function applyImportData(data) {
+    // 로컬 셀 데이터 전체 초기화 (로그아웃 / 다른 계정 로그인 시 데이터 오염 방지)
+    function resetLocalState(cleanLeaderName = '') {
+      state.syncCode = '';
+      state.syncPassword = '';
+      state.leaderName = cleanLeaderName;
+      state.location = '3층 DCC';
+      state.meetingDate = '';
+      state.meetingTime = '19:00';
+      state.members = cleanLeaderName ? [cleanLeaderName] : [];
+      state.sundayAttendance = cleanLeaderName ? { [cleanLeaderName]: true } : {};
+      state.cellAttendance = cleanLeaderName ? { [cleanLeaderName]: true } : {};
+      state.sundayReasons = {};
+      state.cellReasons = {};
+      state.notes = '';
+      state.prayers = {};
+      state.sundayAbsenceOrder = [];
+      state.cellAbsenceOrder = [];
+      state.memberRoles = cleanLeaderName ? { [cleanLeaderName]: '셀리더' } : {};
+      state.submittedWeeks = {};
+      state.selectedSunday = '';
+      state.leaderCellStatus = cleanLeaderName ? { [cleanLeaderName]: 'open' } : {};
+      state.history = [];
+      state.isSubmitted = false;
+      state.isCellCanceled = false;
+      state.cellCancelReason = '';
+
+      if (typeof SUB_CELL_REPORTS !== 'undefined') {
+        SUB_CELL_REPORTS = {};
+      }
+
+      // 이전 계정의 로컬스토리지 키 완전 삭제
+      const keysToRemove = [
+        'cell_sync_code', 'cell_sync_password', 'cell_last_sync_time', 'cell_is_admin',
+        'cell_members', 'cell_leader_name', 'cell_location', 'cell_meeting_date', 'cell_meeting_time',
+        'cell_sunday_att', 'cell_cell_att', 'cell_sunday_reasons', 'cell_cell_reasons',
+        'cell_sunday_order', 'cell_cell_order', 'cell_notes', 'cell_prayers', 'cell_report_history',
+        'cell_member_roles', 'cell_leader_cell_status', 'cell_submitted_weeks', 'cell_is_submitted',
+        'cell_sub_cell_reports', 'cell_is_canceled', 'cell_cancel_reason'
+      ];
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+
+      if (cleanLeaderName) {
+        localStorage.setItem('cell_leader_name', cleanLeaderName);
+        localStorage.setItem('cell_members', JSON.stringify(state.members));
+      }
+
+      const leaderEl = document.getElementById('leaderNameInput');
+      if (leaderEl) leaderEl.value = cleanLeaderName;
+      const locEl = document.getElementById('meetingLocationInput');
+      if (locEl) locEl.value = state.location;
+      const notesEl = document.getElementById('notesInput');
+      if (notesEl) notesEl.value = '';
+
+      if (typeof initDefaultDate === 'function') initDefaultDate();
+      renderAll();
+      updateSyncHeaderUI();
+      if (typeof renderWeeklyReportBanner === 'function') renderWeeklyReportBanner();
+      if (typeof renderAdminEditingBanner === 'function') renderAdminEditingBanner();
+      if (typeof renderDemoDashboard === 'function' && currentMainTab === 'network') {
+        renderDemoDashboard();
+      }
+    }
+
+    function applyImportData(data, isFullReplace = true) {
       if (!data) return;
-      if (Array.isArray(data.members)) state.members = data.members;
-      if (data.memberRoles) state.memberRoles = data.memberRoles;
-      if (data.leaderCellStatus) state.leaderCellStatus = data.leaderCellStatus;
-      if (data.subCellReports && typeof data.subCellReports === 'object') {
-        SUB_CELL_REPORTS = { ...SUB_CELL_REPORTS, ...data.subCellReports };
-        if (typeof saveSubCellReports === 'function') saveSubCellReports();
-      }
-      if (data.submittedWeeks && typeof data.submittedWeeks === 'object') {
-        state.submittedWeeks = { ...(state.submittedWeeks || {}), ...data.submittedWeeks };
+
+      if (isFullReplace) {
+        // 완전 대체: 이전 사람의 데이터 잔여물이 1개도 남지 않도록 전체 덮어쓰기
+        state.members = Array.isArray(data.members) ? [...data.members] : [];
+        state.memberRoles = (data.memberRoles && typeof data.memberRoles === 'object') ? { ...data.memberRoles } : {};
+        state.leaderCellStatus = (data.leaderCellStatus && typeof data.leaderCellStatus === 'object') ? { ...data.leaderCellStatus } : {};
+        if (typeof SUB_CELL_REPORTS !== 'undefined') {
+          SUB_CELL_REPORTS = (data.subCellReports && typeof data.subCellReports === 'object') ? { ...data.subCellReports } : {};
+          if (typeof saveSubCellReports === 'function') saveSubCellReports();
+        }
+        state.submittedWeeks = (data.submittedWeeks && typeof data.submittedWeeks === 'object') ? { ...data.submittedWeeks } : {};
         localStorage.setItem('cell_submitted_weeks', JSON.stringify(state.submittedWeeks));
-      }
-      if (data.isSubmitted !== undefined) {
         state.isSubmitted = !!data.isSubmitted;
         localStorage.setItem('cell_is_submitted', state.isSubmitted ? 'true' : 'false');
+
+        state.leaderName = data.leaderName || '';
+        const leaderEl = document.getElementById('leaderNameInput');
+        if (leaderEl) leaderEl.value = state.leaderName;
+
+        state.location = data.location || '3층 DCC';
+        const locEl = document.getElementById('meetingLocationInput');
+        if (locEl) locEl.value = state.location;
+
+        state.meetingDate = data.meetingDate || '';
+        const dateEl = document.getElementById('meetingDateInput');
+        if (dateEl) dateEl.value = state.meetingDate;
+
+        state.meetingTime = data.meetingTime || '19:00';
+        const timeEl = document.getElementById('meetingTimeInput');
+        if (timeEl) timeEl.value = state.meetingTime;
+        if (typeof updateTimeUI === 'function') updateTimeUI(state.meetingTime);
+
+        state.sundayAttendance = (data.sundayAttendance && typeof data.sundayAttendance === 'object') ? { ...data.sundayAttendance } : {};
+        state.cellAttendance = (data.cellAttendance && typeof data.cellAttendance === 'object') ? { ...data.cellAttendance } : {};
+        state.sundayReasons = (data.sundayReasons && typeof data.sundayReasons === 'object') ? { ...data.sundayReasons } : {};
+        state.cellReasons = (data.cellReasons && typeof data.cellReasons === 'object') ? { ...data.cellReasons } : {};
+
+        state.notes = data.notes !== undefined ? data.notes : '';
+        const notesEl = document.getElementById('notesInput');
+        if (notesEl) notesEl.value = state.notes;
+
+        state.prayers = (data.prayers && typeof data.prayers === 'object') ? { ...data.prayers } : {};
+        state.sundayAbsenceOrder = Array.isArray(data.sundayAbsenceOrder) ? [...data.sundayAbsenceOrder] : [];
+        state.cellAbsenceOrder = Array.isArray(data.cellAbsenceOrder) ? [...data.cellAbsenceOrder] : [];
+        state.history = Array.isArray(data.history) ? [...data.history] : [];
+        state.isCellCanceled = !!data.isCellCanceled;
+        state.cellCancelReason = data.cellCancelReason || '';
+      } else {
+        if (Array.isArray(data.members)) state.members = data.members;
+        if (data.memberRoles) state.memberRoles = { ...state.memberRoles, ...data.memberRoles };
+        if (data.leaderCellStatus) state.leaderCellStatus = { ...state.leaderCellStatus, ...data.leaderCellStatus };
+        if (data.subCellReports && typeof data.subCellReports === 'object') {
+          SUB_CELL_REPORTS = { ...SUB_CELL_REPORTS, ...data.subCellReports };
+          if (typeof saveSubCellReports === 'function') saveSubCellReports();
+        }
+        if (data.submittedWeeks && typeof data.submittedWeeks === 'object') {
+          state.submittedWeeks = { ...(state.submittedWeeks || {}), ...data.submittedWeeks };
+          localStorage.setItem('cell_submitted_weeks', JSON.stringify(state.submittedWeeks));
+        }
+        if (data.isSubmitted !== undefined) {
+          state.isSubmitted = !!data.isSubmitted;
+          localStorage.setItem('cell_is_submitted', state.isSubmitted ? 'true' : 'false');
+        }
+        if (data.leaderName !== undefined) {
+          state.leaderName = data.leaderName;
+          const el = document.getElementById('leaderNameInput');
+          if (el) el.value = data.leaderName;
+        }
+        if (data.location !== undefined) {
+          state.location = data.location;
+          const el = document.getElementById('meetingLocationInput');
+          if (el) el.value = data.location;
+        }
+        if (data.meetingDate) {
+          state.meetingDate = data.meetingDate;
+          const el = document.getElementById('meetingDateInput');
+          if (el) el.value = data.meetingDate;
+        }
+        if (data.meetingTime) {
+          state.meetingTime = data.meetingTime;
+          const el = document.getElementById('meetingTimeInput');
+          if (el) el.value = data.meetingTime;
+        }
+        if (data.sundayAttendance) state.sundayAttendance = data.sundayAttendance;
+        if (data.cellAttendance) state.cellAttendance = data.cellAttendance;
+        if (data.sundayReasons) state.sundayReasons = data.sundayReasons;
+        if (data.cellReasons) state.cellReasons = data.cellReasons;
+        if (data.notes !== undefined) {
+          state.notes = data.notes;
+          const el = document.getElementById('notesInput');
+          if (el) el.value = data.notes;
+        }
+        if (data.prayers !== undefined) state.prayers = data.prayers;
+        if (Array.isArray(data.sundayAbsenceOrder)) state.sundayAbsenceOrder = data.sundayAbsenceOrder;
+        if (Array.isArray(data.cellAbsenceOrder)) state.cellAbsenceOrder = data.cellAbsenceOrder;
+        if (Array.isArray(data.history)) state.history = data.history;
+        if (data.isCellCanceled !== undefined) state.isCellCanceled = !!data.isCellCanceled;
+        if (data.cellCancelReason !== undefined) state.cellCancelReason = data.cellCancelReason;
       }
-      if (data.leaderName !== undefined) {
-        state.leaderName = data.leaderName;
-        const el = document.getElementById('leaderNameInput');
-        if (el) el.value = data.leaderName;
-      }
-      if (data.location !== undefined) {
-        state.location = data.location;
-        const el = document.getElementById('meetingLocationInput');
-        if (el) el.value = data.location;
-      }
-      if (data.meetingDate) {
-        state.meetingDate = data.meetingDate;
-        const el = document.getElementById('meetingDateInput');
-        if (el) el.value = data.meetingDate;
-      }
-      if (data.meetingTime) {
-        state.meetingTime = data.meetingTime;
-        const el = document.getElementById('meetingTimeInput');
-        if (el) el.value = data.meetingTime;
-      }
-      if (data.sundayAttendance) state.sundayAttendance = data.sundayAttendance;
-      if (data.cellAttendance) state.cellAttendance = data.cellAttendance;
-      if (data.sundayReasons) state.sundayReasons = data.sundayReasons;
-      if (data.cellReasons) state.cellReasons = data.cellReasons;
-      if (data.notes !== undefined) {
-        state.notes = data.notes;
-        const el = document.getElementById('notesInput');
-        if (el) el.value = data.notes;
-      }
-      if (data.prayers !== undefined) {
-        state.prayers = data.prayers;
-      }
-      if (Array.isArray(data.sundayAbsenceOrder)) state.sundayAbsenceOrder = data.sundayAbsenceOrder;
-      if (Array.isArray(data.cellAbsenceOrder)) state.cellAbsenceOrder = data.cellAbsenceOrder;
-      if (Array.isArray(data.history)) state.history = data.history;
 
       saveStorage();
       renderAll();
@@ -3238,9 +3508,10 @@
     }
 
     async function saveToCloud(isSilent = true, retryCount = 1) {
+      // 명시적으로 연결된 syncCode가 없으면 클라우드 저장을 수행하지 않음 (의도치 않은 다른 계정 덮어쓰기 원천 방지)
       const activeCode = (typeof isSongYechanAdmin === 'function' && isSongYechanAdmin() && adminEditingTarget === 'taehong')
         ? '김태홍2920'
-        : (state.syncCode || (typeof isSongYechanAdmin === 'function' && isSongYechanAdmin() ? '송예찬1206' : ''));
+        : (state.syncCode || '');
 
       if (!activeCode) return;
       if (typeof syncTaehongDemoCellFromState === 'function' && adminEditingTarget === 'taehong') {
@@ -3251,8 +3522,6 @@
       if (typeof isSongYechanAdmin === 'function' && isSongYechanAdmin()) {
         if (adminEditingTarget === 'taehong') {
           activePassword = '2920';
-        } else if (activeCode === '송예찬1206' && !activePassword) {
-          activePassword = '1206';
         }
       }
 
@@ -3313,8 +3582,6 @@
       if (typeof isSongYechanAdmin === 'function' && isSongYechanAdmin()) {
         if (adminEditingTarget === 'taehong') {
           activePassword = '2920';
-        } else if (activeCode === '송예찬1206' && !activePassword) {
-          activePassword = '1206';
         }
       }
 
@@ -3428,9 +3695,12 @@
             </button>
           </div>
 
-          <div class="pt-2 flex justify-between items-center text-xs">
-            <button onclick="disconnectSyncCode()" class="text-zinc-400 hover:text-rose-600 transition">
-              동기화 연결 해제 / 다른 코드로 변경
+          <div class="pt-2 flex flex-col sm:flex-row gap-2 justify-between items-center text-xs">
+            <button onclick="disconnectSyncCode(true)" class="w-full sm:w-auto py-1.5 px-2.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg font-semibold transition flex items-center justify-center gap-1">
+              <span>🔒</span> <span>로그아웃 (기기 데이터 초기화)</span>
+            </button>
+            <button onclick="disconnectSyncCode(false)" class="w-full sm:w-auto text-zinc-400 hover:text-zinc-600 transition text-[11px] text-center">
+              기기 데이터 유지하고 연결만 해제
             </button>
           </div>
         `;
@@ -3790,6 +4060,22 @@
 
       const code = `${name}${pin}`;
 
+      // [핵심 방어 1]: 새로운 코드로 등록('save')할 때, 이전 사람의 데이터가 남아있는지 검사하여 덮어쓰기 방지!
+      if (action === 'save') {
+        const hasPrevData = state.leaderName && (state.leaderName !== name) && state.members && state.members.length > 0;
+        if (hasPrevData) {
+          const startClean = confirm(
+            `⚠️ 현재 기기에 이전 사용자('${state.leaderName}' 셀, ${state.members.length}명)의 데이터가 남아있습니다.\n\n` +
+            `'${name}'(으)로 새로 등록할 때:\n` +
+            `[확인]: 기존 데이터를 비우고 '${name}' 셀을 깨끗한 새 셀로 등록합니다. (권장 - 덮어쓰기 방지)\n` +
+            `[취소]: 현재 화면의 데이터를 '${name}' 셀로 그대로 복사하여 등록합니다.`
+          );
+          if (startClean) {
+            resetLocalState(name);
+          }
+        }
+      }
+
       const btn = document.getElementById('syncActionBtn') || document.getElementById('syncSaveBtn') || document.getElementById('syncLoadBtn');
       const prevBtnHtml = btn ? btn.innerHTML : '';
       if (btn) {
@@ -3860,8 +4146,9 @@
           }
         }
 
+        // [핵심 방어 2]: 'load'로 데이터를 불러올 때 이전 데이터 잔여물 없이 100% 완전 대체(Full Replace)
         if (action === 'load' && json.data) {
-          applyImportData(json.data);
+          applyImportData(json.data, true);
         }
 
         updateSyncHeaderUI();
@@ -3871,7 +4158,7 @@
           renderDemoDashboard();
         }
 
-        // 연결 완료 후 1초 뒤 모달 자동 닫기
+        // 연결 완료 후 0.8초 뒤 모달 자동 닫기
         setTimeout(() => {
           closeSyncModal();
         }, 800);
@@ -3897,22 +4184,37 @@
       }
     }
 
-    function disconnectSyncCode() {
-      if (!confirm(`'${state.syncCode}' 동기화 연결을 해제하시겠습니까?\n(기기에 이미 저장된 데이터는 그대로 유지됩니다.)`)) return;
-      state.syncCode = '';
-      state.syncPassword = '';
-      localStorage.removeItem('cell_sync_code');
-      localStorage.removeItem('cell_sync_password');
-      localStorage.removeItem('cell_last_sync_time');
-      localStorage.removeItem('cell_is_admin');
-      if (typeof adminEditingTarget !== 'undefined') adminEditingTarget = 'yechan';
-      updateSyncHeaderUI();
-      renderSyncModal();
-      if (typeof renderAdminEditingBanner === 'function') renderAdminEditingBanner();
-      if (typeof renderDemoDashboard === 'function' && currentMainTab === 'network') {
-        renderDemoDashboard();
+    function disconnectSyncCode(shouldReset = null) {
+      if (!state.syncCode) return;
+      const prevCode = state.syncCode;
+
+      if (shouldReset === null) {
+        const choice = confirm(
+          `'${prevCode}' 동기화 연결을 해제하시겠습니까?\n\n` +
+          `[확인]: 기기에 저장된 이전 셀 데이터를 모두 초기화하고 안전하게 로그아웃합니다.\n` +
+          `(⚠️ 다른 계정으로 로그인하거나 공용 PC인 경우 데이터 덮어쓰기 방지를 위해 [확인]을 권장합니다.)\n\n` +
+          `[취소]: 로그아웃을 취소합니다.`
+        );
+        if (!choice) return;
+        shouldReset = true;
       }
-      showToast('동기화 연결이 해제되었습니다.');
+
+      if (shouldReset) {
+        resetLocalState('');
+        showToast('로그아웃되었습니다. 기기 데이터가 안전하게 초기화되었습니다.');
+      } else {
+        state.syncCode = '';
+        state.syncPassword = '';
+        localStorage.removeItem('cell_sync_code');
+        localStorage.removeItem('cell_sync_password');
+        localStorage.removeItem('cell_last_sync_time');
+        localStorage.removeItem('cell_is_admin');
+        if (typeof adminEditingTarget !== 'undefined') adminEditingTarget = 'yechan';
+        updateSyncHeaderUI();
+        showToast('동기화 연결이 해제되었습니다. (기기 데이터 유지됨)');
+      }
+
+      renderSyncModal();
     }
 
     // ==========================================
@@ -4559,6 +4861,8 @@
           roleTitle: "셀리더 (김태홍 직속)",
           location: histItem.location || "3층 DCC",
           meetingDateTime: mDateTime,
+          isCellCanceled: !!histItem.isCellCanceled,
+          cellCancelReason: histItem.cellCancelReason || '',
           members: hMembers.map(name => ({
             name,
             role: getMemberRole(name),
@@ -4628,6 +4932,8 @@
         roleTitle: "셀리더 (김태홍 직속)",
         location: state.location || "본당",
         meetingDateTime: yechanMeetingDate,
+        isCellCanceled: !!state.isCellCanceled,
+        cellCancelReason: state.cellCancelReason || '',
         members: state.members.map(name => ({
           name,
           role: getMemberRole(name),
@@ -4755,6 +5061,8 @@
             roleTitle: (rep.memberRoles && rep.memberRoles[name]) || getMemberRole(name, rep),
             location: rep.location || '모임 장소',
             meetingDateTime: (rep.meetingDate ? `${rep.meetingDate}${rep.meetingTime ? ' ' + rep.meetingTime : ''}` : rep.meetingDateTime) || '2026/9/13(일)',
+            isCellCanceled: !!rep.isCellCanceled,
+            cellCancelReason: rep.cellCancelReason || '',
             members: membersList,
             notes: rep.notes || '',
             isSubmittedReport: true
@@ -4803,6 +5111,8 @@
               sundayReason: m.sundayReason || '',
               cell: !!m.cell,
               cellReason: m.cellReason || '',
+              isCellCanceled: !!cell.isCellCanceled,
+              cellCancelReason: cell.cellCancelReason || '',
               isSelfLeader: isLeaderOfThisCell,
               isSubReport: !!cell.isSubmittedReport
             });
@@ -4815,12 +5125,18 @@
               existing.sundayReason = m.sundayReason || '';
               existing.cell = !!m.cell;
               existing.cellReason = m.cellReason || '';
+              existing.isCellCanceled = !!cell.isCellCanceled;
+              existing.cellCancelReason = cell.cellCancelReason || '';
               existing.isSelfLeader = true;
               existing.isSubReport = !!cell.isSubmittedReport;
             } else if (!existing.isSelfLeader) {
               // 본인 셀이 아닌 일반 셀원 중복 등록: 둘 중 한 곳이라도 출석 시 출석으로 통합
               if (m.sunday) existing.sunday = true;
               if (m.cell) existing.cell = true;
+              if (cell.isCellCanceled) {
+                existing.isCellCanceled = true;
+                existing.cellCancelReason = cell.cellCancelReason || '';
+              }
             }
           }
         });
@@ -4896,6 +5212,8 @@
       let totalMembers = uniqueMembersMap.size;
       let sundayAttCount = 0;
       let cellAttCount = 0;
+      let cellCanceledCount = 0;
+      let cellEligibleMembers = 0;
       const sundayAbsList = [];
       const cellAbsList = [];
 
@@ -4906,15 +5224,19 @@
           sundayAbsList.push({ cellName: m.cellName, name: m.name, reason: m.sundayReason || '사유미입력' });
         }
 
-        if (m.cell) {
+        if (m.isCellCanceled) {
+          cellCanceledCount++;
+        } else if (m.cell) {
           cellAttCount++;
+          cellEligibleMembers++;
         } else {
+          cellEligibleMembers++;
           cellAbsList.push({ cellName: m.cellName, name: m.name, reason: m.cellReason || '사유미입력' });
         }
       });
 
       const sundayRate = totalMembers > 0 ? ((sundayAttCount / totalMembers) * 100).toFixed(1) : 0;
-      const cellRate = totalMembers > 0 ? ((cellAttCount / totalMembers) * 100).toFixed(1) : 0;
+      const cellRate = cellEligibleMembers > 0 ? ((cellAttCount / cellEligibleMembers) * 100).toFixed(1) : 0;
 
       // 1. 메트릭 카드 갱신
       const metricTotalEl = document.getElementById('demoMetricTotal');
@@ -4943,9 +5265,31 @@
       if (metricSundayRateEl) metricSundayRateEl.innerText = sundayRate + '%';
       if (metricSundayAbsEl) metricSundayAbsEl.innerText = '결석 ' + sundayAbsList.length + '명';
 
-      if (metricCellEl) metricCellEl.innerText = cellAttCount + '명';
-      if (metricCellRateEl) metricCellRateEl.innerText = cellRate + '%';
-      if (metricCellAbsEl) metricCellAbsEl.innerText = '결석 ' + cellAbsList.length + '명';
+      if (metricCellEl) {
+        if (cellCanceledCount === totalMembers && totalMembers > 0) {
+          metricCellEl.innerText = '미진행 (휴회)';
+        } else if (cellCanceledCount > 0) {
+          metricCellEl.innerText = `${cellAttCount}명 (휴회 ${cellCanceledCount}명)`;
+        } else {
+          metricCellEl.innerText = cellAttCount + '명';
+        }
+      }
+      if (metricCellRateEl) {
+        if (cellCanceledCount === totalMembers && totalMembers > 0) {
+          metricCellRateEl.innerText = '휴회';
+        } else {
+          metricCellRateEl.innerText = cellRate + '%';
+        }
+      }
+      if (metricCellAbsEl) {
+        if (cellCanceledCount === totalMembers && totalMembers > 0) {
+          metricCellAbsEl.innerText = '전체 휴회';
+        } else if (cellCanceledCount > 0) {
+          metricCellAbsEl.innerText = `결석 ${cellAbsList.length}명 (휴회 ${cellCanceledCount}명)`;
+        } else {
+          metricCellAbsEl.innerText = '결석 ' + cellAbsList.length + '명';
+        }
+      }
 
       if (metricReportStatusEl) metricReportStatusEl.innerText = '100%';
       if (metricReportDetailEl) metricReportDetailEl.innerText = `${activeCells.length}/${activeCells.length}개 셀 완료`;
@@ -5174,11 +5518,14 @@
                     ${cell.isSubmittedReport ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">✨ 셀모임 보고서 제출 셀</span>' : ''}
                     ${hierarchyTag}
                     ${cell.isPending ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-bold">⏳ 작성 대기</span>' : ''}
+                    ${cell.isCellCanceled ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-bold border border-amber-300">🏖️ 셀모임 휴회 (${escapeHtml(cell.cellCancelReason || '공휴일')})</span>` : ''}
                   </div>
                   <div class="flex items-center gap-2 text-xs text-zinc-500 mt-1 font-mono flex-wrap">
                     <span>주일 <b>${sAtt}/${cell.members.length}</b>명</span>
                     <span class="text-zinc-300">|</span>
-                    <span>셀모임 <b>${cAtt}/${cell.members.length}</b>명</span>
+                    ${cell.isCellCanceled 
+                      ? `<span class="text-amber-800 font-bold bg-amber-50 px-1.5 py-0.5 rounded text-[11px] font-sans">셀모임 휴회</span>`
+                      : `<span>셀모임 <b>${cAtt}/${cell.members.length}</b>명</span>`}
                     <span class="text-zinc-300">|</span>
                     <span class="text-[11px] text-zinc-400 font-sans">${cell.meetingDateTime}</span>
                   </div>
@@ -5469,13 +5816,26 @@
       if (modalLeader) modalLeader.innerText = cell.leaderName;
       if (modalLocation) modalLocation.innerText = cell.location;
       if (modalDateTime) modalDateTime.innerText = cell.meetingDateTime;
-      if (modalRate) modalRate.innerText = `주일 ${sAtt}/${cell.members.length}명 | 셀 ${cAtt}/${cell.members.length}명`;
-      if (modalNotes) modalNotes.innerText = cell.notes || '특이사항 없음';
+      if (modalRate) {
+        modalRate.innerText = cell.isCellCanceled 
+          ? `주일 ${sAtt}/${cell.members.length}명 | 셀 미진행(휴회: ${cell.cellCancelReason || '공휴일'})`
+          : `주일 ${sAtt}/${cell.members.length}명 | 셀 ${cAtt}/${cell.members.length}명`;
+      }
+      if (modalNotes) {
+        modalNotes.innerText = cell.notes || (cell.isCellCanceled ? `- ${(cell.cellCancelReason || '공휴일')}로 인하여 이번 주 셀모임은 쉬어갑니다.` : '특이사항 없음');
+      }
 
       // 가상 카톡 보고서 원문 생성
-      const report = cell.isPending
-        ? `[${cell.leaderName} 셀모임 보고서]\n\n⏳ 이번 주 보고서 작성 대기 중입니다.\n${cell.leaderName} 셀리더가 본인 이름으로 보고서를 작성하여 저장하면 이곳에 실시간 자동 연동됩니다.`
-        : `[${cell.leaderName} 셀모임 보고서]\n\n1. ${cell.meetingDateTime}\n\n2. 장소: ${cell.location}\n\n3. 출석인원 (총원 ${cell.members.length}명)\n${cell.members.map(m => m.name).join(', ')}\n\n- 주일예배 (${sAtt}명)\n${cell.members.filter(m => m.sunday).map(m => m.name).join(', ')}\n\n- 셀모임 (${cAtt}명)\n${cell.members.filter(m => m.cell).map(m => m.name).join(', ')}\n\n4. 결석자\n주일예배: ${cell.members.filter(m => !m.sunday).map(m => `${m.name}(${m.sundayReason})`).join(', ') || '없음'}\n\n셀모임: ${cell.members.filter(m => !m.cell).map(m => `${m.name}(${m.cellReason})`).join(', ') || '없음'}\n\n5. 셀모임 참석자 및 특이사항\n${cell.notes}`;
+      let report = '';
+      if (cell.isPending) {
+        report = `[${cell.leaderName} 셀모임 보고서]\n\n⏳ 이번 주 보고서 작성 대기 중입니다.\n${cell.leaderName} 셀리더가 본인 이름으로 보고서를 작성하여 저장하면 이곳에 실시간 자동 연동됩니다.`;
+      } else if (cell.isCellCanceled) {
+        const cReason = cell.cellCancelReason || '공휴일';
+        const sundayAbsText = cell.members.filter(m => !m.sunday).map(m => `${m.name}(${m.sundayReason})`).join(', ') || '없음';
+        report = `[${cell.leaderName} 셀모임 보고서]\n\n1. ${cell.meetingDateTime}\n\n2. 장소: 미진행 (휴회)\n\n3. 출석인원 (총원 ${cell.members.length}명)\n${cell.members.map(m => m.name).join(', ')}\n\n- 주일예배 (${sAtt}명)\n${cell.members.filter(m => m.sunday).map(m => m.name).join(', ')}\n\n- 셀모임: 미진행 (${cReason})\n\n4. 결석자\n주일예배: ${sundayAbsText}\n\n셀모임: 미진행 (${cReason})\n\n5. 셀모임 참석자 및 특이사항\n${cell.notes || `- ${cReason}로 인하여 이번 주 셀모임은 쉬어갑니다.`}`;
+      } else {
+        report = `[${cell.leaderName} 셀모임 보고서]\n\n1. ${cell.meetingDateTime}\n\n2. 장소: ${cell.location}\n\n3. 출석인원 (총원 ${cell.members.length}명)\n${cell.members.map(m => m.name).join(', ')}\n\n- 주일예배 (${sAtt}명)\n${cell.members.filter(m => m.sunday).map(m => m.name).join(', ')}\n\n- 셀모임 (${cAtt}명)\n${cell.members.filter(m => m.cell).map(m => m.name).join(', ')}\n\n4. 결석자\n주일예배: ${cell.members.filter(m => !m.sunday).map(m => `${m.name}(${m.sundayReason})`).join(', ') || '없음'}\n\n셀모임: ${cell.members.filter(m => !m.cell).map(m => `${m.name}(${m.cellReason})`).join(', ') || '없음'}\n\n5. 셀모임 참석자 및 특이사항\n${cell.notes || '- 특이사항 없음'}`;
+      }
 
       if (modalFullText) modalFullText.innerText = report;
 
@@ -5495,6 +5855,8 @@
       let totalMembers = uniqueMap.size;
       let sundayAtt = 0;
       let cellAtt = 0;
+      let cellCanceledCount = 0;
+      let cellEligibleMembers = 0;
       const sundayAbs = [];
       const cellAbs = [];
 
@@ -5504,15 +5866,19 @@
         } else {
           sundayAbs.push(`${m.name}(${m.cellName}${m.sundayReason ? ', ' + m.sundayReason : ''})`);
         }
-        if (m.cell) {
+        if (m.isCellCanceled) {
+          cellCanceledCount++;
+        } else if (m.cell) {
           cellAtt++;
+          cellEligibleMembers++;
         } else {
+          cellEligibleMembers++;
           cellAbs.push(`${m.name}(${m.cellName}${m.cellReason ? ', ' + m.cellReason : ''})`);
         }
       });
 
       const sundayRate = totalMembers > 0 ? ((sundayAtt / totalMembers) * 100).toFixed(1) : 0;
-      const cellRate = totalMembers > 0 ? ((cellAtt / totalMembers) * 100).toFixed(1) : 0;
+      const cellRate = cellEligibleMembers > 0 ? ((cellAtt / cellEligibleMembers) * 100).toFixed(1) : 0;
 
       const songUnopened = getUnopenedLeaders();
       const taehongCell = activeCells.find(c => c.id === 'cell_taehong');
@@ -5554,7 +5920,13 @@
 
       text += `2. 종합 출석률 (${activeCells.length}개 셀, 고유 총원 ${totalMembers}명)\n`;
       text += `- 주일예배: ${sundayAtt}/${totalMembers}명 (${sundayRate}%)\n`;
-      text += `- 셀모임: ${cellAtt}/${totalMembers}명 (${cellRate}%)\n\n`;
+      if (cellCanceledCount === totalMembers && totalMembers > 0) {
+        text += `- 셀모임: 미진행 (전체 휴회)\n\n`;
+      } else if (cellCanceledCount > 0) {
+        text += `- 셀모임: ${cellAtt}/${cellEligibleMembers}명 (${cellRate}%) [휴회: ${cellCanceledCount}명]\n\n`;
+      } else {
+        text += `- 셀모임: ${cellAtt}/${totalMembers}명 (${cellRate}%)\n\n`;
+      }
 
       text += `3. 셀별 주일예배 출석\n`;
       const rootLeader = (currentDemoRole === 'cell') ? '송예찬' : '김태홍';
@@ -5569,7 +5941,13 @@
 
       text += `\n4. 결석자 현황\n`;
       text += `- 주일예배 (${sundayAbs.length}명): ${sundayAbs.join(', ') || '전원 참석'}\n`;
-      text += `- 셀모임 (${cellAbs.length}명): ${cellAbs.join(', ') || '전원 참석'}`;
+      if (cellCanceledCount === totalMembers && totalMembers > 0) {
+        text += `- 셀모임: 미진행 (전체 휴회)`;
+      } else if (cellCanceledCount > 0) {
+        text += `- 셀모임 (${cellAbs.length}명, 휴회 ${cellCanceledCount}명 제외): ${cellAbs.join(', ') || '전원 참석'}`;
+      } else {
+        text += `- 셀모임 (${cellAbs.length}명): ${cellAbs.join(', ') || '전원 참석'}`;
+      }
 
       if (navigator.clipboard) {
         navigator.clipboard.writeText(text).then(() => {
