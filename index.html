@@ -4082,6 +4082,7 @@
         if (!state.members) return [];
         return state.members.filter(name => {
           if (name === state.leaderName) return false;
+          if (name === '조국현' || name === '권회인' || name === '박창현') return false;
           const role = getMemberRole(name);
           const isOpen = isLeaderCellOpen(name);
           return role === '셀리더' && !isOpen;
@@ -4091,7 +4092,8 @@
       return cell.members.filter(m => {
         const mName = (typeof m === 'string') ? m : m.name;
         if (mName === cell.leaderName) return false;
-        const role = (typeof m === 'object' && m.role) ? m.role : getMemberRole(mName, cell);
+        if (mName === '조국현' || mName === '권회인' || mName === '박창현') return false;
+        const role = getMemberRole(mName, cell);
         const isOpen = isLeaderCellOpen(mName, cell);
         return role === '셀리더' && !isOpen;
       }).map(m => (typeof m === 'string' ? m : m.name));
@@ -5142,6 +5144,7 @@
           const unopenedInThisCell = cell.members ? cell.members.filter(m => {
             const mName = (typeof m === 'string') ? m : m.name;
             if (mName === cell.leaderName) return false;
+            if (mName === '조국현' || mName === '권회인' || mName === '박창현') return false;
             const role = (typeof m === 'object' && m.role) ? m.role : getMemberRole(mName, cell);
             const isOpen = isLeaderCellOpen(mName, cell);
             return role === '셀리더' && !isOpen;
@@ -5266,21 +5269,24 @@
                     let badgeText = '';
                     let badgeClass = '';
 
-                    if (m.role === '셀리더' || m.role === '군단리더') {
+                    const mName = (typeof m === 'string') ? m : m.name;
+                    const mRole = (mName === '조국현') ? '디모데' : ((mName === '권회인' || mName === '박창현') ? '셀리더' : (getMemberRole(mName, cell) || (typeof m === 'object' && m.role) || '셀원'));
+
+                    if (mRole === '셀리더' || mRole === '군단리더') {
                       badgeText = '리더';
                       badgeClass = 'bg-amber-50 text-amber-800 border-amber-200 font-semibold';
-                    } else if (m.role === '디모데') {
+                    } else if (mRole === '디모데') {
                       badgeText = '디모데';
                       badgeClass = 'bg-emerald-50 text-emerald-800 border-emerald-200 font-medium';
                     }
 
-                    const isSubSubmitted = submittedInThisCell.includes(m.name);
+                    const isSubSubmitted = submittedInThisCell.includes(mName);
 
                     return `
                     <div class="p-2 rounded-lg bg-white border border-zinc-200 flex flex-col justify-between">
                       <div class="flex items-start justify-between gap-1.5">
-                        <span class="font-semibold text-zinc-800 flex items-center gap-1 flex-wrap min-w-0 ${m.role === '셀리더' ? 'text-amber-600 font-bold' : (m.role === '디모데' ? 'text-emerald-600 font-semibold' : '')}">
-                          <span class="shrink-0">${m.name}</span>
+                        <span class="font-semibold text-zinc-800 flex items-center gap-1 flex-wrap min-w-0 ${mRole === '셀리더' ? 'text-amber-600 font-bold' : (mRole === '디모데' ? 'text-emerald-600 font-semibold' : '')}">
+                          <span class="shrink-0">${mName}</span>
                           ${badgeText ? `<span class="text-[9px] px-1 py-0.2 rounded border font-semibold shrink-0 whitespace-nowrap ${badgeClass}">${badgeText}</span>` : ''}
                           ${isSubSubmitted ? `<span class="text-[9px] px-1 py-0.2 rounded font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0 whitespace-nowrap">보고서 제출</span>` : ''}
                         </span>
