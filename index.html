@@ -234,10 +234,10 @@
             </span>
           </div>
           <div class="flex items-center gap-2">
-            <!-- 이번 주 셀모임 휴회(미진행) 토글 -->
+            <!-- 이번 주 셀모임 미진행 토글 -->
             <label class="flex items-center gap-1.5 cursor-pointer select-none bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg transition active:scale-95 text-xs font-semibold text-amber-900">
               <input type="checkbox" id="cellCanceledCheckbox" onchange="toggleCellCanceled(this.checked)" class="w-3.5 h-3.5 accent-amber-600 rounded cursor-pointer">
-              <span>🏖️ 이번 주 미진행 (휴회)</span>
+              <span>🏖️ 이번 주 미진행</span>
             </label>
             <div id="cellAttendanceButtons" class="flex gap-1">
               <button onclick="selectAll('cell', true)" class="text-xs px-2 py-1 bg-zinc-100 hover:bg-zinc-200 rounded text-zinc-700 font-medium transition active:scale-95">전원</button>
@@ -246,11 +246,11 @@
           </div>
         </div>
 
-        <!-- 휴회 시 활성화되는 사유 선택/입력 박스 -->
+        <!-- 미진행 시 활성화되는 사유 선택/입력 박스 -->
         <div id="cellCanceledBox" class="hidden p-3.5 bg-amber-50/90 border border-amber-300 rounded-xl space-y-2.5">
           <div class="flex items-center justify-between text-xs font-bold text-amber-950">
             <span class="flex items-center gap-1.5">
-              <span>🏖️</span> <span>이번 주 셀모임 미진행 (휴회) 사유</span>
+              <span>🏖️</span> <span>이번 주 셀모임 미진행 사유</span>
             </span>
             <span class="text-[11px] font-normal text-amber-700 hidden sm:inline">개별 결석 사유를 입력할 필요 없이 한 번에 반영됩니다.</span>
           </div>
@@ -272,14 +272,14 @@
             <button type="button" onclick="setCellCancelReason('시험기간')" class="px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-xs font-medium transition active:scale-95">
               시험기간
             </button>
-            <button type="button" onclick="setCellCancelReason('교회 전체 휴회')" class="px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-xs font-medium transition active:scale-95">
-              교회 전체 휴회
+            <button type="button" onclick="setCellCancelReason('교회 전체 미진행')" class="px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-xs font-medium transition active:scale-95">
+              교회 전체 미진행
             </button>
           </div>
 
           <!-- 사유 직접 입력 -->
           <div class="flex items-center gap-2">
-            <input type="text" id="cellCancelReasonInput" placeholder="휴회 사유를 입력하세요 (예: 공휴일 / 추석 연휴 등)"
+            <input type="text" id="cellCancelReasonInput" placeholder="미진행 사유를 입력하세요 (예: 공휴일 / 추석 연휴 등)"
               oninput="handleCellCancelReasonChange(this.value)"
               class="w-full px-3 py-2 text-xs bg-white border border-amber-300 rounded-lg focus:outline-none focus:border-amber-600 font-medium text-zinc-900">
           </div>
@@ -1843,7 +1843,7 @@
       // 인원수 배지 갱신
       document.getElementById('sundayWorshipBadge').innerText = `${sundayAttCount} / ${state.members.length}명`;
       if (state.isCellCanceled) {
-        document.getElementById('cellMeetingBadge').innerHTML = `<span class="text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded border border-amber-300">휴회 (미진행)</span>`;
+        document.getElementById('cellMeetingBadge').innerHTML = `<span class="text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded border border-amber-300">미진행</span>`;
       } else {
         document.getElementById('cellMeetingBadge').innerText = `${cellAttCount} / ${state.members.length}명`;
       }
@@ -1877,7 +1877,7 @@
       }
       saveStorage();
       renderAll();
-      showToast(state.isCellCanceled ? '🏖️ 이번 주 셀모임 미진행(휴회)으로 설정되었습니다.' : '🌱 셀모임 정상 진행으로 복원되었습니다.');
+      showToast(state.isCellCanceled ? '🏖️ 이번 주 셀모임 미진행으로 설정되었습니다.' : '🌱 셀모임 정상 진행으로 복원되었습니다.');
     }
 
     // 셀모임 휴회 사유 프리셋 지정
@@ -2055,7 +2055,7 @@
             <span class="flex items-center gap-1.5 font-medium">
               <span>🏖️</span> <span>이번 주는 <b>셀모임 미진행 (사유: ${escapeHtml(reasonText)})</b> 주간입니다.</span>
             </span>
-            <span class="text-[10px] bg-amber-200/90 text-amber-900 px-2 py-0.5 rounded font-bold">휴회</span>
+            <span class="text-[10px] bg-amber-200/90 text-amber-900 px-2 py-0.5 rounded font-bold">미진행</span>
           </div>
         `;
       } else if (cellAbsentees.length === 0) {
@@ -2178,7 +2178,7 @@
       }
       const notesSection = notes ? `5.  셀모임 참석자 및 특이사항\n${notes}` : `5.  셀모임 참석자 및 특이사항\n${defaultNotes}`;
 
-      const finalLocation = state.isCellCanceled ? '미진행 (휴회)' : locationStr;
+      const finalLocation = state.isCellCanceled ? '미진행' : locationStr;
 
       // 최종 결합 (사용자 제공 포맷과 100% 일치)
       const report = `[${leader}셀모임 보고서] \n\n1. ${dateTimeStr} \n\n2. 장소: ${finalLocation}\n\n3. 출석인원 (총원 ${totalCount}명)\n${allMembersStr}\n\n- 주일예배 (${sundayAttendees.length}명)\n${sundayAttStr}\n\n${cellAttendanceLine}\n\n4. 결석자\n${sundayAbsenceText}\n\n${cellAbsenceText}\n\n${notesSection}`;
@@ -2777,7 +2777,7 @@
             </div>
             ${item.isCellCanceled ? `
               <div class="p-2 bg-amber-50 rounded-lg border border-amber-200">
-                <span class="font-bold text-amber-800 block mb-0.5">셀모임 (휴회/미진행)</span>
+                <span class="font-bold text-amber-800 block mb-0.5">셀모임 (미진행)</span>
                 <p class="text-[11px] text-amber-900 truncate">
                   사유: ${escapeHtml(item.cellCancelReason || '공휴일')}
                 </p>
@@ -5318,25 +5318,25 @@
 
       if (metricCellEl) {
         if (cellCanceledCount === totalMembers && totalMembers > 0) {
-          metricCellEl.innerText = '미진행 (휴회)';
+          metricCellEl.innerText = '미진행';
         } else if (cellCanceledCount > 0) {
-          metricCellEl.innerText = `${cellAttCount}명 (휴회 ${cellCanceledCount}명)`;
+          metricCellEl.innerText = `${cellAttCount}명 (미진행 ${cellCanceledCount}명)`;
         } else {
           metricCellEl.innerText = cellAttCount + '명';
         }
       }
       if (metricCellRateEl) {
         if (cellCanceledCount === totalMembers && totalMembers > 0) {
-          metricCellRateEl.innerText = '휴회';
+          metricCellRateEl.innerText = '미진행';
         } else {
           metricCellRateEl.innerText = cellRate + '%';
         }
       }
       if (metricCellAbsEl) {
         if (cellCanceledCount === totalMembers && totalMembers > 0) {
-          metricCellAbsEl.innerText = '전체 휴회';
+          metricCellAbsEl.innerText = '전체 미진행';
         } else if (cellCanceledCount > 0) {
-          metricCellAbsEl.innerText = `결석 ${cellAbsList.length}명 (휴회 ${cellCanceledCount}명)`;
+          metricCellAbsEl.innerText = `결석 ${cellAbsList.length}명 (미진행 ${cellCanceledCount}명)`;
         } else {
           metricCellAbsEl.innerText = '결석 ' + cellAbsList.length + '명';
         }
@@ -5569,13 +5569,13 @@
                     ${cell.isSubmittedReport ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">✨ 셀모임 보고서 제출 셀</span>' : ''}
                     ${hierarchyTag}
                     ${cell.isPending ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-bold">⏳ 작성 대기</span>' : ''}
-                    ${cell.isCellCanceled ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-bold border border-amber-300">🏖️ 셀모임 휴회 (${escapeHtml(cell.cellCancelReason || '공휴일')})</span>` : ''}
+                    ${cell.isCellCanceled ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-bold border border-amber-300">🏖️ 셀모임 미진행 (${escapeHtml(cell.cellCancelReason || '공휴일')})</span>` : ''}
                   </div>
                   <div class="flex items-center gap-2 text-xs text-zinc-500 mt-1 font-mono flex-wrap">
                     <span>주일 <b>${sAtt}/${cell.members.length}</b>명</span>
                     <span class="text-zinc-300">|</span>
                     ${cell.isCellCanceled 
-                      ? `<span class="text-amber-800 font-bold bg-amber-50 px-1.5 py-0.5 rounded text-[11px] font-sans">셀모임 휴회</span>`
+                      ? `<span class="text-amber-800 font-bold bg-amber-50 px-1.5 py-0.5 rounded text-[11px] font-sans">셀모임 미진행</span>`
                       : `<span>셀모임 <b>${cAtt}/${cell.members.length}</b>명</span>`}
                     <span class="text-zinc-300">|</span>
                     <span class="text-[11px] text-zinc-400 font-sans">${cell.meetingDateTime}</span>
@@ -5878,7 +5878,7 @@
       if (modalDateTime) modalDateTime.innerText = cell.meetingDateTime;
       if (modalRate) {
         modalRate.innerText = cell.isCellCanceled 
-          ? `주일 ${sAtt}/${cell.members.length}명 | 셀 미진행(휴회: ${cell.cellCancelReason || '공휴일'})`
+          ? `주일 ${sAtt}/${cell.members.length}명 | 셀 미진행 (${cell.cellCancelReason || '공휴일'})`
           : `주일 ${sAtt}/${cell.members.length}명 | 셀 ${cAtt}/${cell.members.length}명`;
       }
       if (modalNotes) {
@@ -5892,7 +5892,7 @@
       } else if (cell.isCellCanceled) {
         const cReason = cell.cellCancelReason || '공휴일';
         const sundayAbsText = cell.members.filter(m => !m.sunday).map(m => `${m.name}(${m.sundayReason})`).join(', ') || '없음';
-        report = `[${cell.leaderName} 셀모임 보고서]\n\n1. ${cell.meetingDateTime}\n\n2. 장소: 미진행 (휴회)\n\n3. 출석인원 (총원 ${cell.members.length}명)\n${cell.members.map(m => m.name).join(', ')}\n\n- 주일예배 (${sAtt}명)\n${cell.members.filter(m => m.sunday).map(m => m.name).join(', ')}\n\n- 셀모임: 미진행 (${cReason})\n\n4. 결석자\n주일예배: ${sundayAbsText}\n\n셀모임: 미진행 (${cReason})\n\n5. 셀모임 참석자 및 특이사항\n${cell.notes || `- ${cReason}로 인하여 이번 주 셀모임은 쉬어갑니다.`}`;
+        report = `[${cell.leaderName} 셀모임 보고서]\n\n1. ${cell.meetingDateTime}\n\n2. 장소: 미진행\n\n3. 출석인원 (총원 ${cell.members.length}명)\n${cell.members.map(m => m.name).join(', ')}\n\n- 주일예배 (${sAtt}명)\n${cell.members.filter(m => m.sunday).map(m => m.name).join(', ')}\n\n- 셀모임: 미진행 (${cReason})\n\n4. 결석자\n주일예배: ${sundayAbsText}\n\n셀모임: 미진행 (${cReason})\n\n5. 셀모임 참석자 및 특이사항\n${cell.notes || `- ${cReason}로 인하여 이번 주 셀모임은 쉬어갑니다.`}`;
       } else {
         report = `[${cell.leaderName} 셀모임 보고서]\n\n1. ${cell.meetingDateTime}\n\n2. 장소: ${cell.location}\n\n3. 출석인원 (총원 ${cell.members.length}명)\n${cell.members.map(m => m.name).join(', ')}\n\n- 주일예배 (${sAtt}명)\n${cell.members.filter(m => m.sunday).map(m => m.name).join(', ')}\n\n- 셀모임 (${cAtt}명)\n${cell.members.filter(m => m.cell).map(m => m.name).join(', ')}\n\n4. 결석자\n주일예배: ${cell.members.filter(m => !m.sunday).map(m => `${m.name}(${m.sundayReason})`).join(', ') || '없음'}\n\n셀모임: ${cell.members.filter(m => !m.cell).map(m => `${m.name}(${m.cellReason})`).join(', ') || '없음'}\n\n5. 셀모임 참석자 및 특이사항\n${cell.notes || '- 특이사항 없음'}`;
       }
@@ -5981,9 +5981,9 @@
       text += `2. 종합 출석률 (${activeCells.length}개 셀, 고유 총원 ${totalMembers}명)\n`;
       text += `- 주일예배: ${sundayAtt}/${totalMembers}명 (${sundayRate}%)\n`;
       if (cellCanceledCount === totalMembers && totalMembers > 0) {
-        text += `- 셀모임: 미진행 (전체 휴회)\n\n`;
+        text += `- 셀모임: 전체 미진행\n\n`;
       } else if (cellCanceledCount > 0) {
-        text += `- 셀모임: ${cellAtt}/${cellEligibleMembers}명 (${cellRate}%) [휴회: ${cellCanceledCount}명]\n\n`;
+        text += `- 셀모임: ${cellAtt}/${cellEligibleMembers}명 (${cellRate}%) [미진행: ${cellCanceledCount}명]\n\n`;
       } else {
         text += `- 셀모임: ${cellAtt}/${totalMembers}명 (${cellRate}%)\n\n`;
       }
@@ -6002,9 +6002,9 @@
       text += `\n4. 결석자 현황\n`;
       text += `- 주일예배 (${sundayAbs.length}명): ${sundayAbs.join(', ') || '전원 참석'}\n`;
       if (cellCanceledCount === totalMembers && totalMembers > 0) {
-        text += `- 셀모임: 미진행 (전체 휴회)`;
+        text += `- 셀모임: 전체 미진행`;
       } else if (cellCanceledCount > 0) {
-        text += `- 셀모임 (${cellAbs.length}명, 휴회 ${cellCanceledCount}명 제외): ${cellAbs.join(', ') || '전원 참석'}`;
+        text += `- 셀모임 (${cellAbs.length}명, 미진행 ${cellCanceledCount}명 제외): ${cellAbs.join(', ') || '전원 참석'}`;
       } else {
         text += `- 셀모임 (${cellAbs.length}명): ${cellAbs.join(', ') || '전원 참석'}`;
       }
