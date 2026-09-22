@@ -197,9 +197,9 @@
           <div>
             <div class="flex items-center justify-between mb-1">
               <label class="block text-xs font-medium text-zinc-500">모임 시간</label>
-              <span class="text-[11px] text-zinc-600 font-medium font-mono" id="timeKoreanBadge">저녁 7시</span>
+              <span class="text-[11px] text-zinc-400 font-medium font-mono" id="timeKoreanBadge">미지정</span>
             </div>
-            <input type="time" id="meetingTimeInput" value="19:00" onchange="handleTimeChange(this.value);" 
+            <input type="time" id="meetingTimeInput" value="" onchange="handleTimeChange(this.value);" 
               class="w-full px-3 py-2 text-sm bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-zinc-900 font-medium transition-colors cursor-pointer">
           </div>
         </div>
@@ -996,8 +996,8 @@
       syncPassword: '',     // 클라우드 동기화 비밀번호 (타인 열람 방지)
       leaderName: '',       // 신규 접속자: 빈칸
       location: '',         // 신규 접속자: 빈칸
-      meetingDate: '',
-      meetingTime: '19:00',
+      meetingDate: '',      // 신규 접속자: 빈칸
+      meetingTime: '',      // 신규 접속자: 빈칸
       members: [],          // 신규 접속자: 등록된 멤버 없음
       sundayAttendance: {}, // { '송예찬': true, ... }
       cellAttendance: {},   // { '송예찬': true, ... }
@@ -1435,18 +1435,11 @@
       renderDemoDashboard();
     }
 
-    // 최근/가까운 날짜 기본 세팅 (저장된 날짜가 없을 때만 오늘로 초기화)
+    // 최근/가까운 날짜 기본 세팅 (저장된 날짜가 없을 때 비워둠)
     function initDefaultDate() {
-      if (!state.meetingDate) {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        state.meetingDate = `${year}-${month}-${day}`;
-      }
       const dateEl = document.getElementById('meetingDateInput');
-      if (dateEl) dateEl.value = state.meetingDate;
-      updateTimeUI(state.meetingTime || '19:00');
+      if (dateEl) dateEl.value = state.meetingDate || '';
+      updateTimeUI(state.meetingTime || '');
       updateDateDisplay();
     }
 
@@ -1517,7 +1510,7 @@
     // 로컬 스토리지 불러오기
     function loadStorage() {
       try {
-        const savedSyncCode = localStorage.getItem('cell_sync_code');
+        const savedSyncCode = (localStorage.getItem('cell_sync_code') || '').trim();
         if (savedSyncCode) {
           state.syncCode = savedSyncCode;
         }
@@ -1525,6 +1518,28 @@
         if (savedSyncPassword) {
           state.syncPassword = savedSyncPassword;
         }
+
+        // 동기화 코드가 없는 비인증 신규 접속자 또는 과거 데모 데이터 잔여물 정리
+        if (!savedSyncCode) {
+          if (localStorage.getItem('cell_leader_name') === '송예찬') {
+            localStorage.removeItem('cell_leader_name');
+            localStorage.removeItem('cell_meeting_date');
+            localStorage.removeItem('cell_meeting_time');
+          }
+          if (localStorage.getItem('cell_location') === '3층 DCC') {
+            localStorage.removeItem('cell_location');
+          }
+          if (localStorage.getItem('cell_meeting_time') === '19:00') {
+            localStorage.removeItem('cell_meeting_time');
+          }
+          const m = localStorage.getItem('cell_members');
+          if (m && (m.includes('송예찬') || m.includes('최진성'))) {
+            localStorage.removeItem('cell_members');
+            localStorage.removeItem('cell_meeting_date');
+            localStorage.removeItem('cell_meeting_time');
+          }
+        }
+
         const savedMembers = localStorage.getItem('cell_members');
         if (savedMembers) {
           try {
@@ -1557,11 +1572,19 @@
         const savedDate = localStorage.getItem('cell_meeting_date');
         if (savedDate) {
           state.meetingDate = savedDate;
+        } else {
+          state.meetingDate = '';
         }
+        const dateInputEl = document.getElementById('meetingDateInput');
+        if (dateInputEl) dateInputEl.value = state.meetingDate || '';
+
         const savedTime = localStorage.getItem('cell_meeting_time');
         if (savedTime) {
           state.meetingTime = savedTime;
           updateTimeUI(savedTime);
+        } else {
+          state.meetingTime = '';
+          updateTimeUI('');
         }
         const savedSundayAttendance = localStorage.getItem('cell_sunday_att');
         if (savedSundayAttendance) {
@@ -1754,12 +1777,13 @@
 
     // 24시간 형식(HH:mm)을 한국어 친화적 표기(저녁 7시, 오후 1시 30분 등)로 변환
     function formatTimeKorean(time24) {
-      if (!time24) return '저녁 7시';
+      if (!time24) return '미지정';
       if (!time24.includes(':')) return time24;
 
       const [hStr, mStr] = time24.split(':');
       let h = parseInt(hStr, 10);
       const m = parseInt(mStr, 10);
+      if (isNaN(h)) return '미지정';
 
       let period = '';
       let displayHour = h;
@@ -1775,20 +1799,21 @@
         if (displayHour > 12) displayHour -= 12;
       }
 
-      const minutePart = m > 0 ? ` ${m}분` : '';
+      const minutePart = (!isNaN(m) && m > 0) ? ` ${m}분` : '';
       return `${period} ${displayHour}시${minutePart}`;
     }
 
     // 한국어 표기나 24시간 표기를 input[type=time] value(HH:mm)로 변환
     function toTime24(timeStr) {
-      if (!timeStr) return '19:00';
+      if (!timeStr || timeStr === '미지정') return '';
       if (/^\d{2}:\d{2}$/.test(timeStr)) return timeStr;
 
       let isPM = timeStr.includes('오후') || timeStr.includes('저녁');
       let hourMatch = timeStr.match(/(\d+)시/);
       let minMatch = timeStr.match(/(\d+)분/);
 
-      let h = hourMatch ? parseInt(hourMatch[1], 10) : 19;
+      if (!hourMatch) return '';
+      let h = parseInt(hourMatch[1], 10);
       let m = minMatch ? parseInt(minMatch[1], 10) : 0;
 
       if (isPM && h < 12) h += 12;
@@ -1800,19 +1825,34 @@
     function updateTimeUI(timeVal) {
       const input = document.getElementById('meetingTimeInput');
       const badge = document.getElementById('timeKoreanBadge');
+      if (!timeVal) {
+        if (input) input.value = '';
+        if (badge) {
+          badge.innerText = '미지정';
+          badge.className = 'text-[11px] text-zinc-400 font-medium font-mono';
+        }
+        state.meetingTime = '';
+        return;
+      }
       const time24 = toTime24(timeVal);
       const koreanStr = formatTimeKorean(time24);
 
       if (input) input.value = time24;
-      if (badge) badge.innerText = koreanStr;
+      if (badge) {
+        badge.innerText = koreanStr;
+        badge.className = time24 ? 'text-[11px] text-zinc-600 font-medium font-mono' : 'text-[11px] text-zinc-400 font-medium font-mono';
+      }
       state.meetingTime = time24;
     }
 
     function handleTimeChange(val) {
-      const time24 = val || '19:00';
+      const time24 = val || '';
       state.meetingTime = time24;
       const badge = document.getElementById('timeKoreanBadge');
-      if (badge) badge.innerText = formatTimeKorean(time24);
+      if (badge) {
+        badge.innerText = formatTimeKorean(time24);
+        badge.className = time24 ? 'text-[11px] text-zinc-600 font-medium font-mono' : 'text-[11px] text-zinc-400 font-medium font-mono';
+      }
       saveStorage();
       updateOutput();
     }
@@ -1825,8 +1865,8 @@
 
     function updateDateDisplay() {
       const dateEl = document.getElementById('meetingDateInput');
-      if (dateEl && dateEl.value) {
-        state.meetingDate = dateEl.value;
+      if (dateEl) {
+        state.meetingDate = dateEl.value || '';
         saveStorage();
       }
     }
@@ -1834,9 +1874,11 @@
     // 포맷팅된 날짜/시간 스트링 (예: 2026/8/10(월) 저녁 7시)
     function getFormattedDateTime() {
       const dateVal = document.getElementById('meetingDateInput') ? document.getElementById('meetingDateInput').value : state.meetingDate;
-      const timeVal = formatTimeKorean(state.meetingTime || '19:00');
+      const timeKorean = formatTimeKorean(state.meetingTime || '');
+      const hasTime = state.meetingTime && timeKorean !== '미지정';
       
-      if (!dateVal) return `2026/8/10(월) ${timeVal}`;
+      if (!dateVal && !hasTime) return '모임 일시 미지정';
+      if (!dateVal) return `모임 시간: ${timeKorean}`;
 
       const dateObj = new Date(dateVal + 'T00:00:00');
       const year = dateObj.getFullYear();
@@ -1846,7 +1888,7 @@
       const dayOfWeekNames = ['일', '월', '화', '수', '목', '금', '토'];
       const dayOfWeek = dayOfWeekNames[dateObj.getDay()];
 
-      return `${year}/${month}/${day}(${dayOfWeek}) ${timeVal}`;
+      return `${year}/${month}/${day}(${dayOfWeek})${hasTime ? ' ' + timeKorean : ''}`;
     }
 
     // 출석 칩 렌더링 (아바타 카드형 감성 디자인)
@@ -2242,7 +2284,7 @@
     function generateReportText() {
       const leader = state.leaderName ? `${state.leaderName} ` : '';
       const dateTimeStr = getFormattedDateTime();
-      const locationStr = state.location || '3층 DCC';
+      const locationStr = state.location || '미입력';
       const totalCount = state.members.length;
 
       if (totalCount === 0) {
@@ -2319,7 +2361,7 @@
       const text = generateReportText();
       document.getElementById('reportPreviewText').innerText = text;
       const senderEl = document.getElementById('previewSenderName');
-      if (senderEl) senderEl.innerText = state.leaderName || '송예찬';
+      if (senderEl) senderEl.innerText = state.leaderName || '셀리더';
       state.notes = document.getElementById('notesInput').value;
       saveStorage();
     }
@@ -2777,8 +2819,9 @@
 
     // 시간 정규화 ('저녁 7시 30분', '저녁 7시30분', '19:30' 등을 항상 '19:30'으로 통일)
     function normalizeTime(t) {
-      if (!t) return '19:00';
+      if (!t) return '';
       const str = String(t).trim();
+      if (!str) return '';
       const match24 = str.match(/^(\d{1,2}):(\d{2})$/);
       if (match24) {
         return `${match24[1].padStart(2, '0')}:${match24[2]}`;
@@ -2788,7 +2831,8 @@
       const hMatch = clean.match(/(\d+)시/);
       const mMatch = clean.match(/(\d+)분/);
 
-      let h = hMatch ? parseInt(hMatch[1], 10) : 19;
+      if (!hMatch) return '';
+      let h = parseInt(hMatch[1], 10);
       let m = mMatch ? parseInt(mMatch[1], 10) : 0;
 
       if (isPM && h < 12) h += 12;
@@ -3502,9 +3546,9 @@
       state.syncCode = '';
       state.syncPassword = '';
       state.leaderName = cleanLeaderName;
-      state.location = '3층 DCC';
+      state.location = '';
       state.meetingDate = '';
-      state.meetingTime = '19:00';
+      state.meetingTime = '';
       state.members = cleanLeaderName ? [cleanLeaderName] : [];
       state.sundayAttendance = cleanLeaderName ? { [cleanLeaderName]: true } : {};
       state.cellAttendance = cleanLeaderName ? { [cleanLeaderName]: true } : {};
@@ -3590,7 +3634,7 @@
         const leaderEl = document.getElementById('leaderNameInput');
         if (leaderEl) leaderEl.value = state.leaderName;
 
-        state.location = data.location || '3층 DCC';
+        state.location = data.location || '';
         const locEl = document.getElementById('meetingLocationInput');
         if (locEl) locEl.value = state.location;
 
@@ -3598,7 +3642,7 @@
         const dateEl = document.getElementById('meetingDateInput');
         if (dateEl) dateEl.value = state.meetingDate;
 
-        state.meetingTime = data.meetingTime || '19:00';
+        state.meetingTime = data.meetingTime || '';
         const timeEl = document.getElementById('meetingTimeInput');
         if (timeEl) timeEl.value = state.meetingTime;
         if (typeof updateTimeUI === 'function') updateTimeUI(state.meetingTime);
