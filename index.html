@@ -1435,67 +1435,9 @@
     }
 
     
-    // 과거 3주차 (8/30 주간-8/31 모임, 9/6 주간-9/7 모임) 기본 히스토리 보장
+    // 기본 히스토리 시드 제거 (처음 접속자 및 모든 사용자의 지난 보고서 보관함을 완전 빈 상태로 시작)
     function ensureDefaultHistorySeeds() {
-      // 송예찬 셀이 아닌 다른 셀리더(윤수민 등)의 히스토리에 송예찬 시드 데이터가 강제 주입되지 않도록 원천 차단
-      const currentLeader = (state.leaderName || '').trim();
-      const currentCode = (state.syncCode || '').trim();
-      const isYechan = currentLeader === '송예찬' || currentCode.startsWith('송예찬') || (typeof isSongYechanAdmin === 'function' && isSongYechanAdmin() && typeof adminEditingTarget !== 'undefined' && adminEditingTarget === 'yechan');
-      if (!isYechan) return;
-
-      if (!state.history) state.history = [];
-
-      const hasAug31 = state.history.some(h => {
-        const d = (h.meetingDate || h.dateTimeStr || '');
-        return d.includes('2026-8-31') || d.includes('2026-08-31') || d.includes('8/31');
-      });
-
-      if (!hasAug31) {
-        state.history.push({
-          id: 'rep_seed_20260831',
-          savedAt: '8. 31. 오후 9:30',
-          leaderName: '송예찬',
-          meetingDate: '2026-08-31',
-          meetingTime: '19:30',
-          dateTimeStr: '2026/8/31(월) 저녁 7시 30분',
-          sundayDate: '2026-08-30',
-          location: '3층 DCC',
-          members: [...DEFAULT_MEMBERS],
-          sundayAttendance: DEFAULT_MEMBERS.reduce((acc, m) => ({ ...acc, [m]: true }), {}),
-          cellAttendance: DEFAULT_MEMBERS.reduce((acc, m) => ({ ...acc, [m]: m !== '김한빈' }), {}),
-          sundayReasons: {},
-          cellReasons: { '김한빈': '직장/야근' },
-          notes: '8월 마지막 주 셀모임 나눔',
-          prayers: {},
-          fullText: ''
-        });
-      }
-
-      const hasSep07 = state.history.some(h => {
-        const d = (h.meetingDate || h.dateTimeStr || '');
-        return d.includes('2026-9-7') || d.includes('2026-09-07') || d.includes('9/7');
-      });
-
-      if (!hasSep07) {
-        state.history.push({
-          id: 'rep_seed_20260907',
-          savedAt: '9. 7. 오후 9:30',
-          leaderName: '송예찬',
-          meetingDate: '2026-09-07',
-          meetingTime: '19:30',
-          dateTimeStr: '2026/9/7(월) 저녁 7시 30분',
-          sundayDate: '2026-09-06',
-          location: '3층 DCC',
-          members: [...DEFAULT_MEMBERS],
-          sundayAttendance: DEFAULT_MEMBERS.reduce((acc, m) => ({ ...acc, [m]: true }), {}),
-          cellAttendance: DEFAULT_MEMBERS.reduce((acc, m) => ({ ...acc, [m]: m !== '양광모' }), {}),
-          sundayReasons: {},
-          cellReasons: { '양광모': '디모데 훈련' },
-          notes: '9월 첫 주 셀모임 나눔',
-          prayers: {},
-          fullText: ''
-        });
-      }
+      return;
     }
 
     // 로컬 스토리지 불러오기
@@ -1528,6 +1470,23 @@
             localStorage.removeItem('cell_members');
             localStorage.removeItem('cell_meeting_date');
             localStorage.removeItem('cell_meeting_time');
+          }
+          // 지난 보고서 히스토리 잔여물 정리 (비인증/신규 접속자는 빈 상태로 시작)
+          const h = localStorage.getItem('cell_report_history');
+          if (h) {
+            try {
+              let parsed = JSON.parse(h);
+              if (Array.isArray(parsed)) {
+                parsed = parsed.filter(item => item && !String(item.id).startsWith('rep_seed_') && item.leaderName !== '송예찬');
+                if (parsed.length === 0) {
+                  localStorage.removeItem('cell_report_history');
+                } else {
+                  localStorage.setItem('cell_report_history', JSON.stringify(parsed));
+                }
+              }
+            } catch(e) {
+              localStorage.removeItem('cell_report_history');
+            }
           }
         }
 
@@ -1668,10 +1627,20 @@
         } catch (e) {}
         const savedHistory = localStorage.getItem('cell_report_history');
         if (savedHistory) {
-          state.history = JSON.parse(savedHistory);
-          deduplicateHistory();
+          try {
+            state.history = JSON.parse(savedHistory) || [];
+            deduplicateHistory();
+          } catch (e) {
+            state.history = [];
+          }
+        } else {
+          state.history = [];
         }
-        ensureDefaultHistorySeeds();
+        if (!state.syncCode || state.syncCode !== '송예찬1206') {
+          if (state.history && Array.isArray(state.history)) {
+            state.history = state.history.filter(item => item && !String(item.id).startsWith('rep_seed_') && item.leaderName !== '송예찬');
+          }
+        }
         const savedSubmittedWeeks = localStorage.getItem('cell_submitted_weeks');
         if (savedSubmittedWeeks) {
           try {
