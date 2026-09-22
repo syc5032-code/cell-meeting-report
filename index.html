@@ -151,6 +151,8 @@
 
     <!-- 탭 1: 셀모임 보고서 컨텐츠 (교회 제출용) -->
     <div id="tabContentReport" class="space-y-4">
+      <!-- 처음 방문자 전용 내 셀 온보딩 안내 카드 -->
+      <div id="onboardingBanner"></div>
       <!-- 관리자 전용 편집 대상 셀 전환 배너 -->
       <div id="adminEditingBanner"></div>
       <!-- 주일 기점 주차 안내 및 제출 상태 배너 -->
@@ -173,15 +175,15 @@
           <!-- 리더 이름 -->
           <div>
             <label class="block text-xs font-medium text-zinc-500 mb-1">셀 리더 이름</label>
-            <input type="text" id="leaderNameInput" value="송예찬" placeholder="예: 송예찬" oninput="saveLeaderName(); updateOutput();" 
+            <input type="text" id="leaderNameInput" value="" placeholder="셀 리더 이름 입력 (예: 홍길동)" oninput="saveLeaderName(); updateOutput();" 
               class="w-full px-3 py-2 text-sm bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-zinc-900 font-medium transition-colors">
           </div>
 
           <!-- 모임 장소 -->
           <div>
             <label class="block text-xs font-medium text-zinc-500 mb-1">모임 장소</label>
-            <input type="text" id="meetingLocationInput" value="3층 DCC" oninput="saveLocation(); updateOutput();" 
-              class="w-full px-3 py-2 text-sm bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-zinc-900 font-medium transition-colors" placeholder="예: 3층 DCC">
+            <input type="text" id="meetingLocationInput" value="" oninput="saveLocation(); updateOutput();" 
+              class="w-full px-3 py-2 text-sm bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-zinc-900 font-medium transition-colors" placeholder="모임 장소 입력 (예: 3층 DCC)">
           </div>
 
           <!-- 모임 날짜 -->
@@ -684,8 +686,8 @@
       </div>
 
       <div class="flex items-center justify-between pt-2.5 border-t border-zinc-100 text-xs">
-        <button onclick="resetDefaultMembers()" class="text-zinc-400 hover:text-rose-500 transition">
-          기본 명단으로 리셋
+        <button onclick="clearAllMembers()" class="text-zinc-400 hover:text-rose-500 transition">
+          전체 비우기
         </button>
         <button onclick="closeMemberModal()" class="px-4 py-2 bg-zinc-900 text-white font-medium rounded-lg hover:bg-zinc-800 transition active:scale-95">
           완료
@@ -988,15 +990,15 @@
       '송예찬', '김한빈', '박승곤', '양광모', '육현조', '윤수민', '주진', '최상진', '최진성'
     ];
 
-    // 상태 관리
+    // 상태 관리 (처음 접속자는 깨끗한 빈 상태로 시작)
     let state = {
       syncCode: '',         // 클라우드 기기 간 동기화 코드
       syncPassword: '',     // 클라우드 동기화 비밀번호 (타인 열람 방지)
-      leaderName: '송예찬',
-      location: '3층 DCC',
+      leaderName: '',       // 신규 접속자: 빈칸
+      location: '',         // 신규 접속자: 빈칸
       meetingDate: '',
       meetingTime: '19:00',
-      members: [...DEFAULT_MEMBERS],
+      members: [],          // 신규 접속자: 등록된 멤버 없음
       sundayAttendance: {}, // { '송예찬': true, ... }
       cellAttendance: {},   // { '송예찬': true, ... }
       sundayReasons: {},    // 결석 사유 빈 상태
@@ -1005,30 +1007,12 @@
       prayers: {},          // 셀원 기도제목 { '김한빈': '...', ... }
       sundayAbsenceOrder: [], // 주일예배 결석자 사용자 지정 순서
       cellAbsenceOrder: [],   // 셀모임 결석자 사용자 지정 순서
-      memberRoles: {          // 셀원별 직책 ('셀원' | '디모데' | '셀리더')
-        '송예찬': '셀리더',
-        '김한빈': '셀리더',
-        '박승곤': '셀리더',
-        '양광모': '디모데',
-        '육현조': '셀리더',
-        '윤수민': '셀리더',
-        '주진': '디모데',
-        '최진성': '셀리더'
-      },
+      memberRoles: {},      // 셀원별 직책 ('셀원' | '디모데' | '셀리더')
       submittedWeeks: {},     // 주일 날짜별 제출 여부 { '2026-09-13': true, ... }
       selectedSunday: '',     // 현재 조회 중인 기준 주일 (YYYY-MM-DD)
-      leaderCellStatus: {     // 셀리더/디모데의 셀오픈 여부 ('open' | 'unopened')
-        '송예찬': 'open',
-        '박승곤': 'open',
-        '윤수민': 'open',
-        '주진': 'open',
-        '김한빈': 'unopened',
-        '육현조': 'unopened',
-        '최진성': 'unopened',
-        '양광모': 'unopened'
-      },
-      isCellCanceled: false,  // 이번 주 셀모임 휴회(미진행) 여부
-      cellCancelReason: '',   // 셀모임 휴회 사유 (공휴일, 수련회, 시험기간 등)
+      leaderCellStatus: {}, // 셀리더/디모데의 셀오픈 여부 ('open' | 'unopened')
+      isCellCanceled: false,  // 이번 주 셀모임 미진행 여부
+      cellCancelReason: '',   // 셀모임 미진행 사유 (공휴일, 수련회, 시험기간 등)
       history: []           // 지난 보고서 히스토리 보관함
     };
 
@@ -1228,6 +1212,87 @@
       const parts = sundayStr.split('-');
       if (parts.length < 3) return sundayStr;
       return `${parts[0]}년 ${parseInt(parts[1], 10)}월 ${parseInt(parts[2], 10)}일(주일) 주간`;
+    }
+
+    // 처음 방문자 온보딩 안내 카드 렌더링
+    function renderOnboardingBanner() {
+      const banner = document.getElementById('onboardingBanner');
+      if (!banner) return;
+
+      // 이미 동기화 코드가 연결되어 있거나 사용자가 닫기를 누른 경우 숨김
+      const isDismissed = localStorage.getItem('cell_onboarding_dismissed') === 'true';
+      if (state.syncCode || isDismissed) {
+        banner.innerHTML = '';
+        banner.classList.add('hidden');
+        return;
+      }
+
+      // 동기화 코드가 없거나 멤버가 0명인 신규 접속자에게 가이드 카드 노출
+      banner.classList.remove('hidden');
+      banner.innerHTML = `
+        <div class="p-4 rounded-xl bg-gradient-to-br from-indigo-50/90 via-sky-50/70 to-emerald-50/60 border border-indigo-100 shadow-xs space-y-3">
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-start gap-2.5">
+              <span class="text-2xl shrink-0 mt-0.5">🌱</span>
+              <div>
+                <h3 class="text-xs sm:text-sm font-bold text-zinc-900 flex items-center gap-1.5 flex-wrap">
+                  <span>셀모임 보고서에 오신 것을 환영합니다!</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-medium">초간단 3단계 시작</span>
+                </h3>
+                <p class="text-[11px] text-zinc-600 mt-1 leading-relaxed">
+                  본인의 셀 리더 이름과 셀원을 등록한 뒤, 상단 <b>[동기화]</b>를 설정하시면 모바일과 PC 어디서든 내 셀 데이터가 안전하게 자동 저장됩니다.
+                </p>
+              </div>
+            </div>
+            ${hasSyncOrMembers ? `
+              <button onclick="dismissOnboardingBanner()" class="text-zinc-400 hover:text-zinc-600 text-xs p-1" title="닫기">✕</button>
+            ` : ''}
+          </div>
+
+          <!-- 3단계 시작 가이드 -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-xs">
+            <div class="bg-white/90 p-2.5 rounded-lg border border-indigo-100 flex items-start gap-2">
+              <span class="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5">1</span>
+              <div>
+                <b class="text-zinc-800 text-[11px]">기본 정보 입력</b>
+                <p class="text-[10px] text-zinc-500 mt-0.5">아래에 본인 <b>셀 리더 이름</b>과 <b>모임 장소</b>를 입력하세요.</p>
+              </div>
+            </div>
+            <div class="bg-white/90 p-2.5 rounded-lg border border-indigo-100 flex items-start gap-2">
+              <span class="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5">2</span>
+              <div>
+                <b class="text-zinc-800 text-[11px]">셀원 명단 등록</b>
+                <p class="text-[10px] text-zinc-500 mt-0.5">상단 <b>[멤버]</b> 버튼을 눌러 내 셀원들을 등록하세요.</p>
+              </div>
+            </div>
+            <div class="bg-white/90 p-2.5 rounded-lg border border-indigo-100 flex items-start gap-2">
+              <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5">3</span>
+              <div>
+                <b class="text-emerald-900 text-[11px]">동기화 코드 설정</b>
+                <p class="text-[10px] text-zinc-500 mt-0.5">상단 <b>[동기화]</b>를 눌러 나만의 코드(예: 홍길동1234)를 연결하세요.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 pt-0.5">
+            <button type="button" onclick="openMemberModal()" class="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 shadow-xs">
+              <span>👥</span> <span>지금 셀원 등록하기</span>
+            </button>
+            <button type="button" onclick="openSyncModal()" class="px-3 py-1.5 bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 shadow-xs">
+              <span>☁️</span> <span>동기화 코드 연결하기</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function dismissOnboardingBanner() {
+      localStorage.setItem('cell_onboarding_dismissed', 'true');
+      const banner = document.getElementById('onboardingBanner');
+      if (banner) {
+        banner.innerHTML = '';
+        banner.classList.add('hidden');
+      }
     }
 
     // 메인 보고서 상단 주일 주차 및 제출 상태 배너 렌더링
@@ -1462,18 +1527,33 @@
         }
         const savedMembers = localStorage.getItem('cell_members');
         if (savedMembers) {
-          state.members = JSON.parse(savedMembers);
+          try {
+            state.members = JSON.parse(savedMembers);
+          } catch(e) {
+            state.members = [];
+          }
+        } else {
+          state.members = [];
         }
+
         const savedLeader = localStorage.getItem('cell_leader_name');
-        if (savedLeader !== null) {
+        if (savedLeader !== null && savedLeader !== undefined) {
           state.leaderName = savedLeader;
-          document.getElementById('leaderNameInput').value = savedLeader;
+        } else {
+          state.leaderName = '';
         }
+        const leaderInputEl = document.getElementById('leaderNameInput');
+        if (leaderInputEl) leaderInputEl.value = state.leaderName || '';
+
         const savedLocation = localStorage.getItem('cell_location');
-        if (savedLocation) {
+        if (savedLocation !== null && savedLocation !== undefined) {
           state.location = savedLocation;
-          document.getElementById('meetingLocationInput').value = savedLocation;
+        } else {
+          state.location = '';
         }
+        const locInputEl = document.getElementById('meetingLocationInput');
+        if (locInputEl) locInputEl.value = state.location || '';
+
         const savedDate = localStorage.getItem('cell_meeting_date');
         if (savedDate) {
           state.meetingDate = savedDate;
@@ -1512,7 +1592,8 @@
           state.notes = savedNotes;
           document.getElementById('notesInput').value = savedNotes;
         } else {
-          document.getElementById('notesInput').value = state.notes;
+          state.notes = '';
+          document.getElementById('notesInput').value = '';
         }
         const savedPrayers = localStorage.getItem('cell_prayers');
         if (savedPrayers) {
@@ -1523,38 +1604,49 @@
           state.memberRoles = JSON.parse(savedRoles);
         }
         if (!state.memberRoles) state.memberRoles = {};
-        if (!state.memberRoles['송예찬']) state.memberRoles['송예찬'] = '셀리더';
-        if (!state.memberRoles['박승곤']) state.memberRoles['박승곤'] = '셀리더';
-        if (!state.memberRoles['윤수민']) state.memberRoles['윤수민'] = '셀리더';
-        if (!state.memberRoles['김한빈']) state.memberRoles['김한빈'] = '셀리더';
-        if (!state.memberRoles['육현조']) state.memberRoles['육현조'] = '셀리더';
-        if (!state.memberRoles['최진성']) state.memberRoles['최진성'] = '셀리더';
-        if (!state.memberRoles['주진']) state.memberRoles['주진'] = '디모데';
-        if (!state.memberRoles['양광모']) state.memberRoles['양광모'] = '디모데';
-        state.memberRoles['조국현'] = '디모데';
-        state.memberRoles['권회인'] = '셀리더';
-        state.memberRoles['박창현'] = '셀리더';
+
+        // 송예찬 셀 멤버가 있을 때만 기본 직책 보장
+        if (state.members && state.members.includes('송예찬')) {
+          if (!state.memberRoles['송예찬']) state.memberRoles['송예찬'] = '셀리더';
+          if (!state.memberRoles['박승곤']) state.memberRoles['박승곤'] = '셀리더';
+          if (!state.memberRoles['윤수민']) state.memberRoles['윤수민'] = '셀리더';
+          if (!state.memberRoles['김한빈']) state.memberRoles['김한빈'] = '셀리더';
+          if (!state.memberRoles['육현조']) state.memberRoles['육현조'] = '셀리더';
+          if (!state.memberRoles['최진성']) state.memberRoles['최진성'] = '셀리더';
+          if (!state.memberRoles['주진']) state.memberRoles['주진'] = '디모데';
+          if (!state.memberRoles['양광모']) state.memberRoles['양광모'] = '디모데';
+          state.memberRoles['조국현'] = '디모데';
+          state.memberRoles['권회인'] = '셀리더';
+          state.memberRoles['박창현'] = '셀리더';
+        }
 
         const savedLeaderCellStatus = localStorage.getItem('cell_leader_cell_status');
         if (savedLeaderCellStatus) {
           state.leaderCellStatus = JSON.parse(savedLeaderCellStatus);
         }
         if (!state.leaderCellStatus) state.leaderCellStatus = {};
-        // 박승곤, 윤수민, 권회인, 박창현은 셀오픈 셀리더이므로 open 보장
-        if (state.leaderCellStatus['박승곤'] === undefined) state.leaderCellStatus['박승곤'] = 'open';
-        if (state.leaderCellStatus['윤수민'] === undefined) state.leaderCellStatus['윤수민'] = 'open';
-        if (state.leaderCellStatus['주진'] === undefined) state.leaderCellStatus['주진'] = 'open';
-        if (state.leaderCellStatus['송예찬'] === undefined) state.leaderCellStatus['송예찬'] = 'open';
-        state.leaderCellStatus['권회인'] = 'open';
-        state.leaderCellStatus['박창현'] = 'open';
-        state.leaderCellStatus['조국현'] = 'unopened';
-        if (state.leaderCellStatus['김한빈'] === undefined) state.leaderCellStatus['김한빈'] = 'unopened';
-        if (state.leaderCellStatus['육현조'] === undefined) state.leaderCellStatus['육현조'] = 'unopened';
-        if (state.leaderCellStatus['최진성'] === undefined) state.leaderCellStatus['최진성'] = 'unopened';
-        if (state.leaderCellStatus['양광모'] === undefined) state.leaderCellStatus['양광모'] = 'unopened';
+
+        // 송예찬 셀 멤버가 있을 때만 셀오픈 상태 기본값 보장
+        if (state.members && state.members.includes('송예찬')) {
+          if (state.leaderCellStatus['박승곤'] === undefined) state.leaderCellStatus['박승곤'] = 'open';
+          if (state.leaderCellStatus['윤수민'] === undefined) state.leaderCellStatus['윤수민'] = 'open';
+          if (state.leaderCellStatus['주진'] === undefined) state.leaderCellStatus['주진'] = 'open';
+          if (state.leaderCellStatus['송예찬'] === undefined) state.leaderCellStatus['송예찬'] = 'open';
+          state.leaderCellStatus['권회인'] = 'open';
+          state.leaderCellStatus['박창현'] = 'open';
+          state.leaderCellStatus['조국현'] = 'unopened';
+          if (state.leaderCellStatus['김한빈'] === undefined) state.leaderCellStatus['김한빈'] = 'unopened';
+          if (state.leaderCellStatus['육현조'] === undefined) state.leaderCellStatus['육현조'] = 'unopened';
+          if (state.leaderCellStatus['최진성'] === undefined) state.leaderCellStatus['최진성'] = 'unopened';
+          if (state.leaderCellStatus['양광모'] === undefined) state.leaderCellStatus['양광모'] = 'unopened';
+        }
         try {
-          localStorage.setItem('cell_member_roles', JSON.stringify(state.memberRoles));
-          localStorage.setItem('cell_leader_cell_status', JSON.stringify(state.leaderCellStatus));
+          if (Object.keys(state.memberRoles).length > 0) {
+            localStorage.setItem('cell_member_roles', JSON.stringify(state.memberRoles));
+          }
+          if (Object.keys(state.leaderCellStatus).length > 0) {
+            localStorage.setItem('cell_leader_cell_status', JSON.stringify(state.leaderCellStatus));
+          }
           if (typeof SUB_CELL_REPORTS !== 'undefined' && SUB_CELL_REPORTS['조국현']) {
             delete SUB_CELL_REPORTS['조국현'];
             if (typeof saveSubCellReports === 'function') saveSubCellReports();
@@ -1764,6 +1856,27 @@
 
       sundayContainer.innerHTML = '';
       cellContainer.innerHTML = '';
+
+      if (state.members.length === 0) {
+        sundayContainer.innerHTML = `
+          <div class="col-span-full py-6 px-4 bg-zinc-50 border border-dashed border-zinc-300 rounded-xl text-center space-y-2">
+            <div class="text-2xl">👥</div>
+            <div class="text-xs font-semibold text-zinc-700">아직 등록된 셀원이 없습니다</div>
+            <p class="text-[11px] text-zinc-500">상단 <b>[멤버]</b> 버튼을 누르거나 아래 버튼으로 본인 셀원 명단을 등록하세요.</p>
+            <button type="button" onclick="openMemberModal()" class="mt-1 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg text-xs font-semibold transition active:scale-95 shadow-xs inline-flex items-center gap-1">
+              <span>+ 셀원 등록하기</span>
+            </button>
+          </div>
+        `;
+        cellContainer.innerHTML = `
+          <div class="col-span-full py-4 px-3 bg-zinc-50 border border-dashed border-zinc-200 rounded-xl text-center">
+            <p class="text-[11px] text-zinc-400">셀원을 등록하시면 이곳에서 셀모임 출석을 체크할 수 있습니다.</p>
+          </div>
+        `;
+        document.getElementById('sundayWorshipBadge').innerText = '0 / 0명';
+        document.getElementById('cellMeetingBadge').innerText = '0 / 0명';
+        return;
+      }
 
       let sundayAttCount = 0;
       let cellAttCount = 0;
@@ -2001,6 +2114,16 @@
       const sundayList = document.getElementById('sundayAbsenceList');
       const cellList = document.getElementById('cellAbsenceList');
 
+      if (!sundayList || !cellList) return;
+
+      if (state.members.length === 0) {
+        sundayList.innerHTML = `<div class="text-xs text-zinc-400 py-3 px-3 bg-zinc-50 rounded-lg border border-dashed border-zinc-200 text-center">등록된 셀원이 없습니다.</div>`;
+        cellList.innerHTML = `<div class="text-xs text-zinc-400 py-3 px-3 bg-zinc-50 rounded-lg border border-dashed border-zinc-200 text-center">등록된 셀원이 없습니다.</div>`;
+        document.getElementById('sundayAbsenceCount').innerText = '0';
+        document.getElementById('cellAbsenceCount').innerText = '0';
+        return;
+      }
+
       const sundayAbsentees = getAbsentees('sunday');
       const cellAbsentees = getAbsentees('cell');
 
@@ -2121,6 +2244,11 @@
       const dateTimeStr = getFormattedDateTime();
       const locationStr = state.location || '3층 DCC';
       const totalCount = state.members.length;
+
+      if (totalCount === 0) {
+        return `[${state.leaderName ? state.leaderName + ' ' : ''}셀모임 보고서]\n\n1. ${dateTimeStr}\n\n2. 장소: ${state.location || '미입력'}\n\n💡 상단 [멤버] 버튼을 눌러 본인 셀원을 등록하고, [동기화]로 코드를 연결하시면 보고서가 완성됩니다!`;
+      }
+
       const allMembersStr = state.members.join(', ');
 
       // 참석자
@@ -2258,6 +2386,7 @@
     }
 
     function renderAll() {
+      if (typeof renderOnboardingBanner === 'function') renderOnboardingBanner();
       renderAttendanceChips();
       renderAbsenceList();
       renderPrayerList();
@@ -2310,6 +2439,22 @@
 
       container.innerHTML = '';
       if (!state.prayers) state.prayers = {};
+
+      if (state.members.length === 0) {
+        container.innerHTML = `
+          <div class="py-8 px-4 bg-zinc-50 border border-dashed border-zinc-300 rounded-xl text-center space-y-2">
+            <div class="text-2xl">🙏</div>
+            <div class="text-xs font-semibold text-zinc-700">등록된 셀원이 없습니다</div>
+            <p class="text-[11px] text-zinc-500">상단 <b>[멤버]</b> 버튼을 눌러 셀원을 등록하시면 셀원별 기도제목을 작성할 수 있습니다.</p>
+            <button type="button" onclick="openMemberModal()" class="mt-1 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg text-xs font-semibold transition active:scale-95 shadow-xs inline-flex items-center gap-1">
+              <span>+ 셀원 등록하기</span>
+            </button>
+          </div>
+        `;
+        if (countBadge) countBadge.innerText = '0명 작성 / 총 0명';
+        updateTabBadges();
+        return;
+      }
 
       let filledCount = 0;
 
@@ -3233,11 +3378,27 @@
       renderModalMemberList();
     }
 
+    function clearAllMembers() {
+      if (!state.members || state.members.length === 0) return;
+      if (!confirm('등록된 모든 셀원 명단을 비우시겠습니까?')) return;
+      state.members = [];
+      state.sundayAttendance = {};
+      state.cellAttendance = {};
+      state.sundayReasons = {};
+      state.cellReasons = {};
+      state.prayers = {};
+      saveStorage();
+      renderModalMemberList();
+      renderAll();
+      showToast('셀원 명단이 초기화되었습니다.');
+    }
+
     function resetDefaultMembers() {
       if (!confirm('기본 9명 명단으로 되돌리시겠습니까?')) return;
       state.members = [...DEFAULT_MEMBERS];
       saveStorage();
       renderModalMemberList();
+      renderAll();
     }
 
     let currentGuideTab = 'report';
@@ -3525,7 +3686,7 @@
         btn.classList.add('border-emerald-300', 'bg-emerald-50/70');
         btn.classList.remove('text-zinc-700', 'bg-white');
       } else {
-        btnText.innerText = '동기화';
+        btnText.innerHTML = `<span>동기화</span> <span class="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block ml-0.5" title="동기화 코드 미연결"></span>`;
         btn.classList.remove('border-emerald-300', 'bg-emerald-50/70');
         btn.classList.add('text-zinc-700', 'bg-white');
       }
