@@ -1217,6 +1217,8 @@
         return;
       }
 
+      const hasSyncOrMembers = !!(state.syncCode || (state.members && state.members.length > 0));
+
       // 동기화 코드가 없거나 멤버가 0명인 신규 접속자에게 가이드 카드 노출
       banner.classList.remove('hidden');
       banner.innerHTML = `
@@ -1234,9 +1236,7 @@
                 </p>
               </div>
             </div>
-            ${hasSyncOrMembers ? `
-              <button onclick="dismissOnboardingBanner()" class="text-zinc-400 hover:text-zinc-600 text-xs p-1" title="닫기">✕</button>
-            ` : ''}
+            <button onclick="dismissOnboardingBanner()" class="text-zinc-400 hover:text-zinc-600 text-xs p-1" title="닫기">✕</button>
           </div>
 
           <!-- 3단계 시작 가이드 -->
@@ -2387,15 +2387,15 @@
     }
 
     function renderAll() {
-      if (typeof renderOnboardingBanner === 'function') renderOnboardingBanner();
-      renderAttendanceChips();
-      renderAbsenceList();
-      renderPrayerList();
-      updateOutput();
-      updatePrayerPreview();
-      updateTabBadges();
-      if (typeof renderWeeklyReportBanner === 'function') renderWeeklyReportBanner();
-      if (typeof renderAdminEditingBanner === 'function') renderAdminEditingBanner();
+      try { if (typeof renderOnboardingBanner === 'function') renderOnboardingBanner(); } catch (e) { console.error('onboarding error', e); }
+      try { renderAttendanceChips(); } catch (e) { console.error('attendance chips error', e); }
+      try { renderAbsenceList(); } catch (e) { console.error('absence list error', e); }
+      try { renderPrayerList(); } catch (e) { console.error('prayer list error', e); }
+      try { updateOutput(); } catch (e) { console.error('update output error', e); }
+      try { updatePrayerPreview(); } catch (e) { console.error('prayer preview error', e); }
+      try { updateTabBadges(); } catch (e) { console.error('tab badges error', e); }
+      try { if (typeof renderWeeklyReportBanner === 'function') renderWeeklyReportBanner(); } catch (e) { console.error('weekly report banner error', e); }
+      try { if (typeof renderAdminEditingBanner === 'function') renderAdminEditingBanner(); } catch (e) { console.error('admin banner error', e); }
     }
 
     // ==========================================
