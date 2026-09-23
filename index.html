@@ -619,7 +619,7 @@
   </div>
 
   <!-- 멤버 관리 모달 (일괄 등록 기능 탑재) -->
-  <div id="memberModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+  <div id="memberModal" onclick="if(event.target === this) closeMemberModal()" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-md rounded-xl border border-zinc-200 p-5 space-y-3.5 max-h-[90vh] flex flex-col shadow-xl">
       <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
         <div class="flex items-center gap-2">
@@ -647,14 +647,13 @@
       </div>
 
       <!-- 단일/간이 입력창 (쉼표로 구분하여 여러 명 동시 입력 가능) -->
-      <div id="singleMemberInputRow" class="flex gap-2">
+      <form id="singleMemberInputRow" onsubmit="event.preventDefault(); addMember();" class="flex gap-2">
         <input type="text" id="newMemberInput" placeholder="이름 입력 (쉼표로 여러 명 가능: 김철수, 이영희, 박지성)" 
-          onkeypress="if(event.key === 'Enter') addMember();"
           class="flex-1 px-3 py-2 text-xs bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-zinc-900 font-normal">
-        <button onclick="addMember()" class="px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-medium rounded-lg transition active:scale-95 shrink-0">
+        <button type="submit" class="px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-medium rounded-lg transition active:scale-95 shrink-0">
           + 추가
         </button>
-      </div>
+      </form>
 
       <!-- 일괄 등록 펼침 패널 (대량 명단 붙여넣기 전용) -->
       <div id="bulkMemberPanel" class="hidden p-3 bg-zinc-50 border border-zinc-200 rounded-xl space-y-2.5">
@@ -3090,6 +3089,18 @@
     }
 
     function closeMemberModal() {
+      // 안전장치 1: 입력창에 이름을 입력해두고 '+ 추가' 버튼을 누르지 않은 채 닫거나 완료를 누른 경우 자동 추가
+      const input = document.getElementById('newMemberInput');
+      if (input && input.value.trim()) {
+        addMember();
+      }
+      // 안전장치 2: 카톡 명단 일괄 입력창에 내용을 넣고 '+ 기존에 추가' 버튼을 누르지 않은 경우 자동 추가
+      const bulkText = document.getElementById('bulkMemberText');
+      const bulkPanel = document.getElementById('bulkMemberPanel');
+      if (bulkPanel && !bulkPanel.classList.contains('hidden') && bulkText && bulkText.value.trim()) {
+        importBulkMembers(false);
+      }
+
       document.getElementById('memberModal').classList.add('hidden');
       renderAll();
       if (state.syncCode) {
