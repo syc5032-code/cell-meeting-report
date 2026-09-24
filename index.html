@@ -1153,6 +1153,18 @@
       }
     });
 
+    // 브라우저 탭 복귀(다른 앱 갔다 왔을 때) 및 페이지 포커스 시 클라우드 최신 데이터 자동 동기화
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && state.syncCode) {
+        loadFromCloud(true);
+      }
+    });
+    window.addEventListener('pageshow', () => {
+      if (state.syncCode) {
+        loadFromCloud(true);
+      }
+    });
+
     function initWelcomeBanner() {
       if (localStorage.getItem('cell_welcomed')) {
         const b = document.getElementById('welcomeBanner');
@@ -1703,9 +1715,21 @@
           submitSubCellReport(subLeader, getExportData(), false);
         }
         updateSaveBadge();
+        scheduleCloudAutoSync();
       } catch (e) {
         console.error('Failed to save storage', e);
       }
+    }
+
+    let cloudAutoSyncTimer = null;
+    function scheduleCloudAutoSync() {
+      if (!state.syncCode) return;
+      if (cloudAutoSyncTimer) clearTimeout(cloudAutoSyncTimer);
+      cloudAutoSyncTimer = setTimeout(() => {
+        if (state.syncCode && typeof saveToCloud === 'function') {
+          saveToCloud(true);
+        }
+      }, 1500);
     }
 
     function updateSaveBadge() {
@@ -3812,12 +3836,12 @@
         if (!res.ok) throw new Error('Cloud load failed');
         const json = await res.json();
         if (json.ok && json.data) {
-          applyImportData(json.data);
+          applyImportData(json.data, true);
           if (typeof syncTaehongDemoCellFromState === 'function' && adminEditingTarget === 'taehong') {
             syncTaehongDemoCellFromState();
           }
           localStorage.setItem('cell_last_sync_time', new Date().toISOString());
-          if (!isSilent) showToast(`☁️ '${activeCode}' 데이터를 최신으로 동기화했습니다!`);
+          showToast(`☁️ '${activeCode}' 최신 데이터를 자동 동기화했습니다!`);
           updateSyncHeaderUI();
         }
       } catch (e) {
